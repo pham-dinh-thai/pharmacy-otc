@@ -10,7 +10,7 @@ import { CREATE_USER_PORT } from './application/commands/register/ports/create-u
 import { CreateUserAdapter } from './infrastructure/adapters/create-user.adapter';
 import { CREATE_CUSTOMER_PORT } from './application/commands/register/ports/create-customer.port';
 import { CreateCustomerAdapter } from './infrastructure/adapters/create-customer.adapter';
-import { GET_USER_BY_EMAIL_PORT } from './application/commands/login/ports/get-user-by-email.port';
+import { GET_USER_BY_EMAIL_PORT } from './application/ports/get-user-by-email.port';
 import { GetUserByEmailAdapter } from './infrastructure/adapters/get-user-by-email.adapter';
 import { SIGN_TOKEN_PORT } from './application/ports/sign-token.port';
 import { JwtSignTokenAdapter } from './infrastructure/adapters/jwt-sign-token.adapter';
@@ -23,6 +23,7 @@ import { GET_USER_BY_ID_PORT } from './application/commands/refresh-token/ports/
 import { GetUserByIdAdapter } from './infrastructure/adapters/get-user-by-id.adapter';
 import { SecurityModule } from '../../shared/modules/security/security.module';
 import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
+import { ForgotPasswordHandler } from './application/commands/forgot-password/forgot-password.handler';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
     LoginHandler,
     RegisterHandler,
     RefreshTokenHandler,
+    ForgotPasswordHandler,
   ],
   controllers: [AuthenticationController],
 })

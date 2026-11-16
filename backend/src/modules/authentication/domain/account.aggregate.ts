@@ -53,6 +53,12 @@ export class Account {
     return this.password.verify(plain);
   }
 
+  public async changePassword(newPassword: string): Promise<void> {
+    this.password = await Password.fromPlainText(newPassword);
+
+    this.updatedAt = new Date();
+  }
+
   public getId(): string {
     return this.id.getValue();
   }
