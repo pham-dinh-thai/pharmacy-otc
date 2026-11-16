@@ -27,9 +27,16 @@ import { ActorContext } from '../../../../shared/modules/security/actor-context.
 import { type ActorHeaders } from '../../../../shared/types/actor-headers';
 import { ChangePasswordCommand } from '../../application/commands/change-password/change-password.command';
 import { AuthGuard } from '../../../../shared/modules/security/auth.guard';
+import { LogoutCommand } from '../../application/commands/logout/logout.command';
 
 const REFRESH_COOKIE = 'refresh_token';
 const REFRESH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+const REFRESH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: 'strict',
+  path: '/api/authentication',
+} as const;
 
 @Controller('authentication')
 export class AuthenticationController {
@@ -40,11 +47,16 @@ export class AuthenticationController {
 
   private setRefreshCookie(res: Response, token: string): void {
     res.cookie(REFRESH_COOKIE, token, {
-      httpOnly: true,
+      ...REFRESH_COOKIE_OPTIONS,
       secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite: 'strict',
-      path: '/api/authentication/refresh',
       maxAge: REFRESH_MAX_AGE_MS,
+    });
+  }
+
+  private clearRefreshCookie(res: Response): void {
+    res.clearCookie(REFRESH_COOKIE, {
+      ...REFRESH_COOKIE_OPTIONS,
+      secure: this.configService.get('NODE_ENV') === 'production',
     });
   }
 
@@ -126,5 +138,22 @@ export class AuthenticationController {
         headers,
       ),
     );
+  }
+
+  @Post('/logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  public async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    const refreshToken: unknown = req.cookies?.[REFRESH_COOKIE];
+
+    try {
+      if (typeof refreshToken === 'string' && refreshToken) {
+        await this.commandBus.execute(new LogoutCommand(refreshToken));
+      }
+    } finally {
+      this.clearRefreshCookie(res);
+    }
   }
 }
