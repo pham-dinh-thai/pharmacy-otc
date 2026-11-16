@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Headers,
   HttpCode,
   HttpStatus,
@@ -13,7 +14,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { RegisterRequest } from './requests/register.request';
-import { CommandBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { RegisterCommand } from '../../application/commands/register/register.command';
 import { LoginRequest } from './requests/login.request';
 import { LoginCommand } from '../../application/commands/login/login.command';
@@ -30,6 +31,10 @@ import { AuthGuard } from '../../../../shared/modules/security/auth.guard';
 import { RateLimitGuard } from '../../../../shared/modules/security/rate-limit.guard';
 import { RateLimit } from '../../../../shared/modules/security/rate-limit.decorator';
 import { LogoutCommand } from '../../application/commands/logout/logout.command';
+import { CurrentUser } from '../../../../shared/modules/security/current-user.decorator';
+import { GetUserByIdQuery } from '../../../users/application/queries/get-user-by-id/get-user-by-id.query';
+import { GetActorPermissionsQuery } from '../../../authorization/application/queries/get-actor-permissions/get-actor-permissions.query';
+import { CurrentUserResponse } from './responses/current-user.response';
 
 const REFRESH_COOKIE = 'refresh_token';
 const REFRESH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -44,6 +49,7 @@ const REFRESH_COOKIE_OPTIONS = {
 export class AuthenticationController {
   public constructor(
     private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
     private readonly configService: ConfigService,
   ) {}
 
@@ -109,6 +115,31 @@ export class AuthenticationController {
     this.setRefreshCookie(res, refreshToken);
 
     return { accessToken };
+  }
+
+  @Get('/me')
+  @UseGuards(AuthGuard)
+  public async me(
+    @CurrentUser('sub') sub: string,
+  ): Promise<CurrentUserResponse> {
+    const user = await this.queryBus.execute(new GetUserByIdQuery(sub));
+
+    if (!user) {
+      throw new UnauthorizedException('Authenticated user no longer exists');
+    }
+
+    const access = await this.queryBus.execute(
+      new GetActorPermissionsQuery(sub),
+    );
+
+    return new CurrentUserResponse(
+      user.id,
+      user.firstName,
+      user.lastName,
+      user.email,
+      access.isSuperAdmin,
+      access.permissions,
+    );
   }
 
   @Post('/refresh')
