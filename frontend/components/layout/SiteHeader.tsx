@@ -43,12 +43,6 @@ export function SiteHeader({
         />
 
         <div className="ml-auto flex items-center gap-4 text-[13px] font-medium sm:gap-5">
-          {authSlot ?? (
-            <Link href="/login" className="hover:text-accent">
-              Đăng nhập
-            </Link>
-          )}
-
           <button
             type="button"
             onClick={openCart}
@@ -58,6 +52,12 @@ export function SiteHeader({
             <span className="hidden sm:inline">Giỏ hàng</span>
             <span className="tabular-nums text-muted">({totalItems})</span>
           </button>
+
+          {authSlot ?? (
+            <Link href="/login" className="hover:text-accent">
+              Đăng nhập
+            </Link>
+          )}
         </div>
       </Container>
 

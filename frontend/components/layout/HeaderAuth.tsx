@@ -1,20 +1,25 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from '@/lib/session';
-import { handleLogout } from '@/app/(features)/login/actions';
+import {
+  canAccessAdmin,
+  canAccessStaff,
+  fetchCurrentUser,
+} from '@/lib/account';
+import { AccountMenu } from './AccountMenu';
 
 /**
- * Server component để đọc cookie httpOnly và hiển thị đúng trạng thái đăng
- * nhập. Phải nằm trong <Suspense> vì đọc cookies() là dữ liệu động.
+ * Server component đọc cookie httpOnly rồi hiển thị menu tài khoản. Phải nằm
+ * trong <Suspense> vì đọc cookies() là dữ liệu động.
  */
 export async function HeaderAuth() {
   const cookieStore = await cookies();
-  const isLoggedIn = Boolean(
+  const hasSession = Boolean(
     cookieStore.get(ACCESS_TOKEN_COOKIE)?.value ??
     cookieStore.get(REFRESH_TOKEN_COOKIE)?.value,
   );
 
-  if (!isLoggedIn) {
+  if (!hasSession) {
     return (
       <Link href="/login" className="hover:text-accent">
         Đăng nhập
@@ -22,18 +27,15 @@ export async function HeaderAuth() {
     );
   }
 
+  // Access token có thể đã hết hạn trong khi refresh token còn sống. Khi đó
+  // /me trả 401 và menu chỉ hiện các mục cơ bản; proxy sẽ tự refresh khi
+  // người dùng mở một trang được bảo vệ.
+  const user = await fetchCurrentUser();
+
   return (
-    <div className="flex items-center gap-4 sm:gap-5">
-      <Link href="/account/password" className="hover:text-accent">
-        <span className="sm:hidden">Tài khoản</span>
-        <span className="hidden sm:inline">Đổi mật khẩu</span>
-      </Link>
-      <form action={handleLogout}>
-        <button type="submit" className="hover:text-accent">
-          <span className="sm:hidden">Thoát</span>
-          <span className="hidden sm:inline">Đăng xuất</span>
-        </button>
-      </form>
-    </div>
+    <AccountMenu
+      canAccessAdmin={user ? canAccessAdmin(user) : false}
+      canAccessStaff={user ? canAccessStaff(user) : false}
+    />
   );
 }
