@@ -57,14 +57,21 @@ Chi tiết: [docs/architecture.md](docs/architecture.md).
 
 ```bash
 cp .env.example .env       # điền biến môi trường
-docker compose up -d       # PostgreSQL + Redis + RedisInsight
+docker compose up -d       # PostgreSQL + Redis + RedisInsight + nginx
 cd backend
 npm install
 npm run migration:up
 npm run start:dev
 ```
 
-API chạy tại `http://localhost:3000/api`.
+API chạy tại `http://localhost:3000/api`, frontend tại `http://localhost:3001`,
+và đi qua nginx tại `http://localhost` (`/api/` → backend, `/` → frontend).
+
+### nginx
+
+Service `nginx` dùng `network_mode: host` (Linux) để thấy được backend/frontend
+đang chạy trực tiếp trên host qua `127.0.0.1:3000` / `127.0.0.1:3001` và bind
+thẳng port 80. Không dùng được trên Docker Desktop (macOS/Windows).
 
 ### Tài khoản quản trị
 
@@ -98,6 +105,7 @@ npm run build
 .
 ├── backend/          # NestJS API
 ├── docs/             # tài liệu dự án
+├── nginx/nginx.conf  # reverse proxy
 ├── docker-compose.yaml
 └── README.md
 ```
