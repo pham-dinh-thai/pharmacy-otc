@@ -1,43 +1,80 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
-import { canAccessAdmin, fetchCurrentUser, hasPermission } from '@/lib/account';
+import { WorkspacePage } from '@/components/layout/WorkspaceShell';
+import { fetchCurrentUser } from '@/lib/account';
+import { adminNav, subItems } from '@/lib/workspace';
 
-async function AdminContent() {
+const CELL_CLASS = 'bg-paper px-5 py-4';
+const LABEL_CLASS =
+  'text-[11px] font-semibold uppercase tracking-[0.16em] text-muted';
+const VALUE_CLASS = 'mt-1 text-[14px]';
+
+async function AdminOverview() {
   const user = await fetchCurrentUser();
 
   if (!user) redirect('/login?next=/admin');
-  if (!canAccessAdmin(user)) redirect('/account');
 
-  const canReadRoles = user.isSuperAdmin || hasPermission(user, 'roles:read');
+  const items = subItems(adminNav(user), '/admin');
 
   return (
-    <WorkspaceShell
+    <WorkspacePage
       eyebrow="Quản trị"
-      title="Trang điều khiển admin"
+      title="Tổng quan"
       intro="Quản lý vai trò, quyền truy cập và cấu hình vận hành."
     >
-      <ul className="max-w-[760px] border-t border-rule">
-        {canReadRoles && (
-          <li className="border-b border-rule">
-            <Link
-              href="/roles"
-              className="flex items-baseline justify-between gap-4 py-4 hover:text-accent"
-            >
-              <span>
-                <span className="block text-[15px] font-semibold">
-                  Vai trò & phân quyền
-                </span>
-                <span className="mt-0.5 block text-[13px] leading-5 text-muted">
-                  Tạo vai trò, gán quyền và đặt cờ Super Admin.
-                </span>
-              </span>
-              <span aria-hidden="true">→</span>
-            </Link>
-          </li>
+      <dl className="grid max-w-[620px] grid-cols-1 gap-px border border-rule bg-rule sm:grid-cols-2">
+        <div className={CELL_CLASS}>
+          <dt className={LABEL_CLASS}>Vai trò</dt>
+          <dd className={VALUE_CLASS}>
+            {user.isSuperAdmin ? 'Super Admin' : 'Thành viên'}
+          </dd>
+        </div>
+
+        <div className={CELL_CLASS}>
+          <dt className={LABEL_CLASS}>Quyền</dt>
+          <dd className={VALUE_CLASS}>
+            {user.isSuperAdmin
+              ? 'Toàn quyền'
+              : `${user.permissions.length} quyền`}
+          </dd>
+        </div>
+      </dl>
+
+      <section className="mt-10 max-w-[760px]">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+          Chức năng
+        </h2>
+
+        {items.length > 0 ? (
+          <ul className="mt-3 border-t border-rule">
+            {items.map((item) => (
+              <li key={item.href} className="border-b border-rule">
+                <Link
+                  href={item.href}
+                  className="flex items-baseline justify-between gap-4 py-4 hover:text-accent"
+                >
+                  <span>
+                    <span className="block text-[15px] font-semibold">
+                      {item.label}
+                    </span>
+                    {item.hint && (
+                      <span className="mt-0.5 block text-[13px] leading-5 text-muted">
+                        {item.hint}
+                      </span>
+                    )}
+                  </span>
+                  <span aria-hidden="true">→</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-[13px] leading-6 text-muted">
+            Tài khoản chưa được cấp chức năng quản trị nào.
+          </p>
         )}
-      </ul>
+      </section>
 
       <section className="mt-10 max-w-[760px]">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
@@ -49,14 +86,14 @@ async function AdminContent() {
             : user.permissions.join(', ') || 'Chưa được cấp quyền nào.'}
         </p>
       </section>
-    </WorkspaceShell>
+    </WorkspacePage>
   );
 }
 
 export default function AdminPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen" />}>
-      <AdminContent />
+    <Suspense fallback={<div className="min-h-[50vh]" />}>
+      <AdminOverview />
     </Suspense>
   );
 }

@@ -1,7 +1,10 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
+import {
+  WorkspacePage,
+  WorkspaceShell,
+} from '@/components/layout/WorkspaceShell';
 import {
   canAccessAdmin,
   canAccessStaff,
@@ -20,65 +23,67 @@ async function AccountContent() {
   if (!user) redirect('/login?next=/account');
 
   return (
-    <WorkspaceShell
-      eyebrow="Tài khoản"
-      title={displayName(user)}
-      intro="Thông tin đăng nhập và quyền hiện có của bạn."
-    >
-      <dl className="grid max-w-[620px] grid-cols-1 gap-px border border-rule bg-rule sm:grid-cols-2">
-        <div className={CELL_CLASS}>
-          <dt className={LABEL_CLASS}>Họ tên</dt>
-          <dd className={VALUE_CLASS}>{displayName(user)}</dd>
-        </div>
+    <WorkspaceShell>
+      <WorkspacePage
+        eyebrow="Tài khoản"
+        title={displayName(user)}
+        intro="Thông tin đăng nhập và quyền hiện có của bạn."
+      >
+        <dl className="grid max-w-[620px] grid-cols-1 gap-px border border-rule bg-rule sm:grid-cols-2">
+          <div className={CELL_CLASS}>
+            <dt className={LABEL_CLASS}>Họ tên</dt>
+            <dd className={VALUE_CLASS}>{displayName(user)}</dd>
+          </div>
 
-        <div className={CELL_CLASS}>
-          <dt className={LABEL_CLASS}>Email</dt>
-          <dd className={`${VALUE_CLASS} break-all`}>{user.email}</dd>
-        </div>
+          <div className={CELL_CLASS}>
+            <dt className={LABEL_CLASS}>Email</dt>
+            <dd className={`${VALUE_CLASS} break-all`}>{user.email}</dd>
+          </div>
 
-        <div className={CELL_CLASS}>
-          <dt className={LABEL_CLASS}>Vai trò</dt>
-          <dd className={VALUE_CLASS}>
-            {user.isSuperAdmin ? 'Super Admin' : 'Thành viên'}
-          </dd>
-        </div>
+          <div className={CELL_CLASS}>
+            <dt className={LABEL_CLASS}>Vai trò</dt>
+            <dd className={VALUE_CLASS}>
+              {user.isSuperAdmin ? 'Super Admin' : 'Thành viên'}
+            </dd>
+          </div>
 
-        <div className={CELL_CLASS}>
-          <dt className={LABEL_CLASS}>Quyền</dt>
-          <dd className={VALUE_CLASS}>
-            {user.isSuperAdmin
-              ? 'Toàn quyền'
-              : `${user.permissions.length} quyền`}
-          </dd>
-        </div>
-      </dl>
+          <div className={CELL_CLASS}>
+            <dt className={LABEL_CLASS}>Quyền</dt>
+            <dd className={VALUE_CLASS}>
+              {user.isSuperAdmin
+                ? 'Toàn quyền'
+                : `${user.permissions.length} quyền`}
+            </dd>
+          </div>
+        </dl>
 
-      <div className="mt-8 flex flex-wrap gap-3">
-        <Link
-          href="/account/password"
-          className="border border-ink px-4 py-2.5 text-[13px] font-semibold hover:bg-ink hover:text-paper"
-        >
-          Đổi mật khẩu
-        </Link>
-
-        {canAccessAdmin(user) && (
+        <div className="mt-8 flex flex-wrap gap-3">
           <Link
-            href="/admin"
-            className="border border-rule px-4 py-2.5 text-[13px] font-medium hover:border-ink"
+            href="/account/password"
+            className="border border-ink px-4 py-2.5 text-[13px] font-semibold hover:bg-ink hover:text-paper"
           >
-            Trang điều khiển admin
+            Đổi mật khẩu
           </Link>
-        )}
 
-        {canAccessStaff(user) && (
-          <Link
-            href="/staff"
-            className="border border-rule px-4 py-2.5 text-[13px] font-medium hover:border-ink"
-          >
-            Trang điều khiển nhân viên
-          </Link>
-        )}
-      </div>
+          {canAccessAdmin(user) && (
+            <Link
+              href="/admin"
+              className="border border-rule px-4 py-2.5 text-[13px] font-medium hover:border-ink"
+            >
+              Trang điều khiển admin
+            </Link>
+          )}
+
+          {canAccessStaff(user) && (
+            <Link
+              href="/staff"
+              className="border border-rule px-4 py-2.5 text-[13px] font-medium hover:border-ink"
+            >
+              Trang điều khiển nhân viên
+            </Link>
+          )}
+        </div>
+      </WorkspacePage>
     </WorkspaceShell>
   );
 }

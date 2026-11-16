@@ -1,16 +1,13 @@
 import Link from 'next/link';
 import { handleLogout } from '@/app/(features)/login/actions';
 import { Container } from './Container';
+import { WorkspaceNav, type WorkspaceNavGroup } from './WorkspaceNav';
 
 export function WorkspaceShell({
-  eyebrow,
-  title,
-  intro,
+  nav,
   children,
 }: {
-  eyebrow: string;
-  title: string;
-  intro: string;
+  nav?: WorkspaceNavGroup[];
   children: React.ReactNode;
 }) {
   return (
@@ -46,18 +43,18 @@ export function WorkspaceShell({
       </header>
 
       <main className="flex-1">
-        <Container className="py-12 sm:py-16">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
-            {eyebrow}
-          </p>
-          <h1 className="mt-3 text-[clamp(1.75rem,3.5vw,2.5rem)] font-extrabold leading-[1.08] tracking-[-0.04em]">
-            {title}
-          </h1>
-          <p className="mt-4 max-w-[62ch] text-[14px] leading-6 text-muted">
-            {intro}
-          </p>
+        <Container
+          className={
+            nav ? 'lg:grid lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-12' : ''
+          }
+        >
+          {nav && (
+            <aside className="-mx-5 border-b border-rule px-5 sm:-mx-8 sm:px-8 lg:mx-0 lg:border-b-0 lg:border-r lg:px-0 lg:py-10">
+              <WorkspaceNav groups={nav} />
+            </aside>
+          )}
 
-          <div className="mt-10">{children}</div>
+          <div className="min-w-0 py-10 sm:py-14">{children}</div>
         </Container>
       </main>
 
@@ -67,5 +64,33 @@ export function WorkspaceShell({
         </Container>
       </footer>
     </div>
+  );
+}
+
+export function WorkspacePage({
+  eyebrow,
+  title,
+  intro,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  intro: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+        {eyebrow}
+      </p>
+      <h1 className="mt-3 text-[clamp(1.75rem,3.5vw,2.5rem)] font-extrabold leading-[1.08] tracking-[-0.04em]">
+        {title}
+      </h1>
+      <p className="mt-4 max-w-[62ch] text-[14px] leading-6 text-muted">
+        {intro}
+      </p>
+
+      <div className="mt-10">{children}</div>
+    </>
   );
 }

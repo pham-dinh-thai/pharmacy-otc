@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { authFetch } from './auth';
 
 export type CurrentUser = {
@@ -9,8 +10,11 @@ export type CurrentUser = {
   permissions: string[];
 };
 
-/** Đọc hồ sơ + quyền của người đang đăng nhập. Trả null khi chưa xác thực. */
-export async function fetchCurrentUser(): Promise<CurrentUser | null> {
+/**
+ * Đọc hồ sơ + quyền của người đang đăng nhập. Trả null khi chưa xác thực.
+ * `cache` gộp các lần gọi trong cùng một request (layout + page).
+ */
+export const fetchCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   let res: Response;
   try {
     res = await authFetch('/authentication/me');
@@ -21,7 +25,7 @@ export async function fetchCurrentUser(): Promise<CurrentUser | null> {
   if (!res.ok) return null;
 
   return (await res.json()) as CurrentUser;
-}
+});
 
 /** Kiểm tra một quyền cụ thể, có xét quyền quản lý dạng `resource:manage`. */
 export function hasPermission(user: CurrentUser, key: string): boolean {
