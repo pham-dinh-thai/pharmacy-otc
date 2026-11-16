@@ -13,6 +13,10 @@ import {
   type IOutboxRepository,
   OUTBOX_REPOSITORY,
 } from '../../../../../shared/modules/outbox/domain/outbox.repository';
+import {
+  type IRefreshTokenStorePort,
+  REFRESH_TOKEN_STORE_PORT,
+} from '../../ports/refresh-token-store.port';
 import { PASSWORD_CHANGED_AUDIT_EVENT } from '../../../domain/events/password-changed.event';
 import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
@@ -28,10 +32,13 @@ export class ChangePasswordHandler implements ICommandHandler<ChangePasswordComm
 
     @Inject(OUTBOX_REPOSITORY)
     private readonly outboxRepository: IOutboxRepository,
+
+    @Inject(REFRESH_TOKEN_STORE_PORT)
+    private readonly refreshTokenStorePort: IRefreshTokenStorePort,
   ) {}
 
   public async execute(command: ChangePasswordCommand): Promise<void> {
-    this.unitOfWork.run(async () => {
+    await this.unitOfWork.run(async () => {
       const account = await this.accountsRepository.findByUserIdOrFail(
         command.headers.actorId,
       );
@@ -52,5 +59,9 @@ export class ChangePasswordHandler implements ICommandHandler<ChangePasswordComm
         }),
       });
     });
+
+    // Đổi mật khẩu phải đăng xuất mọi thiết bị khác. Access token cũ vẫn sống
+    // tối đa 15 phút, nhưng refresh token thì bị thu hồi ngay.
+    await this.refreshTokenStorePort.revokeAll(command.headers.actorId);
   }
 }
