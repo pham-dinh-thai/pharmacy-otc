@@ -1,181 +1,99 @@
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
-import { authFetch } from '@/lib/auth';
-import { canAccessStaff, fetchCurrentUser, hasPermission } from '@/lib/account';
-import { formatVND } from '@/lib/utils';
+import { WorkspacePage } from '@/components/layout/WorkspaceShell';
+import { fetchCurrentUser } from '@/lib/account';
+import { staffNav, subItems } from '@/lib/workspace';
 
-type ProductListItem = {
-  id: string;
-  name: string;
-  unitPrice: string;
-  quantity: number;
-};
+const CELL_CLASS = 'bg-paper px-5 py-4';
+const LABEL_CLASS =
+  'text-[11px] font-semibold uppercase tracking-[0.16em] text-muted';
+const VALUE_CLASS = 'mt-1 text-[14px]';
 
-type SupplierListItem = {
-  id: string;
-  code: string;
-  name: string;
-  status: 'active' | 'inactive';
-  phone: string | null;
-  email: string | null;
-  address: string | null;
-  taxCode: string | null;
-};
-
-async function fetchList<T>(path: string): Promise<T[] | null> {
-  let res: Response;
-  try {
-    res = await authFetch(path);
-  } catch {
-    return null;
-  }
-
-  if (!res.ok) return null;
-
-  return (await res.json()) as T[];
-}
-
-const TH_CLASS =
-  'border-b border-rule py-2 pr-4 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted';
-const TD_CLASS = 'border-b border-rule py-3 pr-4 align-top';
-
-function StaffContent({
-  products,
-  suppliers,
-  showProducts,
-  showSuppliers,
-}: {
-  products: ProductListItem[] | null;
-  suppliers: SupplierListItem[] | null;
-  showProducts: boolean;
-  showSuppliers: boolean;
-}) {
-  return (
-    <>
-      {showProducts && (
-        <section className="max-w-[860px]">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
-            Sản phẩm
-          </h2>
-
-          {products && products.length > 0 ? (
-            <table className="mt-3 w-full border-collapse text-[13px]">
-              <thead>
-                <tr>
-                  <th className={TH_CLASS}>Tên</th>
-                  <th className={TH_CLASS}>Đơn giá</th>
-                  <th className={`${TH_CLASS} text-right`}>Tồn</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product) => (
-                  <tr key={product.id}>
-                    <td className={TD_CLASS}>{product.name}</td>
-                    <td className={TD_CLASS}>
-                      {formatVND(Number(product.unitPrice))}
-                    </td>
-                    <td className={`${TD_CLASS} text-right tabular-nums`}>
-                      {product.quantity}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="mt-3 text-[13px] text-muted">Chưa có sản phẩm.</p>
-          )}
-        </section>
-      )}
-
-      {showSuppliers && (
-        <section className="mt-10 max-w-[860px]">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
-            Nhà cung cấp
-          </h2>
-
-          {suppliers && suppliers.length > 0 ? (
-            <table className="mt-3 w-full border-collapse text-[13px]">
-              <thead>
-                <tr>
-                  <th className={TH_CLASS}>Mã</th>
-                  <th className={TH_CLASS}>Tên</th>
-                  <th className={TH_CLASS}>Trạng thái</th>
-                  <th className={TH_CLASS}>Liên hệ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {suppliers.map((supplier) => (
-                  <tr key={supplier.id}>
-                    <td className={`${TD_CLASS} tabular-nums`}>
-                      {supplier.code}
-                    </td>
-                    <td className={TD_CLASS}>{supplier.name}</td>
-                    <td className={TD_CLASS}>
-                      {supplier.status === 'active'
-                        ? 'Đang hoạt động'
-                        : 'Ngừng hoạt động'}
-                    </td>
-                    <td className={TD_CLASS}>
-                      {[supplier.phone, supplier.email]
-                        .filter(Boolean)
-                        .join(' · ') || '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="mt-3 text-[13px] text-muted">Chưa có nhà cung cấp.</p>
-          )}
-        </section>
-      )}
-
-      {!showProducts && !showSuppliers && (
-        <p className="max-w-[620px] text-[13px] leading-6 text-muted">
-          Tài khoản của bạn chưa được cấp quyền xem sản phẩm hoặc nhà cung cấp.
-        </p>
-      )}
-    </>
-  );
-}
-
-async function StaffData() {
+async function StaffOverview() {
   const user = await fetchCurrentUser();
 
   if (!user) redirect('/login?next=/staff');
-  if (!canAccessStaff(user)) redirect('/account');
 
-  const showProducts =
-    user.isSuperAdmin || hasPermission(user, 'products:read');
-  const showSuppliers =
-    user.isSuperAdmin || hasPermission(user, 'suppliers:read');
-
-  const [products, suppliers] = await Promise.all([
-    showProducts ? fetchList<ProductListItem>('/products') : null,
-    showSuppliers ? fetchList<SupplierListItem>('/suppliers') : null,
-  ]);
+  const items = subItems(staffNav(user), '/staff');
 
   return (
-    <WorkspaceShell
+    <WorkspacePage
       eyebrow="Nhân viên"
-      title="Trang điều khiển nhân viên"
+      title="Tổng quan"
       intro="Tra cứu sản phẩm và nhà cung cấp trong hệ thống."
     >
-      <StaffContent
-        products={products}
-        suppliers={suppliers}
-        showProducts={showProducts}
-        showSuppliers={showSuppliers}
-      />
-    </WorkspaceShell>
+      <dl className="grid max-w-[620px] grid-cols-1 gap-px border border-rule bg-rule sm:grid-cols-2">
+        <div className={CELL_CLASS}>
+          <dt className={LABEL_CLASS}>Vai trò</dt>
+          <dd className={VALUE_CLASS}>
+            {user.isSuperAdmin ? 'Super Admin' : 'Thành viên'}
+          </dd>
+        </div>
+
+        <div className={CELL_CLASS}>
+          <dt className={LABEL_CLASS}>Quyền</dt>
+          <dd className={VALUE_CLASS}>
+            {user.isSuperAdmin
+              ? 'Toàn quyền'
+              : `${user.permissions.length} quyền`}
+          </dd>
+        </div>
+      </dl>
+
+      <section className="mt-10 max-w-[760px]">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+          Chức năng
+        </h2>
+
+        {items.length > 0 ? (
+          <ul className="mt-3 border-t border-rule">
+            {items.map((item) => (
+              <li key={item.href} className="border-b border-rule">
+                <Link
+                  href={item.href}
+                  className="flex items-baseline justify-between gap-4 py-4 hover:text-accent"
+                >
+                  <span>
+                    <span className="block text-[15px] font-semibold">
+                      {item.label}
+                    </span>
+                    {item.hint && (
+                      <span className="mt-0.5 block text-[13px] leading-5 text-muted">
+                        {item.hint}
+                      </span>
+                    )}
+                  </span>
+                  <span aria-hidden="true">→</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-[13px] leading-6 text-muted">
+            Tài khoản chưa được cấp chức năng tra cứu nào.
+          </p>
+        )}
+      </section>
+
+      <section className="mt-10 max-w-[760px]">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+          Quyền hiện tại
+        </h2>
+        <p className="mt-3 text-[13px] leading-6 text-muted">
+          {user.isSuperAdmin
+            ? 'Super Admin — bỏ qua mọi kiểm tra quyền.'
+            : user.permissions.join(', ') || 'Chưa được cấp quyền nào.'}
+        </p>
+      </section>
+    </WorkspacePage>
   );
 }
 
 export default function StaffPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen" />}>
-      <StaffData />
+    <Suspense fallback={<div className="min-h-[50vh]" />}>
+      <StaffOverview />
     </Suspense>
   );
 }
