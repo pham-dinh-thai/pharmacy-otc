@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ForgotPasswordCommand } from './forgot-password.command';
-import { BadRequestException, ConflictException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import {
   GET_USER_BY_EMAIL_PORT,
   type IGetUserByEmailPort,
@@ -17,6 +17,10 @@ import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
+import {
+  type IRefreshTokenStorePort,
+  REFRESH_TOKEN_STORE_PORT,
+} from '../../ports/refresh-token-store.port';
 import { PASSWORD_CHANGED_AUDIT_EVENT } from '../../../domain/events/password-changed.event';
 import { ActorType } from '../../../../audit-logs/domain/enums/actor-type.enum';
 import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
@@ -36,28 +40,25 @@ export class ForgotPasswordHandler implements ICommandHandler<ForgotPasswordComm
 
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
+
+    @Inject(REFRESH_TOKEN_STORE_PORT)
+    private readonly refreshTokenStorePort: IRefreshTokenStorePort,
   ) {}
 
   public async execute(command: ForgotPasswordCommand): Promise<void> {
-    return this.unitOfWork.run(async () => {
+    // Trả về null thay vì ném lỗi khi email không tồn tại, để response không
+    // tiết lộ tài khoản nào đã đăng ký (chống user enumeration).
+    const userId = await this.unitOfWork.run(async () => {
       const user = await this.getUserByEmailPort.execute(command.email);
 
       if (!user) {
-        throw new BadRequestException(
-          `Email ${command.email} is not registered yet`,
-        );
+        return null;
       }
 
       const account = await this.accountsRepository.findByUserId(user.id);
 
-      if (!account) {
-        throw new BadRequestException(
-          `Email ${command.email} is not registered yet`,
-        );
-      }
-
-      if (!account.getIsActive()) {
-        throw new ConflictException('Account deactivated');
+      if (!account || !account.getIsActive()) {
+        return null;
       }
 
       await account.restorePassword(command.password);
@@ -69,7 +70,7 @@ export class ForgotPasswordHandler implements ICommandHandler<ForgotPasswordComm
         payload: auditEventPayload(
           {
             actorId: account.getUserId(),
-            actorType: ActorType.USER,
+            actorType: ActorType.SYSTEM,
             actorLabel: user.email,
             userIp: command.ip,
             userAgent: command.userAgent,
@@ -77,9 +78,16 @@ export class ForgotPasswordHandler implements ICommandHandler<ForgotPasswordComm
           {
             entityType: EntityType.ACCOUNTS,
             entityId: account.getId(),
+            reason: 'password_reset',
           },
         ),
       });
+
+      return account.getUserId();
     });
+
+    if (userId) {
+      await this.refreshTokenStorePort.revokeAll(userId);
+    }
   }
 }
