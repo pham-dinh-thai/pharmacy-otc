@@ -1,3 +1,4 @@
+import { ConflictException } from '@nestjs/common';
 import { Id } from '../../../shared/value-objects/id.value-object';
 import { Password } from './password.value-object';
 
@@ -53,7 +54,29 @@ export class Account {
     return this.password.verify(plain);
   }
 
-  public async changePassword(newPassword: string): Promise<void> {
+  public async restorePassword(newPassword: string): Promise<void> {
+    this.password = await Password.fromPlainText(newPassword);
+
+    this.updatedAt = new Date();
+  }
+
+  public async changePassword(
+    currentPassword: string,
+    newPassword: string,
+    newPasswordConfirmation: string,
+  ): Promise<void> {
+    const isMatchesWithCurrentPassword =
+      await this.password.verify(currentPassword);
+    if (!isMatchesWithCurrentPassword) {
+      throw new ConflictException('Current password is mismatch');
+    }
+
+    if (newPassword !== newPasswordConfirmation) {
+      throw new ConflictException(
+        'New password is mismatch with new password confirmation',
+      );
+    }
+
     this.password = await Password.fromPlainText(newPassword);
 
     this.updatedAt = new Date();

@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { LoginCommand } from './login.command';
-import { BadRequestException, Inject } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject } from '@nestjs/common';
 import {
   GET_USER_BY_EMAIL_PORT,
   type IGetUserByEmailPort,
@@ -70,6 +70,10 @@ export class LoginHandler implements ICommandHandler<LoginCommand> {
       await Password.verifyDummy(command.password);
 
       throw new BadRequestException('Email or password invalid');
+    }
+
+    if (!account.getIsActive()) {
+      throw new ConflictException('Account deactivated');
     }
 
     if (!(await account.verify(command.password))) {

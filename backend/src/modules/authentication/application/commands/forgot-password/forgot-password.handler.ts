@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ForgotPasswordCommand } from './forgot-password.command';
-import { BadRequestException, Inject } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject } from '@nestjs/common';
 import {
   GET_USER_BY_EMAIL_PORT,
   type IGetUserByEmailPort,
@@ -56,7 +56,11 @@ export class ForgotPasswordHandler implements ICommandHandler<ForgotPasswordComm
         );
       }
 
-      await account.changePassword(command.password);
+      if (!account.getIsActive()) {
+        throw new ConflictException('Account deactivated');
+      }
+
+      await account.restorePassword(command.password);
 
       await this.accountsRepository.update(account);
 

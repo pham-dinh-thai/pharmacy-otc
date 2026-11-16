@@ -24,6 +24,7 @@ import { GetUserByIdAdapter } from './infrastructure/adapters/get-user-by-id.ada
 import { SecurityModule } from '../../shared/modules/security/security.module';
 import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { ForgotPasswordHandler } from './application/commands/forgot-password/forgot-password.handler';
+import { ChangePasswordHandler } from './application/commands/change-password/change-password.handler';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { ForgotPasswordHandler } from './application/commands/forgot-password/fo
     RegisterHandler,
     RefreshTokenHandler,
     ForgotPasswordHandler,
+    ChangePasswordHandler,
   ],
   controllers: [AuthenticationController],
 })

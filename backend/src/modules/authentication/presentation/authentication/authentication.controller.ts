@@ -10,6 +10,7 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { RegisterRequest } from './requests/register.request';
 import { CommandBus } from '@nestjs/cqrs';
@@ -21,6 +22,11 @@ import { type Request, type Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { ForgotPasswordRequest } from './requests/forgot-password.request';
 import { ForgotPasswordCommand } from '../../application/commands/forgot-password/forgot-password.command';
+import { ChangePasswordRequest } from './requests/change-password.request';
+import { ActorContext } from '../../../../shared/modules/security/actor-context.decorator';
+import { type ActorHeaders } from '../../../../shared/types/actor-headers';
+import { ChangePasswordCommand } from '../../application/commands/change-password/change-password.command';
+import { AuthGuard } from '../../../../shared/modules/security/auth.guard';
 
 const REFRESH_COOKIE = 'refresh_token';
 const REFRESH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -95,7 +101,7 @@ export class AuthenticationController {
     return { accessToken };
   }
 
-  @Patch('/forgot-password')
+  @Patch('/password/forgot')
   public async forgotPassword(
     @Body() request: ForgotPasswordRequest,
     @Ip() ip: string,
@@ -103,6 +109,22 @@ export class AuthenticationController {
   ): Promise<void> {
     await this.commandBus.execute(
       new ForgotPasswordCommand(request.email, request.password, ip, userAgent),
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('/password/change')
+  public async changePassword(
+    @Body() request: ChangePasswordRequest,
+    @ActorContext() headers: ActorHeaders,
+  ): Promise<void> {
+    await this.commandBus.execute(
+      new ChangePasswordCommand(
+        request.currentPassword,
+        request.newPassword,
+        request.newPasswordConfirmation,
+        headers,
+      ),
     );
   }
 }
