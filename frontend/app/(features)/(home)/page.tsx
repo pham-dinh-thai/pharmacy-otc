@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { SiteHeader } from '@/components/layout/SiteHeader';
+import { HeaderAuth } from '@/components/layout/HeaderAuth';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { Hero } from '@/components/home/Hero';
 import { Catalog, CatalogFallback } from '@/components/home/Catalog';
@@ -33,7 +34,14 @@ export default function HomePage({
         Bỏ qua điều hướng
       </a>
 
-      <SiteHeader categories={NAV_CATEGORIES} />
+      <SiteHeader
+        categories={NAV_CATEGORIES}
+        authSlot={
+          <Suspense fallback={<span className="text-muted">Đăng nhập</span>}>
+            <HeaderAuth />
+          </Suspense>
+        }
+      />
 
       <main id="main" className="flex-1">
         <Hero />

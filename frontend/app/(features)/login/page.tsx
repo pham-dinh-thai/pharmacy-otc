@@ -10,9 +10,24 @@ const ERROR_MESSAGE =
 async function LoginMessages({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; registered?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    registered?: string;
+    passwordChanged?: string;
+  }>;
 }) {
-  const { error, registered } = await searchParams;
+  const { error, registered, passwordChanged } = await searchParams;
+
+  if (passwordChanged) {
+    return (
+      <p
+        role="status"
+        className="mb-5 border-l-2 border-accent bg-accent-soft px-3 py-2 text-[13px] leading-5 text-accent"
+      >
+        Đã đổi mật khẩu. Đăng nhập lại bằng mật khẩu mới.
+      </p>
+    );
+  }
 
   if (registered) {
     return (
@@ -42,7 +57,11 @@ async function LoginMessages({
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; registered?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    registered?: string;
+    passwordChanged?: string;
+  }>;
 }) {
   return (
     <AuthShell title="Đăng nhập" intro="Nhập email và mật khẩu để tiếp tục.">
