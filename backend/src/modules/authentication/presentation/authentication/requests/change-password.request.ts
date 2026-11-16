@@ -1,22 +1,19 @@
-import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 
+// Không trim mật khẩu: khoảng trắng đầu/cuối là một phần của secret.
 export class ChangePasswordRequest {
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsNotEmpty()
   @IsString()
   @MaxLength(255)
   @MinLength(8)
   currentPassword!: string;
 
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsNotEmpty()
   @IsString()
   @MaxLength(255)
   @MinLength(8)
   newPassword!: string;
 
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsNotEmpty()
   @IsString()
   @MaxLength(255)

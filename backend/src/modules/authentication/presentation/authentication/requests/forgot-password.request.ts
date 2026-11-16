@@ -14,7 +14,7 @@ export class ForgotPasswordRequest {
   @MaxLength(255)
   email!: string;
 
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  // Không trim mật khẩu: khoảng trắng đầu/cuối là một phần của secret.
   @IsNotEmpty()
   @IsString()
   @MaxLength(255)
