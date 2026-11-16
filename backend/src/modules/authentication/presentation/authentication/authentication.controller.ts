@@ -27,6 +27,8 @@ import { ActorContext } from '../../../../shared/modules/security/actor-context.
 import { type ActorHeaders } from '../../../../shared/types/actor-headers';
 import { ChangePasswordCommand } from '../../application/commands/change-password/change-password.command';
 import { AuthGuard } from '../../../../shared/modules/security/auth.guard';
+import { RateLimitGuard } from '../../../../shared/modules/security/rate-limit.guard';
+import { RateLimit } from '../../../../shared/modules/security/rate-limit.decorator';
 import { LogoutCommand } from '../../application/commands/logout/logout.command';
 
 const REFRESH_COOKIE = 'refresh_token';
@@ -61,6 +63,13 @@ export class AuthenticationController {
   }
 
   @Post('/register')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    points: 5,
+    windowSeconds: 60,
+    keyPrefix: 'register',
+    keyBy: 'email',
+  })
   public async register(
     @Body() request: RegisterRequest,
     @Ip() ip: string,
@@ -80,6 +89,13 @@ export class AuthenticationController {
 
   @Post('/login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    points: 10,
+    windowSeconds: 60,
+    keyPrefix: 'login',
+    keyBy: 'email',
+  })
   public async login(
     @Body() request: LoginRequest,
     @Res({ passthrough: true }) res: Response,
@@ -114,6 +130,13 @@ export class AuthenticationController {
   }
 
   @Patch('/password/forgot')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    points: 5,
+    windowSeconds: 60,
+    keyPrefix: 'forgot-password',
+    keyBy: 'email',
+  })
   public async forgotPassword(
     @Body() request: ForgotPasswordRequest,
     @Ip() ip: string,
@@ -124,7 +147,13 @@ export class AuthenticationController {
     );
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RateLimitGuard)
+  @RateLimit({
+    points: 10,
+    windowSeconds: 60,
+    keyPrefix: 'change-password',
+    keyBy: 'actor',
+  })
   @Patch('/password/change')
   public async changePassword(
     @Body() request: ChangePasswordRequest,

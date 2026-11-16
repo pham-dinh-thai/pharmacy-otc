@@ -3,6 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthGuard } from './auth.guard';
 import { PermissionsGuard } from './permissions.guard';
+import { RateLimitGuard } from './rate-limit.guard';
+import { RATE_LIMIT_STORE } from './rate-limit-store.port';
+import { RedisRateLimitStore } from './redis-rate-limit-store.adapter';
 
 @Module({
   imports: [
@@ -13,7 +16,18 @@ import { PermissionsGuard } from './permissions.guard';
       }),
     }),
   ],
-  providers: [AuthGuard, PermissionsGuard],
-  exports: [AuthGuard, PermissionsGuard, JwtModule],
+  providers: [
+    AuthGuard,
+    PermissionsGuard,
+    RateLimitGuard,
+    { provide: RATE_LIMIT_STORE, useClass: RedisRateLimitStore },
+  ],
+  exports: [
+    AuthGuard,
+    PermissionsGuard,
+    RateLimitGuard,
+    RATE_LIMIT_STORE,
+    JwtModule,
+  ],
 })
 export class SecurityModule {}
