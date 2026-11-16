@@ -6,6 +6,8 @@ export interface IAccountsRepository {
   findByUserIdOrFail(userId: string): Promise<Account>;
 
   create(account: Account): Account;
+
+  update(account: Account): Promise<void>;
 }
 
 export const ACCOUNTS_REPOSITORY = 'IAccountsRepository';

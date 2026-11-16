@@ -34,4 +34,21 @@ export class MikroAccountsRepository implements IAccountsRepository {
 
     return account;
   }
+
+  public async update(account: Account): Promise<void> {
+    const mikroAccount = await this.entityManager.findOne(MikroAccount, {
+      id: account.getId(),
+      userId: account.getUserId(),
+    });
+
+    if (!mikroAccount) {
+      throw new NotFoundException(`Account id ${account.getId()} not found`);
+    }
+
+    this.entityManager.assign(mikroAccount, {
+      password: account.getPassword(),
+      isActive: account.getIsActive(),
+      updatedAt: account.getUpdatedAt(),
+    });
+  }
 }

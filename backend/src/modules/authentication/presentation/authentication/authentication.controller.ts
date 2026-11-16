@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Ip,
+  Patch,
   Post,
   Req,
   Res,
@@ -18,6 +19,8 @@ import { LoginCommand } from '../../application/commands/login/login.command';
 import { RefreshTokenCommand } from '../../application/commands/refresh-token/refresh-token.command';
 import { type Request, type Response } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { ForgotPasswordRequest } from './requests/forgot-password.request';
+import { ForgotPasswordCommand } from '../../application/commands/forgot-password/forgot-password.command';
 
 const REFRESH_COOKIE = 'refresh_token';
 const REFRESH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -90,5 +93,16 @@ export class AuthenticationController {
     );
     this.setRefreshCookie(res, refreshToken);
     return { accessToken };
+  }
+
+  @Patch('/forgot-password')
+  public async forgotPassword(
+    @Body() request: ForgotPasswordRequest,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
+  ): Promise<void> {
+    await this.commandBus.execute(
+      new ForgotPasswordCommand(request.email, request.password, ip, userAgent),
+    );
   }
 }

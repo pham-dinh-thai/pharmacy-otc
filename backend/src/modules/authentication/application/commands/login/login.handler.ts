@@ -4,7 +4,7 @@ import { BadRequestException, Inject } from '@nestjs/common';
 import {
   GET_USER_BY_EMAIL_PORT,
   type IGetUserByEmailPort,
-} from './ports/get-user-by-email.port';
+} from '../../ports/get-user-by-email.port';
 import {
   ACCOUNTS_REPOSITORY,
   type IAccountsRepository,

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { GetUserByEmailQuery } from '../../../users/application/queries/get-user-by-email/get-user-by-email.query';
-import { IGetUserByEmailPort } from '../../application/commands/login/ports/get-user-by-email.port';
+import { IGetUserByEmailPort } from '../../application/ports/get-user-by-email.port';
 
 @Injectable()
 export class GetUserByEmailAdapter implements IGetUserByEmailPort {
