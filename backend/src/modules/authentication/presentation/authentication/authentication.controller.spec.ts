@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { Test, TestingModule } from '@nestjs/testing';
-import { CommandBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { RATE_LIMIT_STORE } from '../../../../shared/modules/security/rate-limit-store.port';
@@ -15,6 +15,10 @@ describe('AuthenticationController', () => {
       providers: [
         {
           provide: CommandBus,
+          useValue: { execute: jest.fn() },
+        },
+        {
+          provide: QueryBus,
           useValue: { execute: jest.fn() },
         },
         {
