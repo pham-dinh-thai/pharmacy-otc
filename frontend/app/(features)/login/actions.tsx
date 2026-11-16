@@ -60,6 +60,22 @@ export async function handleLogin(formData: FormData) {
 
 export async function handleLogout() {
   const cookieStore = await cookies();
+  const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
+
+  // Phải thu hồi refresh token ở backend, nếu chỉ xoá cookie thì token vẫn
+  // dùng được tới 7 ngày nếu đã bị lộ.
+  if (refreshToken) {
+    try {
+      await fetch(`${BACKEND_URL}/authentication/logout`, {
+        method: 'POST',
+        headers: { cookie: `${REFRESH_TOKEN_COOKIE}=${refreshToken}` },
+        cache: 'no-store',
+      });
+    } catch {
+      // Backend không phản hồi thì vẫn xoá cookie phía trình duyệt.
+    }
+  }
+
   cookieStore.delete(ACCESS_TOKEN_COOKIE);
   cookieStore.delete(REFRESH_TOKEN_COOKIE);
   redirect('/login');

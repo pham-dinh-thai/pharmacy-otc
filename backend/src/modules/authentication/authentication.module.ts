@@ -17,13 +17,15 @@ import { JwtSignTokenAdapter } from './infrastructure/adapters/jwt-sign-token.ad
 import { REFRESH_TOKEN_STORE_PORT } from './application/ports/refresh-token-store.port';
 import { RedisRefreshTokenStorePort } from './infrastructure/adapters/redis-refresh-token-store.adapter';
 import { REFRESH_TOKEN_VERIFY_PORT } from './application/commands/refresh-token/ports/refresh-token-verify.port';
-import { JwtRefreshTokenVerifyAdapter } from './infrastructure/adapters/jwt-refresh-token-verify.adaper';
+import { JwtRefreshTokenVerifyAdapter } from './infrastructure/adapters/jwt-refresh-token-verify.adapter';
 import { RefreshTokenHandler } from './application/commands/refresh-token/refresh-token.handler';
 import { GET_USER_BY_ID_PORT } from './application/commands/refresh-token/ports/get-user-by-id-port';
 import { GetUserByIdAdapter } from './infrastructure/adapters/get-user-by-id.adapter';
 import { SecurityModule } from '../../shared/modules/security/security.module';
 import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { ForgotPasswordHandler } from './application/commands/forgot-password/forgot-password.handler';
+import { ChangePasswordHandler } from './application/commands/change-password/change-password.handler';
+import { LogoutHandler } from './application/commands/logout/logout.handler';
 
 @Module({
   imports: [
@@ -47,6 +49,8 @@ import { ForgotPasswordHandler } from './application/commands/forgot-password/fo
     RegisterHandler,
     RefreshTokenHandler,
     ForgotPasswordHandler,
+    ChangePasswordHandler,
+    LogoutHandler,
   ],
   controllers: [AuthenticationController],
 })

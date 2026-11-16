@@ -10,6 +10,7 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { RegisterRequest } from './requests/register.request';
 import { CommandBus } from '@nestjs/cqrs';
@@ -21,9 +22,23 @@ import { type Request, type Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { ForgotPasswordRequest } from './requests/forgot-password.request';
 import { ForgotPasswordCommand } from '../../application/commands/forgot-password/forgot-password.command';
+import { ChangePasswordRequest } from './requests/change-password.request';
+import { ActorContext } from '../../../../shared/modules/security/actor-context.decorator';
+import { type ActorHeaders } from '../../../../shared/types/actor-headers';
+import { ChangePasswordCommand } from '../../application/commands/change-password/change-password.command';
+import { AuthGuard } from '../../../../shared/modules/security/auth.guard';
+import { RateLimitGuard } from '../../../../shared/modules/security/rate-limit.guard';
+import { RateLimit } from '../../../../shared/modules/security/rate-limit.decorator';
+import { LogoutCommand } from '../../application/commands/logout/logout.command';
 
 const REFRESH_COOKIE = 'refresh_token';
 const REFRESH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+const REFRESH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: 'strict',
+  path: '/api/authentication',
+} as const;
 
 @Controller('authentication')
 export class AuthenticationController {
@@ -34,15 +49,27 @@ export class AuthenticationController {
 
   private setRefreshCookie(res: Response, token: string): void {
     res.cookie(REFRESH_COOKIE, token, {
-      httpOnly: true,
+      ...REFRESH_COOKIE_OPTIONS,
       secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite: 'strict',
-      path: '/api/authentication/refresh',
       maxAge: REFRESH_MAX_AGE_MS,
     });
   }
 
+  private clearRefreshCookie(res: Response): void {
+    res.clearCookie(REFRESH_COOKIE, {
+      ...REFRESH_COOKIE_OPTIONS,
+      secure: this.configService.get('NODE_ENV') === 'production',
+    });
+  }
+
   @Post('/register')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    points: 5,
+    windowSeconds: 60,
+    keyPrefix: 'register',
+    keyBy: 'email',
+  })
   public async register(
     @Body() request: RegisterRequest,
     @Ip() ip: string,
@@ -62,6 +89,13 @@ export class AuthenticationController {
 
   @Post('/login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    points: 10,
+    windowSeconds: 60,
+    keyPrefix: 'login',
+    keyBy: 'email',
+  })
   public async login(
     @Body() request: LoginRequest,
     @Res({ passthrough: true }) res: Response,
@@ -95,7 +129,14 @@ export class AuthenticationController {
     return { accessToken };
   }
 
-  @Patch('/forgot-password')
+  @Patch('/password/forgot')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    points: 5,
+    windowSeconds: 60,
+    keyPrefix: 'forgot-password',
+    keyBy: 'email',
+  })
   public async forgotPassword(
     @Body() request: ForgotPasswordRequest,
     @Ip() ip: string,
@@ -104,5 +145,44 @@ export class AuthenticationController {
     await this.commandBus.execute(
       new ForgotPasswordCommand(request.email, request.password, ip, userAgent),
     );
+  }
+
+  @UseGuards(AuthGuard, RateLimitGuard)
+  @RateLimit({
+    points: 10,
+    windowSeconds: 60,
+    keyPrefix: 'change-password',
+    keyBy: 'actor',
+  })
+  @Patch('/password/change')
+  public async changePassword(
+    @Body() request: ChangePasswordRequest,
+    @ActorContext() headers: ActorHeaders,
+  ): Promise<void> {
+    await this.commandBus.execute(
+      new ChangePasswordCommand(
+        request.currentPassword,
+        request.newPassword,
+        request.newPasswordConfirmation,
+        headers,
+      ),
+    );
+  }
+
+  @Post('/logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  public async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    const refreshToken: unknown = req.cookies?.[REFRESH_COOKIE];
+
+    try {
+      if (typeof refreshToken === 'string' && refreshToken) {
+        await this.commandBus.execute(new LogoutCommand(refreshToken));
+      }
+    } finally {
+      this.clearRefreshCookie(res);
+    }
   }
 }

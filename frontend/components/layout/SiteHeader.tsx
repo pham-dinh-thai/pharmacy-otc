@@ -11,7 +11,13 @@ type NavCategory = {
   shortName: string;
 };
 
-export function SiteHeader({ categories }: { categories: NavCategory[] }) {
+export function SiteHeader({
+  categories,
+  authSlot,
+}: {
+  categories: NavCategory[];
+  authSlot?: React.ReactNode;
+}) {
   const { totalItems, openCart } = useCart();
 
   return (
@@ -37,9 +43,11 @@ export function SiteHeader({ categories }: { categories: NavCategory[] }) {
         />
 
         <div className="ml-auto flex items-center gap-4 text-[13px] font-medium sm:gap-5">
-          <Link href="/login" className="hover:text-accent">
-            Đăng nhập
-          </Link>
+          {authSlot ?? (
+            <Link href="/login" className="hover:text-accent">
+              Đăng nhập
+            </Link>
+          )}
 
           <button
             type="button"

@@ -30,4 +30,24 @@ export class RedisRefreshTokenStorePort implements IRefreshTokenStorePort {
   public async revoke(sub: string, jti: string): Promise<void> {
     await this.redis.del(`refresh:${sub}:${jti}`);
   }
+
+  public async revokeAll(sub: string): Promise<void> {
+    let cursor = '0';
+
+    do {
+      const [nextCursor, keys] = await this.redis.scan(
+        cursor,
+        'MATCH',
+        `refresh:${sub}:*`,
+        'COUNT',
+        100,
+      );
+
+      cursor = nextCursor;
+
+      if (keys.length > 0) {
+        await this.redis.del(...keys);
+      }
+    } while (cursor !== '0');
+  }
 }
