@@ -29,10 +29,9 @@ import { PermissionKey } from '../../domain/permission/permission-catalog';
 import { AuthGuard } from '../../../../shared/modules/security/auth.guard';
 import { ActorContext } from '../../../../shared/modules/security/actor-context.decorator';
 import { type ActorHeaders } from '../../../../shared/types/actor-headers';
-import { PermissionsGuard } from '../../../../shared/modules/security/permissions.guard';
-import { RequirePermissions } from '../../../../shared/modules/security/require-permissions.decorator';
+import { SuperAdminGuard } from '../../../../shared/modules/security/super-admin.guard';
 
-@UseGuards(AuthGuard, PermissionsGuard)
+@UseGuards(AuthGuard, SuperAdminGuard)
 @Controller('roles')
 export class RolesController {
   public constructor(
@@ -41,13 +40,11 @@ export class RolesController {
   ) {}
 
   @Get()
-  @RequirePermissions(['roles:read'])
   public findAll(): Promise<RoleListItemReadModel[]> {
     return this.queryBus.execute(new ListRolesQuery());
   }
 
   @Get(':id')
-  @RequirePermissions(['roles:read'])
   public findOne(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ): Promise<RoleReadModel> {
@@ -55,7 +52,6 @@ export class RolesController {
   }
 
   @Post()
-  @RequirePermissions(['roles:create'])
   public create(
     @Body() request: CreateRoleRequest,
     @ActorContext() headers: ActorHeaders,
@@ -71,7 +67,6 @@ export class RolesController {
   }
 
   @Patch(':id')
-  @RequirePermissions(['roles:update'])
   public rename(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() request: RenameRoleRequest,
@@ -83,7 +78,6 @@ export class RolesController {
   }
 
   @Post(':id/permissions')
-  @RequirePermissions(['roles:update'])
   public grant(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() request: GrantPermissionRequest,
@@ -99,7 +93,6 @@ export class RolesController {
   }
 
   @Delete(':id/permissions/:permission')
-  @RequirePermissions(['roles:update'])
   public revoke(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Param('permission') permission: string,
@@ -111,7 +104,6 @@ export class RolesController {
   }
 
   @Delete(':id')
-  @RequirePermissions(['roles:delete'])
   public softDelete(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @ActorContext() headers: ActorHeaders,
@@ -120,7 +112,6 @@ export class RolesController {
   }
 
   @Patch(':id/restore')
-  @RequirePermissions(['roles:update'])
   public restore(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @ActorContext() headers: ActorHeaders,
@@ -129,7 +120,6 @@ export class RolesController {
   }
 
   @Patch(':id/super-admin')
-  @RequirePermissions(['roles:update'])
   public setSuperAdmin(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() request: SetRoleSuperAdminRequest,
