@@ -2,6 +2,8 @@ import { ROLE_CREATED_EVENT } from '../../../authorization/domain/events/role-cr
 import { PERMISSION_GRANTED_EVENT } from '../../../authorization/domain/events/permission-granted.event';
 import { ROLE_RENAMED_EVENT } from '../../../authorization/domain/events/role-renamed.event';
 import { ROLE_REVOKED_EVENT } from '../../../authorization/domain/events/role-revoked.event';
+import { ROLE_DISABLED_EVENT } from '../../../authorization/domain/events/role-disabled.event';
+import { ROLE_RESTORED_EVENT } from '../../../authorization/domain/events/role-restored.event';
 import { SUPER_ADMIN_SET_EVENT } from '../../../authorization/domain/events/super-admin-set.event';
 import { ACCOUNT_SIGNED_UP_EVENT } from '../../../authentication/domain/events/account-signed-up.event';
 import { ACCOUNT_SIGNED_IN_EVENT } from '../../../authentication/domain/events/account-signed-in.event';
@@ -56,6 +58,8 @@ export const AUDITED_EVENT_ACTIONS = {
   [PERMISSION_GRANTED_EVENT]: 'grant_permission',
   [ROLE_RENAMED_EVENT]: 'rename',
   [ROLE_REVOKED_EVENT]: 'revoke_permission',
+  [ROLE_DISABLED_EVENT]: 'deactivate',
+  [ROLE_RESTORED_EVENT]: 'activate',
   [SUPER_ADMIN_SET_EVENT]: 'set_super_admin',
   [ACCOUNT_SIGNED_UP_EVENT]: 'sign_up',
   [ACCOUNT_SIGNED_IN_EVENT]: 'sign_in',

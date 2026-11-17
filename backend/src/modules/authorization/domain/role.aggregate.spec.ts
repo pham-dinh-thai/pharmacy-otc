@@ -23,6 +23,8 @@ describe('Role', () => {
     expect(role.getName()).toBe('manager');
     expect(role.getPermissions()).toEqual([]);
     expect(role.getIsSuperAdmin()).toBe(false);
+    expect(role.isDeleted()).toBe(false);
+    expect(role.getDeletedAt()).toBeNull();
     expect(role.getCreatedAt()).toEqual(role.getUpdatedAt());
   });
 
@@ -99,6 +101,7 @@ describe('Role', () => {
     role.revoke('orders:read');
 
     expect(role.hasPermission('orders', 'read')).toBe(false);
+    expect(role.getPermissions()).toEqual([]);
     expect(() => role.revoke('orders:read')).toThrow(ConflictException);
   });
 
@@ -126,9 +129,69 @@ describe('Role', () => {
     expect(role.getIsSuperAdmin()).toBe(false);
   });
 
+  it('soft-deletes and restores a role', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    const role = Role.create({
+      name: 'manager',
+      permissions: ['orders:read'],
+    });
+    const updatedAt = role.getUpdatedAt();
+
+    jest.setSystemTime(new Date('2026-01-02T00:00:00.000Z'));
+    role.softDelete();
+
+    expect(role.isDeleted()).toBe(true);
+    expect(role.getDeletedAt()).toEqual(new Date('2026-01-02T00:00:00.000Z'));
+    expect(role.getUpdatedAt().getTime()).toBeGreaterThan(updatedAt.getTime());
+    expect(role.hasPermission('orders', 'read')).toBe(false);
+
+    role.restore();
+
+    expect(role.isDeleted()).toBe(false);
+    expect(role.getDeletedAt()).toBeNull();
+    expect(role.hasPermission('orders', 'read')).toBe(true);
+  });
+
+  it('rejects disabling an already disabled role and restoring an active role', () => {
+    const role = createRole();
+
+    expect(() => role.restore()).toThrow(ConflictException);
+
+    role.softDelete();
+
+    expect(() => role.softDelete()).toThrow(ConflictException);
+  });
+
+  it('rejects every mutation while the role is disabled', () => {
+    const role = Role.create({
+      name: 'manager',
+      permissions: ['orders:read'],
+    });
+
+    role.softDelete();
+
+    expect(() => role.rename('admin')).toThrow(ConflictException);
+    expect(() => role.grant('orders:process')).toThrow(ConflictException);
+    expect(() => role.revoke('orders:read')).toThrow(ConflictException);
+    expect(() => role.promoteToSuperAdmin()).toThrow(ConflictException);
+    expect(() => role.demoteFromSuperAdmin()).toThrow(ConflictException);
+  });
+
+  it('does not grant Super Admin access while the role is disabled', () => {
+    const role = Role.create({ name: 'admin', isSuperAdmin: true });
+
+    role.softDelete();
+
+    expect(role.getIsSuperAdmin()).toBe(true);
+    expect(role.hasPermission('orders', 'refund')).toBe(false);
+  });
+
   it('restores a role from persisted data', () => {
     const createdAt = new Date('2026-01-01T00:00:00.000Z');
     const updatedAt = new Date('2026-01-02T00:00:00.000Z');
+    const deletedAt = new Date('2026-01-03T00:00:00.000Z');
 
     const role = Role.fromPersistent({
       id: 'd3d3d3d3-d3d3-4d3d-8d3d-d3d3d3d3d3d3',
@@ -137,45 +200,15 @@ describe('Role', () => {
       isSuperAdmin: true,
       createdAt,
       updatedAt,
+      deletedAt,
     });
 
     expect(role.getName()).toBe('admin');
     expect(role.getIsSuperAdmin()).toBe(true);
-    expect(role.hasPermission('reports', 'export')).toBe(true);
+    expect(role.isDeleted()).toBe(true);
+    expect(role.getDeletedAt()).toEqual(deletedAt);
+    expect(role.hasPermission('reports', 'export')).toBe(false);
     expect(role.getCreatedAt()).toEqual(createdAt);
     expect(role.getUpdatedAt()).toEqual(updatedAt);
-  });
-
-  it('soft-deletes a revoked permission and restores it on grant', () => {
-    const role = Role.create({
-      name: 'manager',
-      permissions: ['orders:read'],
-    });
-
-    role.revoke('orders:read');
-
-    expect(role.getPermissions()).toEqual([]);
-    expect(role.getRevokedPermissions()).toEqual(['orders:read']);
-    expect(role.hasPermission('orders', 'read')).toBe(false);
-
-    role.grant('orders:read');
-
-    expect(role.getPermissions()).toEqual(['orders:read']);
-    expect(role.getRevokedPermissions()).toEqual([]);
-  });
-
-  it('restores revoked permissions from persisted data', () => {
-    const role = Role.fromPersistent({
-      id: 'd3d3d3d3-d3d3-4d3d-8d3d-d3d3d3d3d3d3',
-      name: 'admin',
-      permissions: [],
-      revokedPermissions: ['orders:read'],
-      isSuperAdmin: false,
-      createdAt: new Date('2026-01-01T00:00:00.000Z'),
-      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
-    });
-
-    expect(role.getRevokedPermissions()).toEqual(['orders:read']);
-    expect(role.hasPermission('orders', 'read')).toBe(false);
   });
 });

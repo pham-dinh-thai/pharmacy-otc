@@ -10,6 +10,8 @@ import { RenameRoleHandler } from './application/commands/rename-role/rename-rol
 import { GrantPermissionHandler } from './application/commands/grant-permission/grant-permission.handler';
 import { RevokePermissionHandler } from './application/commands/revoke-permission/revoke-permission.handler';
 import { SetRoleSuperAdminHandler } from './application/commands/set-role-super-admin/set-role-super-admin.handler';
+import { SoftDeleteRoleHandler } from './application/commands/soft-delete-role/soft-delete-role.handler';
+import { RestoreRoleHandler } from './application/commands/restore-role/restore-role.handler';
 import { GetRoleHandler } from './application/queries/get-role/get-role.handler';
 import { ListRolesHandler } from './application/queries/list-roles/list-roles.handler';
 import { SecurityModule } from '../../shared/modules/security/security.module';
@@ -30,6 +32,8 @@ import { GetActorPermissionsHandler } from './application/queries/get-actor-perm
     GrantPermissionHandler,
     RevokePermissionHandler,
     SetRoleSuperAdminHandler,
+    SoftDeleteRoleHandler,
+    RestoreRoleHandler,
     GetRoleHandler,
     ListRolesHandler,
     GetActorPermissionsHandler,

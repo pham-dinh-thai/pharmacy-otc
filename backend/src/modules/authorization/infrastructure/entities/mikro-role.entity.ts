@@ -21,15 +21,15 @@ export class MikroRole {
   @Property({ type: 'array' })
   permissions: string[] = [];
 
-  @Property({
-    type: 'array',
-    fieldName: 'revoked_permissions',
-    defaultRaw: "'{}'",
-  })
-  revokedPermissions: string[] = [];
-
   @Property({ fieldName: 'is_super_admin', type: 'boolean' })
   isSuperAdmin = false;
+
+  @Property({
+    type: 'timestamptz',
+    fieldName: 'deleted_at',
+    nullable: true,
+  })
+  deletedAt: Date | null = null;
 
   @Property({ version: true, type: 'integer' })
   version!: number;

@@ -5,10 +5,10 @@ export class RoleReadModel {
     public readonly id: string,
     public readonly name: string,
     public readonly permissions: string[],
-    public readonly revokedPermissions: string[],
     public readonly isSuperAdmin: boolean,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
+    public readonly deletedAt: Date | null,
   ) {}
 
   public static fromRole(role: Role): RoleReadModel {
@@ -16,10 +16,10 @@ export class RoleReadModel {
       role.getId(),
       role.getName(),
       role.getPermissions(),
-      role.getRevokedPermissions(),
       role.getIsSuperAdmin(),
       role.getCreatedAt(),
       role.getUpdatedAt(),
+      role.getDeletedAt(),
     );
   }
 }

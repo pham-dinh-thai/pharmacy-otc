@@ -46,7 +46,7 @@ export class MikroRolesRepository implements IRolesRepository {
 
     const mikroRoles = await this.entityManager.find(
       MikroRole,
-      { id: { $in: ids } },
+      { id: { $in: ids }, deletedAt: null },
       { fields: ['permissions', 'isSuperAdmin'] },
     );
 

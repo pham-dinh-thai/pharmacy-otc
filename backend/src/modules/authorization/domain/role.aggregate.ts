@@ -22,10 +22,10 @@ export type FromPersistentRoleProps = {
   id: string;
   name: string;
   permissions: PermissionKey[];
-  revokedPermissions?: PermissionKey[];
   isSuperAdmin: boolean;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt?: Date | null;
 };
 
 export class Role {
@@ -33,8 +33,8 @@ export class Role {
     private readonly id: Id,
     private name: string,
     private readonly permissions: Set<PermissionKey>,
-    private readonly revokedPermissions: Set<PermissionKey>,
     private isSuperAdmin: boolean,
+    private deletedAt: Date | null,
     private readonly createdAt: Date,
     private updatedAt: Date,
   ) {}
@@ -50,8 +50,8 @@ export class Role {
       Id.generate(),
       Role.normalizeName(props.name),
       new Set(permissions),
-      new Set(),
       props.isSuperAdmin ?? false,
+      null,
       now,
       now,
     );
@@ -62,19 +62,21 @@ export class Role {
       Id.create(props.id),
       props.name,
       new Set(props.permissions),
-      new Set(props.revokedPermissions ?? []),
       props.isSuperAdmin,
+      props.deletedAt ?? null,
       props.createdAt,
       props.updatedAt,
     );
   }
 
   public rename(name: string): void {
+    this.assertActive();
     this.name = Role.normalizeName(name);
     this.touch();
   }
 
   public grant(permission: PermissionKey): void {
+    this.assertActive();
     Role.assertValidPermission(permission);
 
     if (this.permissions.has(permission)) {
@@ -84,11 +86,11 @@ export class Role {
     }
 
     this.permissions.add(permission);
-    this.revokedPermissions.delete(permission);
     this.touch();
   }
 
   public revoke(permission: PermissionKey): void {
+    this.assertActive();
     Role.assertValidPermission(permission);
 
     if (!this.permissions.has(permission)) {
@@ -98,11 +100,14 @@ export class Role {
     }
 
     this.permissions.delete(permission);
-    this.revokedPermissions.add(permission);
     this.touch();
   }
 
   public hasPermission(resource: Resource, action: string): boolean {
+    if (this.isDeleted()) {
+      return false;
+    }
+
     if (this.isSuperAdmin) {
       return true;
     }
@@ -117,13 +122,37 @@ export class Role {
   }
 
   public promoteToSuperAdmin(): void {
+    this.assertActive();
     this.isSuperAdmin = true;
     this.touch();
   }
 
   public demoteFromSuperAdmin(): void {
+    this.assertActive();
     this.isSuperAdmin = false;
     this.touch();
+  }
+
+  public softDelete(): void {
+    if (this.isDeleted()) {
+      throw new ConflictException('Role is already disabled');
+    }
+
+    this.deletedAt = new Date();
+    this.touch();
+  }
+
+  public restore(): void {
+    if (!this.isDeleted()) {
+      throw new ConflictException('Role is not disabled');
+    }
+
+    this.deletedAt = null;
+    this.touch();
+  }
+
+  public isDeleted(): boolean {
+    return this.deletedAt !== null;
   }
 
   public getId(): string {
@@ -138,12 +167,12 @@ export class Role {
     return [...this.permissions];
   }
 
-  public getRevokedPermissions(): PermissionKey[] {
-    return [...this.revokedPermissions];
-  }
-
   public getIsSuperAdmin(): boolean {
     return this.isSuperAdmin;
+  }
+
+  public getDeletedAt(): Date | null {
+    return this.deletedAt;
   }
 
   public getCreatedAt(): Date {
@@ -152,6 +181,12 @@ export class Role {
 
   public getUpdatedAt(): Date {
     return this.updatedAt;
+  }
+
+  private assertActive(): void {
+    if (this.isDeleted()) {
+      throw new ConflictException('Role is disabled');
+    }
   }
 
   private touch(): void {
