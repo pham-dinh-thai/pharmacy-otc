@@ -17,6 +17,10 @@ import {
   type ISignTokenPort,
   SIGN_TOKEN_PORT,
 } from '../../ports/sign-token.port';
+import {
+  ACCOUNTS_REPOSITORY,
+  type IAccountsRepository,
+} from '../../../domain/accounts.repository';
 import { randomUUID } from 'crypto';
 import { EmployeeStatus } from '../../../../employees/domain/enums/employee-status.enum';
 import {
@@ -39,6 +43,9 @@ export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand>
     @Inject(GET_EMPLOYMENT_STATUS_PORT)
     private readonly getEmploymentStatusPort: IGetEmploymentStatusPort,
 
+    @Inject(ACCOUNTS_REPOSITORY)
+    private readonly accountsRepository: IAccountsRepository,
+
     @Inject(SIGN_TOKEN_PORT)
     private readonly signTokenPort: ISignTokenPort,
   ) {}
@@ -46,6 +53,7 @@ export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand>
   public async execute(command: RefreshTokenCommand): Promise<{
     accessToken: string;
     refreshToken: string;
+    mustChangePassword: boolean;
   }> {
     const { sub, jti } = await this.refreshTokenVerifyPort.verify(
       command.refreshToken,
@@ -67,16 +75,24 @@ export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand>
       throw new UnauthorizedException('User Not Found');
     }
 
+    const account = await this.accountsRepository.findByUserId(sub);
+    if (!account) {
+      throw new UnauthorizedException('Account Not Found');
+    }
+
     const status = await this.getEmploymentStatusPort.execute(sub);
     if (status === EmployeeStatus.RESIGNED) {
       throw new UnauthorizedException('Employee resigned');
     }
+
+    const mustChangePassword = account.getMustChangePassword();
 
     const newJti = randomUUID();
     const { accessToken, refreshToken } = await this.signTokenPort.sign(
       {
         sub,
         email: user.email,
+        mustChangePassword,
       },
       {
         sub,
@@ -91,6 +107,6 @@ export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand>
       7 * 24 * 60 * 60,
     );
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, mustChangePassword };
   }
 }

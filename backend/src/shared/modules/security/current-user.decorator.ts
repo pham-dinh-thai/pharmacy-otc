@@ -4,6 +4,7 @@ import { Request } from 'express';
 export type AuthUser = {
   sub: string;
   email: string;
+  mustChangePassword: boolean;
 };
 
 export const CurrentUser = createParamDecorator(

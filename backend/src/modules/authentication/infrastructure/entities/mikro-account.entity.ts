@@ -14,6 +14,9 @@ export class MikroAccount {
   @Property({ type: 'boolean' })
   isActive!: boolean;
 
+  @Property({ type: 'boolean', fieldName: 'must_change_password' })
+  mustChangePassword!: boolean;
+
   @Property({
     type: 'timestamptz',
     fieldName: 'created_at',

@@ -62,9 +62,11 @@ export class LoginHandler implements ICommandHandler<LoginCommand> {
     private readonly outboxRepository: IOutboxRepository,
   ) {}
 
-  public async execute(
-    command: LoginCommand,
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  public async execute(command: LoginCommand): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    mustChangePassword: boolean;
+  }> {
     const user = await this.getUserByEmailPort.execute(command.email);
 
     // Resolve the account even when the email is unknown, so both branches do
@@ -97,9 +99,12 @@ export class LoginHandler implements ICommandHandler<LoginCommand> {
 
     const jti = randomUUID();
 
+    const mustChangePassword = account.getMustChangePassword();
+
     const accessTokenPayload: AccessTokenPayload = {
       sub,
       email: user.email,
+      mustChangePassword,
     };
     const refreshTokenPayload: RefreshTokenPayload = {
       sub,
@@ -139,6 +144,6 @@ export class LoginHandler implements ICommandHandler<LoginCommand> {
       ),
     });
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, mustChangePassword };
   }
 }

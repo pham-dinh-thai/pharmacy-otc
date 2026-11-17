@@ -48,6 +48,7 @@ export class MikroAccountsRepository implements IAccountsRepository {
     this.entityManager.assign(mikroAccount, {
       password: account.getPassword(),
       isActive: account.getIsActive(),
+      mustChangePassword: account.getMustChangePassword(),
       updatedAt: account.getUpdatedAt(),
     });
   }

@@ -35,6 +35,7 @@ const accountWithStatus = (isActive: boolean): Account =>
     userId: USER_ID,
     password: 'hashed-password',
     isActive,
+    mustChangePassword: false,
     createdAt: new Date('2026-11-17T00:00:00.000Z'),
     updatedAt: new Date('2026-11-17T00:00:00.000Z'),
   });

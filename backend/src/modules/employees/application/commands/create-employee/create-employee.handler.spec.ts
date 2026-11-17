@@ -121,6 +121,7 @@ describe('CreateEmployeeHandler', () => {
     const account = createAccount.mock.calls[0][0];
     expect(account.getUserId()).toBe(USER_ID);
     expect(account.getIsActive()).toBe(true);
+    expect(account.getMustChangePassword()).toBe(true);
     await expect(account.verify('secret123')).resolves.toBe(true);
 
     const employee = createEmployee.mock.calls[0][0];

@@ -6,5 +6,6 @@ export class CurrentUserResponse {
     public readonly email: string,
     public readonly isSuperAdmin: boolean,
     public readonly permissions: string[],
+    public readonly mustChangePassword: boolean,
   ) {}
 }

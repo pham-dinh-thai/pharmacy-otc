@@ -35,6 +35,7 @@ import { CurrentUser } from '../../../../shared/modules/security/current-user.de
 import { GetUserByIdQuery } from '../../../users/application/queries/get-user-by-id/get-user-by-id.query';
 import { GetActorPermissionsQuery } from '../../../authorization/application/queries/get-actor-permissions/get-actor-permissions.query';
 import { CurrentUserResponse } from './responses/current-user.response';
+import { AllowPasswordChangeRequired } from '../../../../shared/modules/security/allow-password-change-required.decorator';
 
 const REFRESH_COOKIE = 'refresh_token';
 const REFRESH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -46,6 +47,7 @@ const REFRESH_COOKIE_OPTIONS = {
 } as const;
 
 @Controller('authentication')
+@AllowPasswordChangeRequired()
 export class AuthenticationController {
   public constructor(
     private readonly commandBus: CommandBus,
@@ -107,20 +109,22 @@ export class AuthenticationController {
     @Res({ passthrough: true }) res: Response,
     @Ip() ip: string,
     @Headers('user-agent') userAgent: string,
-  ): Promise<{ accessToken: string }> {
-    const { accessToken, refreshToken } = await this.commandBus.execute(
-      new LoginCommand(request.email, request.password, ip, userAgent),
-    );
+  ): Promise<{ accessToken: string; mustChangePassword: boolean }> {
+    const { accessToken, refreshToken, mustChangePassword } =
+      await this.commandBus.execute(
+        new LoginCommand(request.email, request.password, ip, userAgent),
+      );
 
     this.setRefreshCookie(res, refreshToken);
 
-    return { accessToken };
+    return { accessToken, mustChangePassword };
   }
 
   @Get('/me')
   @UseGuards(AuthGuard)
   public async me(
     @CurrentUser('sub') sub: string,
+    @CurrentUser('mustChangePassword') mustChangePassword: boolean,
   ): Promise<CurrentUserResponse> {
     const user = await this.queryBus.execute(new GetUserByIdQuery(sub));
 
@@ -139,6 +143,7 @@ export class AuthenticationController {
       user.email,
       access.isSuperAdmin,
       access.permissions,
+      mustChangePassword,
     );
   }
 
@@ -147,17 +152,16 @@ export class AuthenticationController {
   public async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<{ accessToken: string }> {
+  ): Promise<{ accessToken: string; mustChangePassword: boolean }> {
     const token: unknown = req.cookies?.[REFRESH_COOKIE];
     if (typeof token !== 'string' || !token) {
       throw new UnauthorizedException('Missing refresh token');
     }
 
-    const { accessToken, refreshToken } = await this.commandBus.execute(
-      new RefreshTokenCommand(token),
-    );
+    const { accessToken, refreshToken, mustChangePassword } =
+      await this.commandBus.execute(new RefreshTokenCommand(token));
     this.setRefreshCookie(res, refreshToken);
-    return { accessToken };
+    return { accessToken, mustChangePassword };
   }
 
   @Patch('/password/forgot')

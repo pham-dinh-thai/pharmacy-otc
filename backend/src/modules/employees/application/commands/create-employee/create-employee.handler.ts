@@ -62,6 +62,8 @@ export class CreateEmployeeHandler implements ICommandHandler<CreateEmployeeComm
       const account = await Account.create({
         userId: user.getId(),
         password: command.password,
+        // Admin tạo tài khoản cho nhân viên: tự ép đổi mật khẩu lần đầu.
+        mustChangePassword: true,
       });
       this.accountsRepository.create(account);
 
