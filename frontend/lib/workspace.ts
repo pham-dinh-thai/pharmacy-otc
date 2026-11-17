@@ -33,6 +33,15 @@ export function workspaceNav(user: CurrentUser): WorkspaceNavGroup[] {
               },
             ]
           : []),
+        ...(user.isSuperAdmin || hasPermission(user, 'departments:read')
+          ? [
+              {
+                label: 'Phòng ban',
+                href: '/departments',
+                hint: 'Danh sách phòng ban đang hoạt động và đã vô hiệu hoá.',
+              },
+            ]
+          : []),
       ],
     },
     ...(user.isSuperAdmin
