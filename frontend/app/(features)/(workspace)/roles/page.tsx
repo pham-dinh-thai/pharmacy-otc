@@ -5,7 +5,7 @@ import { WorkspacePage } from '@/components/layout/WorkspaceShell';
 import { FormMessage } from '@/components/roles/FormMessage';
 import { PermissionChips } from '@/components/roles/PermissionChips';
 import { authFetch } from '@/lib/auth';
-import { fetchCurrentUser, hasPermission } from '@/lib/account';
+import { fetchCurrentUser } from '@/lib/account';
 import type { Role } from '@/lib/roles';
 import { disableRole, restoreRole } from './actions';
 
@@ -41,22 +41,20 @@ async function RolesList({
 }) {
   const user = await fetchCurrentUser();
 
-  if (!user) redirect('/login?next=/admin/roles');
-  if (!user.isSuperAdmin && !hasPermission(user, 'roles:read')) {
-    redirect('/admin');
-  }
+  if (!user) redirect('/login?next=/roles');
+  if (!user.isSuperAdmin) redirect('/dashboard');
 
   const [res, query] = await Promise.all([authFetch('/roles'), searchParams]);
 
-  if (res.status === 401) redirect('/login?next=/admin/roles');
+  if (res.status === 401) redirect('/login?next=/roles');
   if (!res.ok) throw new Error(`Failed to fetch roles: ${res.status}`);
 
   const roles: Role[] = await res.json();
   const activeRoles = roles.filter((role) => role.deletedAt === null);
   const disabledRoles = roles.filter((role) => role.deletedAt !== null);
-  const canCreate = user.isSuperAdmin || hasPermission(user, 'roles:create');
-  const canDelete = user.isSuperAdmin || hasPermission(user, 'roles:delete');
-  const canUpdate = user.isSuperAdmin || hasPermission(user, 'roles:update');
+  const canCreate = user.isSuperAdmin;
+  const canDelete = user.isSuperAdmin;
+  const canUpdate = user.isSuperAdmin;
 
   const errorMessage = query.error
     ? (ERROR_MESSAGES[query.error] ?? ERROR_MESSAGES.server)
@@ -85,7 +83,7 @@ async function RolesList({
 
         {canCreate && (
           <Link
-            href="/admin/roles/new"
+            href="/roles/new"
             className="bg-accent px-4 py-2.5 text-[13px] font-semibold text-paper transition-colors hover:bg-ink"
           >
             Thêm vai trò
@@ -112,7 +110,7 @@ async function RolesList({
                 <tr key={role.id}>
                   <td className={TD_CLASS}>
                     <Link
-                      href={`/admin/roles/${role.id}`}
+                      href={`/roles/${role.id}`}
                       className="font-semibold hover:text-accent"
                     >
                       {role.name}
@@ -142,7 +140,7 @@ async function RolesList({
 
                   <td className={`${TD_CLASS} text-right`}>
                     <Link
-                      href={`/admin/roles/${role.id}`}
+                      href={`/roles/${role.id}`}
                       className="whitespace-nowrap text-[12px] font-medium text-accent hover:underline"
                     >
                       Quản lý quyền →
@@ -161,7 +159,7 @@ async function RolesList({
                           <input
                             type="hidden"
                             name="returnTo"
-                            value="/admin/roles"
+                            value="/roles"
                           />
                           <button
                             type="submit"
@@ -219,7 +217,7 @@ async function RolesList({
                   <tr key={role.id}>
                     <td className={TD_CLASS}>
                       <Link
-                        href={`/admin/roles/${role.id}`}
+                        href={`/roles/${role.id}`}
                         className="font-semibold text-muted hover:text-accent"
                       >
                         {role.name}
@@ -249,7 +247,7 @@ async function RolesList({
                           <input
                             type="hidden"
                             name="returnTo"
-                            value="/admin/roles"
+                            value="/roles"
                           />
                           <button
                             type="submit"

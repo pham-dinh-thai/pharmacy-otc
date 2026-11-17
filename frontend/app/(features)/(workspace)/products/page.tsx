@@ -24,7 +24,7 @@ async function fetchProducts(): Promise<ProductListItem[] | null> {
     return null;
   }
 
-  if (res.status === 401) redirect('/login?next=/staff/products');
+  if (res.status === 401) redirect('/login?next=/products');
   if (!res.ok) return null;
 
   return (await res.json()) as ProductListItem[];
@@ -33,16 +33,16 @@ async function fetchProducts(): Promise<ProductListItem[] | null> {
 async function ProductsContent() {
   const user = await fetchCurrentUser();
 
-  if (!user) redirect('/login?next=/staff/products');
+  if (!user) redirect('/login?next=/products');
   if (!user.isSuperAdmin && !hasPermission(user, 'products:read')) {
-    redirect('/staff');
+    redirect('/dashboard');
   }
 
   const products = await fetchProducts();
 
   return (
     <WorkspacePage
-      eyebrow="Nhân viên"
+      eyebrow="Không gian làm việc"
       title="Sản phẩm"
       intro="Danh sách sản phẩm, đơn giá và tồn kho."
     >

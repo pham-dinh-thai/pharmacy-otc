@@ -4,18 +4,10 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { handleLogout } from '@/app/(features)/login/actions';
 
-type AccountMenuProps = {
-  canAccessAdmin: boolean;
-  canAccessStaff: boolean;
-};
-
 const ITEM_CLASS =
   'block w-full px-4 py-2.5 text-left text-[13px] leading-5 hover:bg-surface';
 
-export function AccountMenu({
-  canAccessAdmin,
-  canAccessStaff,
-}: AccountMenuProps) {
+export function AccountMenu() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -101,25 +93,13 @@ export function AccountMenu({
             Đổi mật khẩu
           </Link>
 
-          {canAccessAdmin && (
-            <Link
-              href="/admin"
-              onClick={() => setOpen(false)}
-              className={ITEM_CLASS}
-            >
-              Trang điều khiển admin
-            </Link>
-          )}
-
-          {canAccessStaff && (
-            <Link
-              href="/staff"
-              onClick={() => setOpen(false)}
-              className={ITEM_CLASS}
-            >
-              Trang điều khiển nhân viên
-            </Link>
-          )}
+          <Link
+            href="/dashboard"
+            onClick={() => setOpen(false)}
+            className={ITEM_CLASS}
+          >
+            Không gian làm việc
+          </Link>
 
           <div className="border-t border-rule">
             <form action={handleLogout}>

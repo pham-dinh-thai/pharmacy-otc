@@ -41,38 +41,6 @@ export function hasPermission(user: CurrentUser, key: string): boolean {
   });
 }
 
-const ADMIN_PERMISSIONS = [
-  'roles:read',
-  'users:read',
-  'audit_logs:read',
-  'reports:view_sales',
-  'reports:view_inventory',
-  'expenses:read',
-];
-
-const STAFF_PERMISSIONS = [
-  'orders:read',
-  'products:read',
-  'suppliers:read',
-  'customers:read',
-  'inventories:read',
-  'goods_receipts:read',
-];
-
-export function canAccessAdmin(user: CurrentUser): boolean {
-  return (
-    user.isSuperAdmin ||
-    ADMIN_PERMISSIONS.some((key) => hasPermission(user, key))
-  );
-}
-
-export function canAccessStaff(user: CurrentUser): boolean {
-  return (
-    user.isSuperAdmin ||
-    STAFF_PERMISSIONS.some((key) => hasPermission(user, key))
-  );
-}
-
 export function displayName(user: CurrentUser): string {
   const name = `${user.firstName} ${user.lastName}`.trim();
 

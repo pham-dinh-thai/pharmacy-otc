@@ -2,33 +2,34 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { WorkspacePage } from '@/components/layout/WorkspaceShell';
-import { fetchCurrentUser } from '@/lib/account';
-import { staffNav, subItems } from '@/lib/workspace';
+import {
+  displayName,
+  fetchCurrentUser,
+} from '@/lib/account';
+import { subItems, workspaceNav } from '@/lib/workspace';
 
 const CELL_CLASS = 'bg-paper px-5 py-4';
 const LABEL_CLASS =
   'text-[11px] font-semibold uppercase tracking-[0.16em] text-muted';
 const VALUE_CLASS = 'mt-1 text-[14px]';
 
-async function StaffOverview() {
+async function DashboardOverview() {
   const user = await fetchCurrentUser();
 
-  if (!user) redirect('/login?next=/staff');
+  if (!user) redirect('/login?next=/dashboard');
 
-  const items = subItems(staffNav(user), '/staff');
+  const items = subItems(workspaceNav(user), '/dashboard');
 
   return (
     <WorkspacePage
-      eyebrow="Nhân viên"
+      eyebrow="Không gian làm việc"
       title="Tổng quan"
-      intro="Tra cứu sản phẩm và nhà cung cấp trong hệ thống."
+      intro="Chức năng bạn có thể dùng và quyền hiện có của tài khoản."
     >
       <dl className="grid max-w-[620px] grid-cols-1 gap-px border border-rule bg-rule sm:grid-cols-2">
         <div className={CELL_CLASS}>
-          <dt className={LABEL_CLASS}>Vai trò</dt>
-          <dd className={VALUE_CLASS}>
-            {user.isSuperAdmin ? 'Super Admin' : 'Thành viên'}
-          </dd>
+          <dt className={LABEL_CLASS}>Tài khoản</dt>
+          <dd className={VALUE_CLASS}>{displayName(user)}</dd>
         </div>
 
         <div className={CELL_CLASS}>
@@ -71,7 +72,7 @@ async function StaffOverview() {
           </ul>
         ) : (
           <p className="mt-3 text-[13px] leading-6 text-muted">
-            Tài khoản chưa được cấp chức năng tra cứu nào.
+            Tài khoản chưa được cấp chức năng nào.
           </p>
         )}
       </section>
@@ -90,10 +91,10 @@ async function StaffOverview() {
   );
 }
 
-export default function StaffPage() {
+export default function DashboardPage() {
   return (
     <Suspense fallback={<div className="min-h-[50vh]" />}>
-      <StaffOverview />
+      <DashboardOverview />
     </Suspense>
   );
 }

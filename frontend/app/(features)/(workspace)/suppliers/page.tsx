@@ -27,7 +27,7 @@ async function fetchSuppliers(): Promise<SupplierListItem[] | null> {
     return null;
   }
 
-  if (res.status === 401) redirect('/login?next=/staff/suppliers');
+  if (res.status === 401) redirect('/login?next=/suppliers');
   if (!res.ok) return null;
 
   return (await res.json()) as SupplierListItem[];
@@ -36,16 +36,16 @@ async function fetchSuppliers(): Promise<SupplierListItem[] | null> {
 async function SuppliersContent() {
   const user = await fetchCurrentUser();
 
-  if (!user) redirect('/login?next=/staff/suppliers');
+  if (!user) redirect('/login?next=/suppliers');
   if (!user.isSuperAdmin && !hasPermission(user, 'suppliers:read')) {
-    redirect('/staff');
+    redirect('/dashboard');
   }
 
   const suppliers = await fetchSuppliers();
 
   return (
     <WorkspacePage
-      eyebrow="Nhân viên"
+      eyebrow="Không gian làm việc"
       title="Nhà cung cấp"
       intro="Danh sách nhà cung cấp và thông tin liên hệ."
     >

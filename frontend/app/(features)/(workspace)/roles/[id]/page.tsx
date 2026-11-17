@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { WorkspacePage } from '@/components/layout/WorkspaceShell';
 import { FormMessage } from '@/components/roles/FormMessage';
 import { authFetch } from '@/lib/auth';
-import { fetchCurrentUser, hasPermission } from '@/lib/account';
+import { fetchCurrentUser } from '@/lib/account';
 import {
   fetchPermissionCatalog,
   permissionLabel,
@@ -54,10 +54,8 @@ async function RoleDetail({
   const { id } = await params;
   const user = await fetchCurrentUser();
 
-  if (!user) redirect(`/login?next=/admin/roles/${id}`);
-  if (!user.isSuperAdmin && !hasPermission(user, 'roles:read')) {
-    redirect('/admin');
-  }
+  if (!user) redirect(`/login?next=/roles/${id}`);
+  if (!user.isSuperAdmin) redirect('/dashboard');
 
   const [res, catalog, query] = await Promise.all([
     authFetch(`/roles/${id}`),
@@ -65,20 +63,20 @@ async function RoleDetail({
     searchParams,
   ]);
 
-  if (res.status === 401) redirect(`/login?next=/admin/roles/${id}`);
+  if (res.status === 401) redirect(`/login?next=/roles/${id}`);
   if (res.status === 404) notFound();
   if (!res.ok) throw new Error(`Failed to fetch role: ${res.status}`);
 
   const role: Role = await res.json();
   const isDisabled = role.deletedAt !== null;
-  const canManage = user.isSuperAdmin || hasPermission(user, 'roles:update');
-  const canDelete = user.isSuperAdmin || hasPermission(user, 'roles:delete');
+  const canManage = user.isSuperAdmin;
+  const canDelete = user.isSuperAdmin;
   const resources = catalog ?? [];
   const granted = sortPermissions(role.permissions, resources);
   const options = permissionOptions(resources).filter(
     (permission) => !role.permissions.includes(permission),
   );
-  const returnTo = `/admin/roles/${role.id}`;
+  const returnTo = `/roles/${role.id}`;
 
   const errorMessage = query.error
     ? (ERROR_MESSAGES[query.error] ?? ERROR_MESSAGES.server)
@@ -97,7 +95,7 @@ async function RoleDetail({
       }
     >
       <Link
-        href="/admin/roles"
+        href="/roles"
         className="text-[13px] font-medium text-accent hover:underline"
       >
         ← Danh sách vai trò

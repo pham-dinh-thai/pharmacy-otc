@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { authFetch } from '@/lib/auth';
 
-const LIST_PATH = '/admin/roles';
+const LIST_PATH = '/roles';
 
 function rolePath(id: string): string {
   return `${LIST_PATH}/${id}`;

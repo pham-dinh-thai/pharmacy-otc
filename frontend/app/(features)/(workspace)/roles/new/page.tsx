@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { WorkspacePage } from '@/components/layout/WorkspaceShell';
 import { FormMessage } from '@/components/roles/FormMessage';
-import { fetchCurrentUser, hasPermission } from '@/lib/account';
+import { fetchCurrentUser } from '@/lib/account';
 import {
   actionLabel,
   fetchPermissionCatalog,
@@ -29,10 +29,8 @@ async function NewRoleForm({
 }) {
   const user = await fetchCurrentUser();
 
-  if (!user) redirect('/login?next=/admin/roles/new');
-  if (!user.isSuperAdmin && !hasPermission(user, 'roles:create')) {
-    redirect('/admin/roles');
-  }
+  if (!user) redirect('/login?next=/roles/new');
+  if (!user.isSuperAdmin) redirect('/roles');
 
   const [catalog, { error }] = await Promise.all([
     fetchPermissionCatalog(),
@@ -46,7 +44,7 @@ async function NewRoleForm({
       intro="Đặt tên, chọn quyền và quyết định vai trò có phải Super Admin hay không."
     >
       <Link
-        href="/admin/roles"
+        href="/roles"
         className="text-[13px] font-medium text-accent hover:underline"
       >
         ← Danh sách vai trò
@@ -145,7 +143,7 @@ async function NewRoleForm({
               Tạo vai trò
             </button>
             <Link
-              href="/admin/roles"
+              href="/roles"
               className="border border-rule px-5 py-2.5 text-[13px] font-medium transition-colors hover:border-ink"
             >
               Huỷ

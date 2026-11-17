@@ -5,12 +5,7 @@ import {
   WorkspacePage,
   WorkspaceShell,
 } from '@/components/layout/WorkspaceShell';
-import {
-  canAccessAdmin,
-  canAccessStaff,
-  displayName,
-  fetchCurrentUser,
-} from '@/lib/account';
+import { displayName, fetchCurrentUser } from '@/lib/account';
 
 const CELL_CLASS = 'bg-paper px-5 py-4';
 const LABEL_CLASS =
@@ -65,23 +60,12 @@ async function AccountContent() {
             Đổi mật khẩu
           </Link>
 
-          {canAccessAdmin(user) && (
-            <Link
-              href="/admin"
-              className="border border-rule px-4 py-2.5 text-[13px] font-medium hover:border-ink"
-            >
-              Trang điều khiển admin
-            </Link>
-          )}
-
-          {canAccessStaff(user) && (
-            <Link
-              href="/staff"
-              className="border border-rule px-4 py-2.5 text-[13px] font-medium hover:border-ink"
-            >
-              Trang điều khiển nhân viên
-            </Link>
-          )}
+          <Link
+            href="/dashboard"
+            className="border border-rule px-4 py-2.5 text-[13px] font-medium hover:border-ink"
+          >
+            Không gian làm việc
+          </Link>
         </div>
       </WorkspacePage>
     </WorkspaceShell>

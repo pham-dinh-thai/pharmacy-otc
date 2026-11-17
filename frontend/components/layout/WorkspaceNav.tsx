@@ -17,7 +17,7 @@ export type WorkspaceNavGroup = {
 /** Menu chức năng của khu vực điều khiển: tab ngang trên mobile, cột trái từ lg. */
 export function WorkspaceNav({ groups }: { groups: WorkspaceNavGroup[] }) {
   const pathname = usePathname();
-  // Chọn mục khớp dài nhất để /admin không sáng khi đang ở /admin/roles/...
+  // Chọn mục khớp dài nhất để /dashboard không sáng khi đang ở /roles/...
   const activeHref = groups
     .flatMap((group) => group.items.map((item) => item.href))
     .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
