@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { AuthField } from '@/components/auth/AuthField';
+import { fetchCurrentUser } from '@/lib/account';
 import { handleChangePassword } from './actions';
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -32,6 +33,22 @@ async function ChangePasswordMessage({
   );
 }
 
+async function FirstLoginNotice() {
+  const user = await fetchCurrentUser();
+
+  if (!user?.mustChangePassword) return null;
+
+  return (
+    <p
+      role="status"
+      className="mb-5 border-l-2 border-accent bg-accent-soft px-3 py-2 text-[13px] leading-5 text-ink"
+    >
+      Đây là lần đăng nhập đầu tiên. Bạn cần đặt mật khẩu mới trước khi vào
+      workspace.
+    </p>
+  );
+}
+
 export default function ChangePasswordPage({
   searchParams,
 }: {
@@ -43,6 +60,7 @@ export default function ChangePasswordPage({
       intro="Nhập mật khẩu hiện tại để xác nhận, sau đó đặt mật khẩu mới."
     >
       <Suspense fallback={null}>
+        <FirstLoginNotice />
         <ChangePasswordMessage searchParams={searchParams} />
       </Suspense>
 

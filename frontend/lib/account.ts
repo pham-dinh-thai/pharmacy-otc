@@ -8,6 +8,7 @@ export type CurrentUser = {
   email: string;
   isSuperAdmin: boolean;
   permissions: string[];
+  mustChangePassword: boolean;
 };
 
 /**

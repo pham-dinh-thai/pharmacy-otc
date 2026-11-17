@@ -9,6 +9,8 @@ async function Workspace({ children }: { children: React.ReactNode }) {
 
   if (!user) redirect('/login?next=/dashboard');
 
+  if (user.mustChangePassword) redirect('/account/password');
+
   return <WorkspaceShell nav={workspaceNav(user)}>{children}</WorkspaceShell>;
 }
 
