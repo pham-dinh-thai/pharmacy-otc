@@ -98,7 +98,7 @@ async function RolesList({
               <tr>
                 <th className={TH_CLASS}>Vai trò</th>
                 <th className={TH_CLASS}>Quyền đang hiệu lực</th>
-                <th className={TH_CLASS}>Quản lý</th>
+                <th className={`${TH_CLASS} text-right`}>Quản lý</th>
                 {canDelete && (
                   <th className={`${TH_CLASS} text-right`}>Hành động</th>
                 )}
