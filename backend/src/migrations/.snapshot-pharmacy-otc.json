@@ -59,6 +59,23 @@
           "enumItems": [],
           "mappedType": "boolean"
         },
+        "must_change_password": {
+          "name": "must_change_password",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "boolean"
+        },
         "password": {
           "name": "password",
           "type": "varchar(255)",

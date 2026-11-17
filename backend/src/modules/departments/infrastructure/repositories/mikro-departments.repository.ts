@@ -26,6 +26,17 @@ export class MikroDepartmentsRepository implements IDepartmentsRepository {
     );
   }
 
+  public async findActive(): Promise<Department[]> {
+    const mikroDepartments = await this.entityManager.findAll(MikroDepartment, {
+      where: { deletedAt: null },
+      orderBy: { name: 'asc' },
+    });
+
+    return mikroDepartments.map((mikroDepartment) =>
+      DepartmentMapper.toDomain(mikroDepartment),
+    );
+  }
+
   public async findById(id: string): Promise<Department | null> {
     const mikroDepartment = await this.entityManager.findOne(MikroDepartment, {
       id,

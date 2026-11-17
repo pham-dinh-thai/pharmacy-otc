@@ -1,6 +1,7 @@
 export type AccessTokenPayload = {
   sub: string;
   email: string;
+  mustChangePassword: boolean;
 };
 
 export type RefreshTokenPayload = {

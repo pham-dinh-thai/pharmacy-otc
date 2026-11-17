@@ -5,6 +5,7 @@ import { Password } from './password.value-object';
 export type CreateAccountProps = {
   userId: string;
   password: string;
+  mustChangePassword?: boolean;
 };
 
 export type FromPersistentAccountProps = {
@@ -12,6 +13,7 @@ export type FromPersistentAccountProps = {
   userId: string;
   password: string;
   isActive: boolean;
+  mustChangePassword: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -22,6 +24,7 @@ export class Account {
     private readonly userId: string,
     private password: Password,
     private isActive: boolean,
+    private mustChangePassword: boolean,
     private readonly createdAt: Date,
     private updatedAt: Date,
   ) {}
@@ -34,6 +37,7 @@ export class Account {
       props.userId,
       await Password.fromPlainText(props.password),
       true,
+      props.mustChangePassword ?? false,
       now,
       now,
     );
@@ -45,6 +49,7 @@ export class Account {
       props.userId,
       Password.fromHashed(props.password),
       props.isActive,
+      props.mustChangePassword,
       props.createdAt,
       props.updatedAt,
     );
@@ -88,6 +93,7 @@ export class Account {
     }
 
     this.password = await Password.fromPlainText(newPassword);
+    this.mustChangePassword = false;
 
     this.updatedAt = new Date();
   }
@@ -106,6 +112,10 @@ export class Account {
 
   public getIsActive(): boolean {
     return this.isActive;
+  }
+
+  public getMustChangePassword(): boolean {
+    return this.mustChangePassword;
   }
 
   public getCreatedAt(): Date {

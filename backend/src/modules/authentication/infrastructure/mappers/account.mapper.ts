@@ -8,6 +8,7 @@ export class AccountMapper {
       userId: mikroAccount.userId,
       password: mikroAccount.password,
       isActive: mikroAccount.isActive,
+      mustChangePassword: mikroAccount.mustChangePassword,
       createdAt: mikroAccount.createdAt,
       updatedAt: mikroAccount.updatedAt,
     });
@@ -20,6 +21,7 @@ export class AccountMapper {
     mikroAccount.userId = account.getUserId();
     mikroAccount.password = account.getPassword();
     mikroAccount.isActive = account.getIsActive();
+    mikroAccount.mustChangePassword = account.getMustChangePassword();
     mikroAccount.createdAt = account.getCreatedAt();
     mikroAccount.updatedAt = account.getUpdatedAt();
 

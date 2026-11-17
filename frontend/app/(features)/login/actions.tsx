@@ -31,7 +31,10 @@ export async function handleLogin(formData: FormData) {
 
   if (!res.ok) redirect('/login?error=1');
 
-  const { accessToken } = (await res.json()) as { accessToken: string };
+  const { accessToken, mustChangePassword } = (await res.json()) as {
+    accessToken: string;
+    mustChangePassword: boolean;
+  };
   // Backend chỉ trả refresh token qua Set-Cookie → phải bóc ra để tự set lại.
   const refreshToken = readSetCookie(res.headers, REFRESH_TOKEN_COOKIE);
 
@@ -54,6 +57,9 @@ export async function handleLogin(formData: FormData) {
       maxAge: REFRESH_TOKEN_MAX_AGE,
     });
   }
+
+  // Tài khoản do admin tạo phải đổi mật khẩu ngay sau lần đăng nhập đầu tiên.
+  if (mustChangePassword) redirect('/account/password');
 
   redirect('/');
 }

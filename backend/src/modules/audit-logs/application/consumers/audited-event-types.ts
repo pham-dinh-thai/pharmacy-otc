@@ -29,6 +29,8 @@ import { DEPARTMENT_CREATED_EVENT } from '../../../departments/domain/events/dep
 import { DEPARTMENT_UPDATED_EVENT } from '../../../departments/domain/events/department-updated.event';
 import { DEPARTMENT_DISABLED_EVENT } from '../../../departments/domain/events/department-disabled.event';
 import { DEPARTMENT_RESTORED_EVENT } from '../../../departments/domain/events/department-restored.event';
+import { EMPLOYEE_CREATED_EVENT } from '../../../employees/domain/events/employee-created.event';
+import { EMPLOYEE_UPDATED_EVENT } from '../../../employees/domain/events/employee-updated.event';
 
 /**
  * Verbs stored in `audit_logs.action`. The outbox event type identifies the
@@ -91,6 +93,8 @@ export const AUDITED_EVENT_ACTIONS = {
   [DEPARTMENT_UPDATED_EVENT]: 'update',
   [DEPARTMENT_DISABLED_EVENT]: 'deactivate',
   [DEPARTMENT_RESTORED_EVENT]: 'activate',
+  [EMPLOYEE_CREATED_EVENT]: 'create',
+  [EMPLOYEE_UPDATED_EVENT]: 'update',
 } as const satisfies Record<string, AuditAction>;
 
 export type AuditedEventType = keyof typeof AUDITED_EVENT_ACTIONS;
