@@ -1075,18 +1075,6 @@
       "checks": [],
       "triggers": [],
       "foreignKeys": {
-        "employees_department_id_foreign": {
-          "columnNames": [
-            "department_id"
-          ],
-          "constraintName": "employees_department_id_foreign",
-          "localTableName": "public.employees",
-          "referencedColumnNames": [
-            "id"
-          ],
-          "referencedTableName": "public.departments",
-          "updateRule": "cascade"
-        },
         "employees_user_id_foreign": {
           "columnNames": [
             "user_id"

@@ -1,33 +1,26 @@
 import {
   Entity,
-  ManyToOne,
+  OneToOne,
   PrimaryKey,
   Property,
-  Unique,
 } from '@mikro-orm/decorators/legacy';
 import { MikroUser } from '../../../users/infrastructure/entities/mikro-user.entity';
-import { MikroDepartment } from '../../../departments/infrastructure/entities/mikro-department.entity';
 
 @Entity({ tableName: 'employees' })
-@Unique({ properties: 'userId' })
 export class MikroEmployee {
   @PrimaryKey({ type: 'uuid' })
   id!: string;
 
-  @ManyToOne(() => MikroUser, {
+  @OneToOne(() => MikroUser, {
     fieldName: 'user_id',
     mapToPk: true,
+    owner: true,
     updateRule: 'cascade',
     deleteRule: 'cascade',
   })
   userId!: string;
 
-  @ManyToOne(() => MikroDepartment, {
-    fieldName: 'department_id',
-    mapToPk: true,
-    updateRule: 'cascade',
-    deleteRule: 'no action',
-  })
+  @Property({ fieldName: 'department_id', type: 'uuid' })
   departmentId!: string;
 
   @Property({
