@@ -10,6 +10,14 @@ function rolePath(id: string): string {
   return `${LIST_PATH}/${id}`;
 }
 
+function returnPath(value: FormDataEntryValue | null): string {
+  const path = String(value ?? '');
+
+  return path === LIST_PATH || path.startsWith(`${LIST_PATH}/`)
+    ? path
+    : LIST_PATH;
+}
+
 async function readJson<T>(res: Response): Promise<T | null> {
   try {
     return (await res.json()) as T;
@@ -58,11 +66,10 @@ export async function createRole(formData: FormData) {
   redirect(body?.id ? rolePath(body.id) : LIST_PATH);
 }
 
-/** Cấp quyền, hoặc kích hoạt lại quyền đã bị vô hiệu hoá. */
+/** Cấp quyền cho vai trò. */
 export async function grantPermission(formData: FormData) {
   const roleId = String(formData.get('roleId') ?? '');
   const permission = String(formData.get('permission') ?? '');
-  const restoring = formData.get('mode') === 'restore';
   const back = roleId ? rolePath(roleId) : LIST_PATH;
 
   if (!roleId || !permission) redirect(`${LIST_PATH}?error=missing`);
@@ -89,10 +96,10 @@ export async function grantPermission(formData: FormData) {
 
   revalidatePath(LIST_PATH);
   revalidatePath(back);
-  redirect(`${back}?updated=${restoring ? 'restored' : 'granted'}`);
+  redirect(`${back}?updated=granted`);
 }
 
-/** Vô hiệu hoá quyền (xoá mềm): quyền ngừng hiệu lực nhưng vẫn lưu để khôi phục. */
+/** Xoá quyền khỏi vai trò. */
 export async function revokePermission(formData: FormData) {
   const roleId = String(formData.get('roleId') ?? '');
   const permission = String(formData.get('permission') ?? '');
@@ -118,5 +125,55 @@ export async function revokePermission(formData: FormData) {
 
   revalidatePath(LIST_PATH);
   revalidatePath(back);
-  redirect(`${back}?updated=revoked`);
+  redirect(`${back}?updated=removed`);
+}
+
+/** Vô hiệu hoá vai trò (xoá mềm): vai trò ngừng cấp quyền nhưng vẫn khôi phục được. */
+export async function disableRole(formData: FormData) {
+  const roleId = String(formData.get('roleId') ?? '');
+  const back = returnPath(formData.get('returnTo'));
+
+  if (!roleId) redirect(`${LIST_PATH}?error=missing`);
+
+  let res: Response;
+  try {
+    res = await authFetch(`/roles/${roleId}`, { method: 'DELETE' });
+  } catch {
+    redirect(`${back}?error=server`);
+  }
+
+  if (res.status === 401) redirect(`/login?next=${back}`);
+  if (res.status === 403) redirect(`${back}?error=forbidden`);
+  if (res.status === 404) redirect(`${LIST_PATH}?error=missing`);
+  if (res.status === 409) redirect(`${back}?error=lastSuperAdmin`);
+  if (!res.ok) redirect(`${back}?error=server`);
+
+  revalidatePath(LIST_PATH);
+  revalidatePath(rolePath(roleId));
+  redirect(`${LIST_PATH}?updated=disabled`);
+}
+
+/** Khôi phục vai trò đã bị vô hiệu hoá. */
+export async function restoreRole(formData: FormData) {
+  const roleId = String(formData.get('roleId') ?? '');
+  const back = returnPath(formData.get('returnTo'));
+
+  if (!roleId) redirect(`${LIST_PATH}?error=missing`);
+
+  let res: Response;
+  try {
+    res = await authFetch(`/roles/${roleId}/restore`, { method: 'PATCH' });
+  } catch {
+    redirect(`${back}?error=server`);
+  }
+
+  if (res.status === 401) redirect(`/login?next=${back}`);
+  if (res.status === 403) redirect(`${back}?error=forbidden`);
+  if (res.status === 404) redirect(`${LIST_PATH}?error=missing`);
+  if (res.status === 409) redirect(`${back}?error=notDisabled`);
+  if (!res.ok) redirect(`${back}?error=server`);
+
+  revalidatePath(LIST_PATH);
+  revalidatePath(rolePath(roleId));
+  redirect(`${back}?updated=restored`);
 }
