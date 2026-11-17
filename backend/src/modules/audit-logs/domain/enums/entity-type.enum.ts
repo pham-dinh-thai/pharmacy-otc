@@ -10,4 +10,5 @@ export enum EntityType {
   INVENTORIES = 'inventories',
   EXPENSES = 'expenses',
   EMPLOYEES = 'employees',
+  DEPARTMENTS = 'departments',
 }

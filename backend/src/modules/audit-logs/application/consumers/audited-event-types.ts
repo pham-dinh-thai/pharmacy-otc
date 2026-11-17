@@ -25,6 +25,10 @@ import { EXPENSE_CREATED_EVENT } from '../../../expenses/domain/events/expense-c
 import { PASSWORD_CHANGED_AUDIT_EVENT } from '../../../authentication/domain/events/password-changed.event';
 import { EMPLOYEE_STATUS_CHANGED_EVENT } from '../../../employees/domain/events/employee-status-changed.event';
 import { USER_DEACTIVATED_EVENT } from '../../../users/domain/events/user-deactivated.event';
+import { DEPARTMENT_CREATED_EVENT } from '../../../departments/domain/events/department-created.event';
+import { DEPARTMENT_UPDATED_EVENT } from '../../../departments/domain/events/department-updated.event';
+import { DEPARTMENT_DISABLED_EVENT } from '../../../departments/domain/events/department-disabled.event';
+import { DEPARTMENT_RESTORED_EVENT } from '../../../departments/domain/events/department-restored.event';
 
 /**
  * Verbs stored in `audit_logs.action`. The outbox event type identifies the
@@ -83,6 +87,10 @@ export const AUDITED_EVENT_ACTIONS = {
   [PASSWORD_CHANGED_AUDIT_EVENT]: 'change_password',
   [EMPLOYEE_STATUS_CHANGED_EVENT]: 'update',
   [USER_DEACTIVATED_EVENT]: 'deactivate',
+  [DEPARTMENT_CREATED_EVENT]: 'create',
+  [DEPARTMENT_UPDATED_EVENT]: 'update',
+  [DEPARTMENT_DISABLED_EVENT]: 'deactivate',
+  [DEPARTMENT_RESTORED_EVENT]: 'activate',
 } as const satisfies Record<string, AuditAction>;
 
 export type AuditedEventType = keyof typeof AUDITED_EVENT_ACTIONS;

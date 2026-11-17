@@ -280,7 +280,8 @@
             "goods_receipts",
             "inventories",
             "expenses",
-            "employees"
+            "employees",
+            "departments"
           ],
           "mappedType": "enum"
         },
@@ -511,8 +512,8 @@
         },
         {
           "name": "audit_logs_entity_type_check",
-          "expression": "\"entity_type\" in ('accounts', 'users', 'customers', 'roles', 'orders', 'products', 'suppliers', 'goods_receipts', 'inventories', 'expenses', 'employees')",
-          "definition": "check (\"entity_type\" in ('accounts', 'users', 'customers', 'roles', 'orders', 'products', 'suppliers', 'goods_receipts', 'inventories', 'expenses', 'employees'))",
+          "expression": "\"entity_type\" in ('accounts', 'users', 'customers', 'roles', 'orders', 'products', 'suppliers', 'goods_receipts', 'inventories', 'expenses', 'employees', 'departments')",
+          "definition": "check (\"entity_type\" in ('accounts', 'users', 'customers', 'roles', 'orders', 'products', 'suppliers', 'goods_receipts', 'inventories', 'expenses', 'employees', 'departments'))",
           "columnName": "entity_type"
         },
         {
