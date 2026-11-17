@@ -42,6 +42,15 @@ export function workspaceNav(user: CurrentUser): WorkspaceNavGroup[] {
               },
             ]
           : []),
+        ...(user.isSuperAdmin || hasPermission(user, 'employees:read')
+          ? [
+              {
+                label: 'Nhân viên',
+                href: '/employees',
+                hint: 'Hồ sơ nhân viên, phòng ban và trạng thái làm việc.',
+              },
+            ]
+          : []),
       ],
     },
     ...(user.isSuperAdmin
