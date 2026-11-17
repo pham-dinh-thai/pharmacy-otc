@@ -16,6 +16,9 @@ import { CreateUserByAdminHandler } from './application/commands/create-user-by-
 import { SecurityModule } from '../../shared/modules/security/security.module';
 import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { GetUserRoleIdsHandler } from './application/queries/get-user-role-ids/get-user-role-ids.handler';
+import { AuthenticationModule } from '../authentication/authentication.module';
+import { DeactivateUserHandler } from './application/commands/deactivate-user/deactivate-user.handler';
+import { DeactivateUserConsumer } from './application/consumers/deactivate-user.consumer';
 
 @Module({
   controllers: [UsersController],
@@ -24,6 +27,7 @@ import { GetUserRoleIdsHandler } from './application/queries/get-user-role-ids/g
     AuthorizationModule,
     SecurityModule,
     OutBoxModule,
+    AuthenticationModule,
   ],
   providers: [
     { provide: USERS_REPOSITORY, useClass: MikroUsersRepository },
@@ -36,6 +40,8 @@ import { GetUserRoleIdsHandler } from './application/queries/get-user-role-ids/g
     AssignRoleHandler,
     RemoveRoleHandler,
     GetUserRoleIdsHandler,
+    DeactivateUserHandler,
+    DeactivateUserConsumer,
   ],
 })
 export class UsersModule {}

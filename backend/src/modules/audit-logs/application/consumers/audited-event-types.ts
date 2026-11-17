@@ -23,6 +23,8 @@ import { INVENTORY_STOCK_ISSUED_EVENT } from '../../../inventories/domain/events
 import { INVENTORY_STOCK_RECONCILED_EVENT } from '../../../inventories/domain/events/inventory-stock-reconciled.event';
 import { EXPENSE_CREATED_EVENT } from '../../../expenses/domain/events/expense-created.event';
 import { PASSWORD_CHANGED_AUDIT_EVENT } from '../../../authentication/domain/events/password-changed.event';
+import { EMPLOYEE_STATUS_CHANGED_EVENT } from '../../../employees/domain/events/employee-status-changed.event';
+import { USER_DEACTIVATED_EVENT } from '../../../users/domain/events/user-deactivated.event';
 
 /**
  * Verbs stored in `audit_logs.action`. The outbox event type identifies the
@@ -79,6 +81,8 @@ export const AUDITED_EVENT_ACTIONS = {
   [INVENTORY_STOCK_RECONCILED_EVENT]: 'reconcile',
   [EXPENSE_CREATED_EVENT]: 'create',
   [PASSWORD_CHANGED_AUDIT_EVENT]: 'change_password',
+  [EMPLOYEE_STATUS_CHANGED_EVENT]: 'update',
+  [USER_DEACTIVATED_EVENT]: 'deactivate',
 } as const satisfies Record<string, AuditAction>;
 
 export type AuditedEventType = keyof typeof AUDITED_EVENT_ACTIONS;

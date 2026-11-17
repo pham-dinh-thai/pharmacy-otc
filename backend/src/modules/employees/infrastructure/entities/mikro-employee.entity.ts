@@ -1,10 +1,12 @@
 import {
   Entity,
+  Enum,
   OneToOne,
   PrimaryKey,
   Property,
 } from '@mikro-orm/decorators/legacy';
 import { MikroUser } from '../../../users/infrastructure/entities/mikro-user.entity';
+import { EmployeeStatus } from '../../domain/enums/employee-status.enum';
 
 @Entity({ tableName: 'employees' })
 export class MikroEmployee {
@@ -22,6 +24,12 @@ export class MikroEmployee {
 
   @Property({ fieldName: 'department_id', type: 'uuid' })
   departmentId!: string;
+
+  @Property({ type: 'string', nullable: true })
+  position!: string | null;
+
+  @Enum({ items: () => EmployeeStatus, default: EmployeeStatus.WORKING })
+  status!: EmployeeStatus;
 
   @Property({
     type: 'timestamptz',

@@ -279,7 +279,8 @@
             "suppliers",
             "goods_receipts",
             "inventories",
-            "expenses"
+            "expenses",
+            "employees"
           ],
           "mappedType": "enum"
         },
@@ -510,8 +511,8 @@
         },
         {
           "name": "audit_logs_entity_type_check",
-          "expression": "\"entity_type\" in ('accounts', 'users', 'customers', 'roles', 'orders', 'products', 'suppliers', 'goods_receipts', 'inventories', 'expenses')",
-          "definition": "check (\"entity_type\" in ('accounts', 'users', 'customers', 'roles', 'orders', 'products', 'suppliers', 'goods_receipts', 'inventories', 'expenses'))",
+          "expression": "\"entity_type\" in ('accounts', 'users', 'customers', 'roles', 'orders', 'products', 'suppliers', 'goods_receipts', 'inventories', 'expenses', 'employees')",
+          "definition": "check (\"entity_type\" in ('accounts', 'users', 'customers', 'roles', 'orders', 'products', 'suppliers', 'goods_receipts', 'inventories', 'expenses', 'employees'))",
           "columnName": "entity_type"
         },
         {
@@ -1015,6 +1016,44 @@
           "enumItems": [],
           "mappedType": "uuid"
         },
+        "position": {
+          "name": "position",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 255,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "string"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": "'working'",
+          "comment": null,
+          "collation": null,
+          "enumItems": [
+            "working",
+            "resigned",
+            "pregnant"
+          ],
+          "mappedType": "enum"
+        },
         "updated_at": {
           "name": "updated_at",
           "type": "timestamptz(6)",
@@ -1072,7 +1111,14 @@
           "unique": true
         }
       ],
-      "checks": [],
+      "checks": [
+        {
+          "name": "employees_status_check",
+          "expression": "\"status\" in ('working', 'resigned', 'pregnant')",
+          "definition": "check (\"status\" in ('working', 'resigned', 'pregnant'))",
+          "columnName": "status"
+        }
+      ],
       "triggers": [],
       "foreignKeys": {
         "employees_user_id_foreign": {
