@@ -14,6 +14,8 @@ import { MikroRole } from './src/modules/authorization/infrastructure/entities/m
 import { MikroAuditLog } from './src/modules/audit-logs/infrastructure/entities/mikro-audit-log.entity';
 import { MikroOutBoxEvent } from './src/shared/modules/outbox/infrastructure/mikro-outbox-event.entity';
 import { MikroExpense } from './src/modules/expenses/infrastructure/entities/mikro-expense.entity';
+import { MikroEmployee } from './src/modules/employees/infrastructure/entities/mikro-employee.entity';
+import { MikroDepartment } from './src/modules/departments/infrastructure/entities/mikro-department.entity';
 
 dotenv.config({ path: path.resolve('../.env') });
 
@@ -38,6 +40,8 @@ export default defineConfig({
     MikroAuditLog,
     MikroOutBoxEvent,
     MikroExpense,
+    MikroDepartment,
+    MikroEmployee,
   ],
   entitiesTs: [
     MikroProduct,
@@ -53,6 +57,8 @@ export default defineConfig({
     MikroAuditLog,
     MikroOutBoxEvent,
     MikroExpense,
+    MikroDepartment,
+    MikroEmployee,
   ],
 
   debug: process.env.NODE_ENV !== 'production',

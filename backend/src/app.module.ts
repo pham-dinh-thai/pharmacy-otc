@@ -18,6 +18,8 @@ import { AuthorizationModule } from './modules/authorization/authorization.modul
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { UnitOfWorkModule } from './shared/modules/unit-of-work/unit-of-work.module';
 import { ExpensesModule } from './modules/expenses/expenses.module';
+import { EmployeesModule } from './modules/employees/employees.module';
+import { DepartmentsModule } from './modules/departments/departments.module';
 
 @Module({
   imports: [
@@ -51,6 +53,8 @@ import { ExpensesModule } from './modules/expenses/expenses.module';
     AuthorizationModule,
     AuditLogsModule,
     ExpensesModule,
+    EmployeesModule,
+    DepartmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
