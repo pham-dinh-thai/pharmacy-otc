@@ -25,6 +25,7 @@ export type FromPersistentRoleProps = {
   isSuperAdmin: boolean;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt?: Date | null;
 };
 
 export class Role {
@@ -33,6 +34,7 @@ export class Role {
     private name: string,
     private readonly permissions: Set<PermissionKey>,
     private isSuperAdmin: boolean,
+    private deletedAt: Date | null,
     private readonly createdAt: Date,
     private updatedAt: Date,
   ) {}
@@ -49,6 +51,7 @@ export class Role {
       Role.normalizeName(props.name),
       new Set(permissions),
       props.isSuperAdmin ?? false,
+      null,
       now,
       now,
     );
@@ -60,17 +63,20 @@ export class Role {
       props.name,
       new Set(props.permissions),
       props.isSuperAdmin,
+      props.deletedAt ?? null,
       props.createdAt,
       props.updatedAt,
     );
   }
 
   public rename(name: string): void {
+    this.assertActive();
     this.name = Role.normalizeName(name);
     this.touch();
   }
 
   public grant(permission: PermissionKey): void {
+    this.assertActive();
     Role.assertValidPermission(permission);
 
     if (this.permissions.has(permission)) {
@@ -84,6 +90,7 @@ export class Role {
   }
 
   public revoke(permission: PermissionKey): void {
+    this.assertActive();
     Role.assertValidPermission(permission);
 
     if (!this.permissions.has(permission)) {
@@ -97,6 +104,10 @@ export class Role {
   }
 
   public hasPermission(resource: Resource, action: string): boolean {
+    if (this.isDeleted()) {
+      return false;
+    }
+
     if (this.isSuperAdmin) {
       return true;
     }
@@ -111,13 +122,41 @@ export class Role {
   }
 
   public promoteToSuperAdmin(): void {
+    this.assertActive();
     this.isSuperAdmin = true;
     this.touch();
   }
 
   public demoteFromSuperAdmin(): void {
+    this.assertActive();
     this.isSuperAdmin = false;
     this.touch();
+  }
+
+  public softDelete(): void {
+    if (this.isDeleted()) {
+      throw new ConflictException('Role is already disabled');
+    }
+
+    if (this.isSuperAdmin) {
+      throw new ConflictException('Cannot disable a Super Admin role');
+    }
+
+    this.deletedAt = new Date();
+    this.touch();
+  }
+
+  public restore(): void {
+    if (!this.isDeleted()) {
+      throw new ConflictException('Role is not disabled');
+    }
+
+    this.deletedAt = null;
+    this.touch();
+  }
+
+  public isDeleted(): boolean {
+    return this.deletedAt !== null;
   }
 
   public getId(): string {
@@ -136,12 +175,22 @@ export class Role {
     return this.isSuperAdmin;
   }
 
+  public getDeletedAt(): Date | null {
+    return this.deletedAt;
+  }
+
   public getCreatedAt(): Date {
     return this.createdAt;
   }
 
   public getUpdatedAt(): Date {
     return this.updatedAt;
+  }
+
+  private assertActive(): void {
+    if (this.isDeleted()) {
+      throw new ConflictException('Role is disabled');
+    }
   }
 
   private touch(): void {

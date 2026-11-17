@@ -54,6 +54,16 @@ export class Account {
     return this.password.verify(plain);
   }
 
+  public deactivate(): void {
+    if (!this.isActive) {
+      return;
+    }
+
+    this.isActive = false;
+
+    this.updatedAt = new Date();
+  }
+
   public async restorePassword(newPassword: string): Promise<void> {
     this.password = await Password.fromPlainText(newPassword);
 

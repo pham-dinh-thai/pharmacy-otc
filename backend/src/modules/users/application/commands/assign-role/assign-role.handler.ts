@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { ConflictException, Inject, NotFoundException } from '@nestjs/common';
 import {
   type IUsersRepository,
   USERS_REPOSITORY,
@@ -45,6 +45,10 @@ export class AssignRoleHandler implements ICommandHandler<AssignRoleCommand> {
 
       if (!role) {
         throw new NotFoundException(`Role id ${command.roleId} not found`);
+      }
+
+      if (role.isDeleted()) {
+        throw new ConflictException('Role is disabled');
       }
 
       const user = await this.usersRepository.findById(command.userId);

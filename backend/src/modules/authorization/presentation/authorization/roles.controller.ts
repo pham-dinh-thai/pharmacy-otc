@@ -15,6 +15,8 @@ import { RenameRoleCommand } from '../../application/commands/rename-role/rename
 import { GrantPermissionCommand } from '../../application/commands/grant-permission/grant-permission.command';
 import { RevokePermissionCommand } from '../../application/commands/revoke-permission/revoke-permission.command';
 import { SetRoleSuperAdminCommand } from '../../application/commands/set-role-super-admin/set-role-super-admin.command';
+import { SoftDeleteRoleCommand } from '../../application/commands/soft-delete-role/soft-delete-role.command';
+import { RestoreRoleCommand } from '../../application/commands/restore-role/restore-role.command';
 import { GetRoleQuery } from '../../application/queries/get-role/get-role.query';
 import { RoleReadModel } from '../../application/queries/get-role/role.read-model';
 import { ListRolesQuery } from '../../application/queries/list-roles/list-roles.query';
@@ -27,10 +29,9 @@ import { PermissionKey } from '../../domain/permission/permission-catalog';
 import { AuthGuard } from '../../../../shared/modules/security/auth.guard';
 import { ActorContext } from '../../../../shared/modules/security/actor-context.decorator';
 import { type ActorHeaders } from '../../../../shared/types/actor-headers';
-import { PermissionsGuard } from '../../../../shared/modules/security/permissions.guard';
-import { RequirePermissions } from '../../../../shared/modules/security/require-permissions.decorator';
+import { SuperAdminGuard } from '../../../../shared/modules/security/super-admin.guard';
 
-@UseGuards(AuthGuard, PermissionsGuard)
+@UseGuards(AuthGuard, SuperAdminGuard)
 @Controller('roles')
 export class RolesController {
   public constructor(
@@ -39,13 +40,11 @@ export class RolesController {
   ) {}
 
   @Get()
-  @RequirePermissions(['roles:read'])
   public findAll(): Promise<RoleListItemReadModel[]> {
     return this.queryBus.execute(new ListRolesQuery());
   }
 
   @Get(':id')
-  @RequirePermissions(['roles:read'])
   public findOne(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ): Promise<RoleReadModel> {
@@ -53,7 +52,6 @@ export class RolesController {
   }
 
   @Post()
-  @RequirePermissions(['roles:create'])
   public create(
     @Body() request: CreateRoleRequest,
     @ActorContext() headers: ActorHeaders,
@@ -69,7 +67,6 @@ export class RolesController {
   }
 
   @Patch(':id')
-  @RequirePermissions(['roles:update'])
   public rename(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() request: RenameRoleRequest,
@@ -81,7 +78,6 @@ export class RolesController {
   }
 
   @Post(':id/permissions')
-  @RequirePermissions(['roles:update'])
   public grant(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() request: GrantPermissionRequest,
@@ -97,7 +93,6 @@ export class RolesController {
   }
 
   @Delete(':id/permissions/:permission')
-  @RequirePermissions(['roles:update'])
   public revoke(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Param('permission') permission: string,
@@ -108,8 +103,23 @@ export class RolesController {
     );
   }
 
+  @Delete(':id')
+  public softDelete(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @ActorContext() headers: ActorHeaders,
+  ): Promise<{ id: string }> {
+    return this.commandBus.execute(new SoftDeleteRoleCommand(id, headers));
+  }
+
+  @Patch(':id/restore')
+  public restore(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @ActorContext() headers: ActorHeaders,
+  ): Promise<{ id: string }> {
+    return this.commandBus.execute(new RestoreRoleCommand(id, headers));
+  }
+
   @Patch(':id/super-admin')
-  @RequirePermissions(['roles:update'])
   public setSuperAdmin(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() request: SetRoleSuperAdminRequest,

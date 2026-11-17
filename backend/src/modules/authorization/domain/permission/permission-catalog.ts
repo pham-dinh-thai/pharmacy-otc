@@ -9,6 +9,8 @@ export const PERMISSIONS = {
   goods_receipts: ['read', 'create', 'confirm', 'cancel'],
   inventories: ['read', 'issue', 'reconcile'],
   expenses: ['read', 'create', 'update', 'delete', 'approve', 'pay', 'cancel'],
+  employees: ['create', 'read', 'update', 'delete'],
+  departments: ['create', 'read', 'update', 'delete'],
   audit_logs: ['read'],
   reports: ['view_sales', 'view_inventory', 'export'],
 } as const;

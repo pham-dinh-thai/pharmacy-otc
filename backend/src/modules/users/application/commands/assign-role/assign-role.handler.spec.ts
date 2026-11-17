@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, ConflictException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { AssignRoleHandler } from './assign-role.handler';
 import { AssignRoleCommand } from './assign-role.command';
@@ -87,12 +87,29 @@ describe('AssignRoleHandler', () => {
   });
 
   it('throws NotFoundException when user does not exist', async () => {
-    rolesRepository.findById.mockResolvedValue({ getId: () => roleId } as Role);
+    rolesRepository.findById.mockResolvedValue({
+      getId: () => roleId,
+      isDeleted: () => false,
+    } as unknown as Role);
     usersRepository.findById.mockResolvedValue(null);
 
     await expect(
       handler.execute(new AssignRoleCommand(userId, roleId, headers)),
     ).rejects.toThrow(NotFoundException);
+
+    expect(usersRepository.update).not.toHaveBeenCalled();
+    expect(outboxRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects assigning a disabled role', async () => {
+    rolesRepository.findById.mockResolvedValue({
+      getId: () => roleId,
+      isDeleted: () => true,
+    } as unknown as Role);
+
+    await expect(
+      handler.execute(new AssignRoleCommand(userId, roleId, headers)),
+    ).rejects.toThrow(ConflictException);
 
     expect(usersRepository.update).not.toHaveBeenCalled();
     expect(outboxRepository.create).not.toHaveBeenCalled();
@@ -105,7 +122,10 @@ describe('AssignRoleHandler', () => {
       email: 'jane@example.com',
     });
 
-    rolesRepository.findById.mockResolvedValue({ getId: () => roleId } as Role);
+    rolesRepository.findById.mockResolvedValue({
+      getId: () => roleId,
+      isDeleted: () => false,
+    } as unknown as Role);
     usersRepository.findById.mockResolvedValue(user);
 
     const result = await handler.execute(

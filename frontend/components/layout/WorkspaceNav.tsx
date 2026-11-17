@@ -17,6 +17,11 @@ export type WorkspaceNavGroup = {
 /** Menu chức năng của khu vực điều khiển: tab ngang trên mobile, cột trái từ lg. */
 export function WorkspaceNav({ groups }: { groups: WorkspaceNavGroup[] }) {
   const pathname = usePathname();
+  // Chọn mục khớp dài nhất để /dashboard không sáng khi đang ở /roles/...
+  const activeHref = groups
+    .flatMap((group) => group.items.map((item) => item.href))
+    .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
+    .sort((left, right) => right.length - left.length)[0];
 
   return (
     <nav aria-label="Chức năng" className="lg:space-y-8">
@@ -28,7 +33,7 @@ export function WorkspaceNav({ groups }: { groups: WorkspaceNavGroup[] }) {
 
           <ul className="flex gap-1 overflow-x-auto border-b border-rule lg:mt-3 lg:block lg:gap-0 lg:overflow-visible lg:border-b-0">
             {group.items.map((item) => {
-              const active = pathname === item.href;
+              const active = item.href === activeHref;
 
               return (
                 <li key={item.href} className="shrink-0">

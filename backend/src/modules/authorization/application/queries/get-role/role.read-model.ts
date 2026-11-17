@@ -8,6 +8,7 @@ export class RoleReadModel {
     public readonly isSuperAdmin: boolean,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
+    public readonly deletedAt: Date | null,
   ) {}
 
   public static fromRole(role: Role): RoleReadModel {
@@ -18,6 +19,7 @@ export class RoleReadModel {
       role.getIsSuperAdmin(),
       role.getCreatedAt(),
       role.getUpdatedAt(),
+      role.getDeletedAt(),
     );
   }
 }

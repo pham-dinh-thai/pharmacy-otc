@@ -11,6 +11,7 @@ export class RoleMapper {
       isSuperAdmin: mikroRole.isSuperAdmin,
       createdAt: mikroRole.createdAt,
       updatedAt: mikroRole.updatedAt,
+      deletedAt: mikroRole.deletedAt,
     });
   }
 
@@ -27,6 +28,7 @@ export class RoleMapper {
     mikroRole.name = role.getName();
     mikroRole.permissions = role.getPermissions();
     mikroRole.isSuperAdmin = role.getIsSuperAdmin();
+    mikroRole.deletedAt = role.getDeletedAt();
     mikroRole.createdAt = role.getCreatedAt();
     mikroRole.updatedAt = role.getUpdatedAt();
   }

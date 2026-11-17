@@ -24,6 +24,13 @@ export class MikroRole {
   @Property({ fieldName: 'is_super_admin', type: 'boolean' })
   isSuperAdmin = false;
 
+  @Property({
+    type: 'timestamptz',
+    fieldName: 'deleted_at',
+    nullable: true,
+  })
+  deletedAt: Date | null = null;
+
   @Property({ version: true, type: 'integer' })
   version!: number;
 

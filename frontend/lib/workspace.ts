@@ -1,47 +1,25 @@
 import type { WorkspaceNavGroup } from '@/components/layout/WorkspaceNav';
 import { hasPermission, type CurrentUser } from './account';
 
-/** Menu chức năng của trang điều khiển admin, lọc theo quyền hiện có. */
-export function adminNav(user: CurrentUser): WorkspaceNavGroup[] {
+/**
+ * Menu của khu vực điều khiển. Mỗi mục chỉ hiện khi tài khoản có quyền tương
+ * ứng; riêng quản trị vai trò chỉ dành cho Super Admin.
+ */
+export function workspaceNav(user: CurrentUser): WorkspaceNavGroup[] {
   return [
     {
-      label: 'Quản trị',
+      label: 'Không gian làm việc',
       items: [
         {
           label: 'Tổng quan',
-          href: '/admin',
-          hint: 'Vai trò và quyền của tài khoản đang đăng nhập.',
-        },
-        ...(user.isSuperAdmin || hasPermission(user, 'roles:read')
-          ? [
-              {
-                label: 'Vai trò & phân quyền',
-                href: '/admin/roles',
-                hint: 'Tạo vai trò, gán quyền và đặt cờ Super Admin.',
-              },
-            ]
-          : []),
-      ],
-    },
-  ];
-}
-
-/** Menu chức năng của trang điều khiển nhân viên, lọc theo quyền hiện có. */
-export function staffNav(user: CurrentUser): WorkspaceNavGroup[] {
-  return [
-    {
-      label: 'Nhân viên',
-      items: [
-        {
-          label: 'Tổng quan',
-          href: '/staff',
-          hint: 'Quyền và chức năng tài khoản đang đăng nhập.',
+          href: '/dashboard',
+          hint: 'Quyền và chức năng của tài khoản đang đăng nhập.',
         },
         ...(user.isSuperAdmin || hasPermission(user, 'products:read')
           ? [
               {
                 label: 'Sản phẩm',
-                href: '/staff/products',
+                href: '/products',
                 hint: 'Danh sách sản phẩm, đơn giá và tồn kho.',
               },
             ]
@@ -50,17 +28,31 @@ export function staffNav(user: CurrentUser): WorkspaceNavGroup[] {
           ? [
               {
                 label: 'Nhà cung cấp',
-                href: '/staff/suppliers',
+                href: '/suppliers',
                 hint: 'Danh sách nhà cung cấp và thông tin liên hệ.',
               },
             ]
           : []),
       ],
     },
+    ...(user.isSuperAdmin
+      ? [
+          {
+            label: 'Quản trị',
+            items: [
+              {
+                label: 'Vai trò & phân quyền',
+                href: '/roles',
+                hint: 'Tạo vai trò, gán quyền và đặt cờ Super Admin.',
+              },
+            ],
+          },
+        ]
+      : []),
   ];
 }
 
-/** Các mục chức năng, bỏ mục tổng quan để dùng cho danh sách trên trang chủ khu vực. */
+/** Bỏ mục tổng quan để dùng cho danh sách trên trang chủ khu vực. */
 export function subItems(
   groups: WorkspaceNavGroup[],
   overviewHref: string,

@@ -4,11 +4,14 @@ import { MikroRole } from './infrastructure/entities/mikro-role.entity';
 import { ROLES_REPOSITORY } from './domain/roles.repository';
 import { MikroRolesRepository } from './infrastructure/repositories/mikro-roles.repository';
 import { RolesController } from './presentation/authorization/roles.controller';
+import { PermissionsController } from './presentation/authorization/permissions.controller';
 import { CreateRoleHandler } from './application/commands/create-role/create-role.handler';
 import { RenameRoleHandler } from './application/commands/rename-role/rename-role.handler';
 import { GrantPermissionHandler } from './application/commands/grant-permission/grant-permission.handler';
 import { RevokePermissionHandler } from './application/commands/revoke-permission/revoke-permission.handler';
 import { SetRoleSuperAdminHandler } from './application/commands/set-role-super-admin/set-role-super-admin.handler';
+import { SoftDeleteRoleHandler } from './application/commands/soft-delete-role/soft-delete-role.handler';
+import { RestoreRoleHandler } from './application/commands/restore-role/restore-role.handler';
 import { GetRoleHandler } from './application/queries/get-role/get-role.handler';
 import { ListRolesHandler } from './application/queries/list-roles/list-roles.handler';
 import { SecurityModule } from '../../shared/modules/security/security.module';
@@ -21,7 +24,7 @@ import { GetActorPermissionsHandler } from './application/queries/get-actor-perm
     SecurityModule,
     OutBoxModule,
   ],
-  controllers: [RolesController],
+  controllers: [RolesController, PermissionsController],
   providers: [
     { provide: ROLES_REPOSITORY, useClass: MikroRolesRepository },
     CreateRoleHandler,
@@ -29,6 +32,8 @@ import { GetActorPermissionsHandler } from './application/queries/get-actor-perm
     GrantPermissionHandler,
     RevokePermissionHandler,
     SetRoleSuperAdminHandler,
+    SoftDeleteRoleHandler,
+    RestoreRoleHandler,
     GetRoleHandler,
     ListRolesHandler,
     GetActorPermissionsHandler,

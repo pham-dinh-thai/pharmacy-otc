@@ -29,6 +29,11 @@ import { ACCOUNT_SIGNED_IN_EVENT } from '../../../domain/events/account-signed-i
 import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { ActorType } from '../../../../audit-logs/domain/enums/actor-type.enum';
+import { EmployeeStatus } from '../../../../employees/domain/enums/employee-status.enum';
+import {
+  GET_EMPLOYMENT_STATUS_PORT,
+  type IGetEmploymentStatusPort,
+} from '../../ports/get-employment-status.port';
 
 @CommandHandler(LoginCommand)
 export class LoginHandler implements ICommandHandler<LoginCommand> {
@@ -43,6 +48,9 @@ export class LoginHandler implements ICommandHandler<LoginCommand> {
 
     @Inject(GET_USER_BY_EMAIL_PORT)
     private readonly getUserByEmailPort: IGetUserByEmailPort,
+
+    @Inject(GET_EMPLOYMENT_STATUS_PORT)
+    private readonly getEmploymentStatusPort: IGetEmploymentStatusPort,
 
     @Inject(SIGN_TOKEN_PORT)
     private readonly signTokenPort: ISignTokenPort,
@@ -81,6 +89,12 @@ export class LoginHandler implements ICommandHandler<LoginCommand> {
     }
 
     const sub = account.getUserId();
+
+    const status = await this.getEmploymentStatusPort.execute(sub);
+    if (status === EmployeeStatus.RESIGNED) {
+      throw new ConflictException('Employee resigned');
+    }
+
     const jti = randomUUID();
 
     const accessTokenPayload: AccessTokenPayload = {

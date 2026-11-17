@@ -26,6 +26,8 @@ import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { ForgotPasswordHandler } from './application/commands/forgot-password/forgot-password.handler';
 import { ChangePasswordHandler } from './application/commands/change-password/change-password.handler';
 import { LogoutHandler } from './application/commands/logout/logout.handler';
+import { GET_EMPLOYMENT_STATUS_PORT } from './application/ports/get-employment-status.port';
+import { GetEmploymentStatusAdapter } from './infrastructure/adapters/get-employment-status.adapter';
 
 @Module({
   imports: [
@@ -39,6 +41,10 @@ import { LogoutHandler } from './application/commands/logout/logout.handler';
     { provide: CREATE_CUSTOMER_PORT, useClass: CreateCustomerAdapter },
     { provide: GET_USER_BY_EMAIL_PORT, useClass: GetUserByEmailAdapter },
     { provide: GET_USER_BY_ID_PORT, useClass: GetUserByIdAdapter },
+    {
+      provide: GET_EMPLOYMENT_STATUS_PORT,
+      useClass: GetEmploymentStatusAdapter,
+    },
     { provide: SIGN_TOKEN_PORT, useClass: JwtSignTokenAdapter },
     { provide: REFRESH_TOKEN_STORE_PORT, useClass: RedisRefreshTokenStorePort },
     {
@@ -53,5 +59,6 @@ import { LogoutHandler } from './application/commands/logout/logout.handler';
     LogoutHandler,
   ],
   controllers: [AuthenticationController],
+  exports: [ACCOUNTS_REPOSITORY],
 })
 export class AuthenticationModule {}

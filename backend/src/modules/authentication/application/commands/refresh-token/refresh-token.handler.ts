@@ -18,6 +18,11 @@ import {
   SIGN_TOKEN_PORT,
 } from '../../ports/sign-token.port';
 import { randomUUID } from 'crypto';
+import { EmployeeStatus } from '../../../../employees/domain/enums/employee-status.enum';
+import {
+  GET_EMPLOYMENT_STATUS_PORT,
+  type IGetEmploymentStatusPort,
+} from '../../ports/get-employment-status.port';
 
 @CommandHandler(RefreshTokenCommand)
 export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand> {
@@ -30,6 +35,9 @@ export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand>
 
     @Inject(GET_USER_BY_ID_PORT)
     private readonly getUserByIdPort: IGetUserByIdPort,
+
+    @Inject(GET_EMPLOYMENT_STATUS_PORT)
+    private readonly getEmploymentStatusPort: IGetEmploymentStatusPort,
 
     @Inject(SIGN_TOKEN_PORT)
     private readonly signTokenPort: ISignTokenPort,
@@ -57,6 +65,11 @@ export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand>
     const user = await this.getUserByIdPort.execute(sub);
     if (!user) {
       throw new UnauthorizedException('User Not Found');
+    }
+
+    const status = await this.getEmploymentStatusPort.execute(sub);
+    if (status === EmployeeStatus.RESIGNED) {
+      throw new UnauthorizedException('Employee resigned');
     }
 
     const newJti = randomUUID();
