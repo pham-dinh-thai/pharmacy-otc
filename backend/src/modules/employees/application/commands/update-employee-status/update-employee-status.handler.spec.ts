@@ -20,6 +20,7 @@ import {
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
+import { EmployeeStatusTransitionService } from '../../services/employee-status-transition.service';
 
 const headers = {
   actorId: '7d0d2c55-9a9d-4c7d-9f6a-3f7f5a1b2c3d',
@@ -70,6 +71,7 @@ describe('UpdateEmployeeStatusHandler', () => {
         { provide: EMPLOYEES_REPOSITORY, useValue: employeesRepository },
         { provide: OUTBOX_REPOSITORY, useValue: outboxRepository },
         { provide: UNIT_OF_WORK, useValue: unitOfWork },
+        EmployeeStatusTransitionService,
         UpdateEmployeeStatusHandler,
       ],
     }).compile();

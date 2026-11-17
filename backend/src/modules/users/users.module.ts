@@ -43,5 +43,6 @@ import { DeactivateUserConsumer } from './application/consumers/deactivate-user.
     DeactivateUserHandler,
     DeactivateUserConsumer,
   ],
+  exports: [USERS_REPOSITORY, CreateUserService],
 })
 export class UsersModule {}
