@@ -16,6 +16,8 @@ const RESOURCE_LABELS: Record<string, string> = {
   goods_receipts: 'Phiếu nhập',
   inventories: 'Tồn kho',
   expenses: 'Chi phí',
+  employees: 'Nhân viên',
+  departments: 'Phòng ban',
   audit_logs: 'Nhật ký',
   reports: 'Báo cáo',
 };
