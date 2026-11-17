@@ -145,7 +145,7 @@ export async function disableRole(formData: FormData) {
   if (res.status === 401) redirect(`/login?next=${back}`);
   if (res.status === 403) redirect(`${back}?error=forbidden`);
   if (res.status === 404) redirect(`${LIST_PATH}?error=missing`);
-  if (res.status === 409) redirect(`${back}?error=lastSuperAdmin`);
+  if (res.status === 409) redirect(`${back}?error=cannotDisable`);
   if (!res.ok) redirect(`${back}?error=server`);
 
   revalidatePath(LIST_PATH);

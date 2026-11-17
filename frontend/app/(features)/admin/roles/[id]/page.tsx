@@ -24,8 +24,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   forbidden: 'Bạn không có quyền thay đổi vai trò này.',
   granted: 'Quyền này đã được cấp cho vai trò.',
   notGranted: 'Quyền này không còn được cấp cho vai trò.',
-  lastSuperAdmin:
-    'Không thể vô hiệu hoá Super Admin đang hoạt động cuối cùng.',
+  cannotDisable: 'Không thể vô hiệu hoá vai trò Super Admin.',
   notDisabled: 'Vai trò này đang hoạt động.',
   invalid: 'Quyền không hợp lệ.',
   server: 'Không lưu được thay đổi. Kiểm tra kết nối rồi thử lại.',
@@ -142,7 +141,8 @@ async function RoleDetail({
       {role.isSuperAdmin && !isDisabled && (
         <p className="mb-6 border-l-2 border-accent bg-accent-soft px-3 py-2 text-[13px] leading-5 text-accent">
           Vai trò này là Super Admin: mọi kiểm tra quyền đều được bỏ qua, kể cả
-          khi danh sách quyền bên dưới trống.
+          khi danh sách quyền bên dưới trống. Vai trò Super Admin không thể bị vô
+          hiệu hoá.
         </p>
       )}
 
@@ -247,7 +247,7 @@ async function RoleDetail({
         </section>
       )}
 
-      {canDelete && !isDisabled && (
+      {canDelete && !isDisabled && !role.isSuperAdmin && (
         <section className="mt-12 max-w-[860px] border-t border-rule pt-6">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
             Vô hiệu hoá vai trò
@@ -255,9 +255,6 @@ async function RoleDetail({
           <p className="mt-2 text-[13px] leading-6 text-muted">
             Vai trò sẽ ngừng cấp quyền cho người dùng nhưng vẫn được lưu để khôi
             phục.
-            {role.isSuperAdmin
-              ? ' Không thể vô hiệu hoá Super Admin đang hoạt động cuối cùng.'
-              : ''}
           </p>
 
           <form action={disableRole} className="mt-3">

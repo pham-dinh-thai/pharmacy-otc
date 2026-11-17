@@ -16,8 +16,7 @@ const TD_CLASS = 'border-b border-rule py-4 pr-4 align-top';
 const ERROR_MESSAGES: Record<string, string> = {
   missing: 'Thiếu thông tin vai trò.',
   forbidden: 'Bạn không có quyền thay đổi vai trò này.',
-  lastSuperAdmin:
-    'Không thể vô hiệu hoá Super Admin đang hoạt động cuối cùng.',
+  cannotDisable: 'Không thể vô hiệu hoá vai trò Super Admin.',
   notDisabled: 'Vai trò này đang hoạt động.',
   server: 'Không lưu được thay đổi. Kiểm tra kết nối rồi thử lại.',
 };
@@ -152,21 +151,27 @@ async function RolesList({
 
                   {canDelete && (
                     <td className={`${TD_CLASS} text-right`}>
-                      <form action={disableRole}>
-                        <input type="hidden" name="roleId" value={role.id} />
-                        <input
-                          type="hidden"
-                          name="returnTo"
-                          value="/admin/roles"
-                        />
-                        <button
-                          type="submit"
-                          aria-label={`Vô hiệu hoá vai trò ${role.name}`}
-                          className="whitespace-nowrap border border-rule px-2.5 py-1 text-[12px] text-muted transition-colors hover:border-red-600 hover:text-red-700"
-                        >
-                          Vô hiệu hoá
-                        </button>
-                      </form>
+                      {role.isSuperAdmin ? (
+                        <span className="whitespace-nowrap text-[12px] text-muted">
+                          Không thể vô hiệu hoá
+                        </span>
+                      ) : (
+                        <form action={disableRole}>
+                          <input type="hidden" name="roleId" value={role.id} />
+                          <input
+                            type="hidden"
+                            name="returnTo"
+                            value="/admin/roles"
+                          />
+                          <button
+                            type="submit"
+                            aria-label={`Vô hiệu hoá vai trò ${role.name}`}
+                            className="whitespace-nowrap border border-rule px-2.5 py-1 text-[12px] text-muted transition-colors hover:border-red-600 hover:text-red-700"
+                          >
+                            Vô hiệu hoá
+                          </button>
+                        </form>
+                      )}
                     </td>
                   )}
                 </tr>
