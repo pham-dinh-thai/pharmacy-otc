@@ -8,6 +8,7 @@ export class RoleMapper {
       id: mikroRole.id,
       name: mikroRole.name,
       permissions: mikroRole.permissions as PermissionKey[],
+      revokedPermissions: mikroRole.revokedPermissions as PermissionKey[],
       isSuperAdmin: mikroRole.isSuperAdmin,
       createdAt: mikroRole.createdAt,
       updatedAt: mikroRole.updatedAt,
@@ -26,6 +27,7 @@ export class RoleMapper {
     mikroRole.id = role.getId();
     mikroRole.name = role.getName();
     mikroRole.permissions = role.getPermissions();
+    mikroRole.revokedPermissions = role.getRevokedPermissions();
     mikroRole.isSuperAdmin = role.getIsSuperAdmin();
     mikroRole.createdAt = role.getCreatedAt();
     mikroRole.updatedAt = role.getUpdatedAt();

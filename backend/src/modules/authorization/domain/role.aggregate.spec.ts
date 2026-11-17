@@ -145,4 +145,37 @@ describe('Role', () => {
     expect(role.getCreatedAt()).toEqual(createdAt);
     expect(role.getUpdatedAt()).toEqual(updatedAt);
   });
+
+  it('soft-deletes a revoked permission and restores it on grant', () => {
+    const role = Role.create({
+      name: 'manager',
+      permissions: ['orders:read'],
+    });
+
+    role.revoke('orders:read');
+
+    expect(role.getPermissions()).toEqual([]);
+    expect(role.getRevokedPermissions()).toEqual(['orders:read']);
+    expect(role.hasPermission('orders', 'read')).toBe(false);
+
+    role.grant('orders:read');
+
+    expect(role.getPermissions()).toEqual(['orders:read']);
+    expect(role.getRevokedPermissions()).toEqual([]);
+  });
+
+  it('restores revoked permissions from persisted data', () => {
+    const role = Role.fromPersistent({
+      id: 'd3d3d3d3-d3d3-4d3d-8d3d-d3d3d3d3d3d3',
+      name: 'admin',
+      permissions: [],
+      revokedPermissions: ['orders:read'],
+      isSuperAdmin: false,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+    });
+
+    expect(role.getRevokedPermissions()).toEqual(['orders:read']);
+    expect(role.hasPermission('orders', 'read')).toBe(false);
+  });
 });

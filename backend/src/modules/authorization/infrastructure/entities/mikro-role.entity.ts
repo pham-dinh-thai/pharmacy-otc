@@ -21,6 +21,13 @@ export class MikroRole {
   @Property({ type: 'array' })
   permissions: string[] = [];
 
+  @Property({
+    type: 'array',
+    fieldName: 'revoked_permissions',
+    defaultRaw: "'{}'",
+  })
+  revokedPermissions: string[] = [];
+
   @Property({ fieldName: 'is_super_admin', type: 'boolean' })
   isSuperAdmin = false;
 

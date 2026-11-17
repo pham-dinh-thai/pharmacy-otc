@@ -22,6 +22,7 @@ export type FromPersistentRoleProps = {
   id: string;
   name: string;
   permissions: PermissionKey[];
+  revokedPermissions?: PermissionKey[];
   isSuperAdmin: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -32,6 +33,7 @@ export class Role {
     private readonly id: Id,
     private name: string,
     private readonly permissions: Set<PermissionKey>,
+    private readonly revokedPermissions: Set<PermissionKey>,
     private isSuperAdmin: boolean,
     private readonly createdAt: Date,
     private updatedAt: Date,
@@ -48,6 +50,7 @@ export class Role {
       Id.generate(),
       Role.normalizeName(props.name),
       new Set(permissions),
+      new Set(),
       props.isSuperAdmin ?? false,
       now,
       now,
@@ -59,6 +62,7 @@ export class Role {
       Id.create(props.id),
       props.name,
       new Set(props.permissions),
+      new Set(props.revokedPermissions ?? []),
       props.isSuperAdmin,
       props.createdAt,
       props.updatedAt,
@@ -80,6 +84,7 @@ export class Role {
     }
 
     this.permissions.add(permission);
+    this.revokedPermissions.delete(permission);
     this.touch();
   }
 
@@ -93,6 +98,7 @@ export class Role {
     }
 
     this.permissions.delete(permission);
+    this.revokedPermissions.add(permission);
     this.touch();
   }
 
@@ -130,6 +136,10 @@ export class Role {
 
   public getPermissions(): PermissionKey[] {
     return [...this.permissions];
+  }
+
+  public getRevokedPermissions(): PermissionKey[] {
+    return [...this.revokedPermissions];
   }
 
   public getIsSuperAdmin(): boolean {
