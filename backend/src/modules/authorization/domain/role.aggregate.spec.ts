@@ -179,10 +179,23 @@ describe('Role', () => {
     expect(() => role.demoteFromSuperAdmin()).toThrow(ConflictException);
   });
 
-  it('does not grant Super Admin access while the role is disabled', () => {
+  it('refuses to disable a Super Admin role', () => {
     const role = Role.create({ name: 'admin', isSuperAdmin: true });
 
-    role.softDelete();
+    expect(() => role.softDelete()).toThrow(ConflictException);
+    expect(role.isDeleted()).toBe(false);
+  });
+
+  it('does not grant Super Admin access to a legacy disabled Super Admin', () => {
+    const role = Role.fromPersistent({
+      id: 'd3d3d3d3-d3d3-4d3d-8d3d-d3d3d3d3d3d3',
+      name: 'admin',
+      permissions: [],
+      isSuperAdmin: true,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+      deletedAt: new Date('2026-01-03T00:00:00.000Z'),
+    });
 
     expect(role.getIsSuperAdmin()).toBe(true);
     expect(role.hasPermission('orders', 'refund')).toBe(false);

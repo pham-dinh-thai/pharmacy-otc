@@ -1,4 +1,11 @@
-import { afterEach, jest } from '@jest/globals';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from '@jest/globals';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { SoftDeleteRoleHandler } from './soft-delete-role.handler';
@@ -27,31 +34,25 @@ const headers = {
 };
 
 const id = '4e770b20-0ab6-494a-9bfd-e475e07c7a17';
+const createdAt = new Date('2026-11-16T00:00:00.000Z');
+const updatedAt = new Date('2026-11-16T00:00:00.000Z');
 const deletedAt = new Date('2026-11-17T00:00:00.000Z');
 
-const roleWith = (isSuperAdmin: boolean, name = 'manager') => {
-  let currentDeletedAt: Date | null = null;
-
-  const softDelete = jest.fn(() => {
-    currentDeletedAt = deletedAt;
+const persistentRole = (isSuperAdmin = false, name = 'manager') =>
+  Role.fromPersistent({
+    id,
+    name,
+    permissions: [],
+    isSuperAdmin,
+    createdAt,
+    updatedAt,
+    deletedAt: null,
   });
-
-  const role = {
-    getId: () => id,
-    getName: () => name,
-    getIsSuperAdmin: () => isSuperAdmin,
-    isDeleted: () => currentDeletedAt !== null,
-    getDeletedAt: () => currentDeletedAt,
-    softDelete,
-  } as unknown as Role;
-
-  return { role, softDelete };
-};
 
 describe('SoftDeleteRoleHandler', () => {
   let handler: SoftDeleteRoleHandler;
   let rolesRepository: jest.Mocked<
-    Pick<IRolesRepository, 'findById' | 'findAll' | 'update'>
+    Pick<IRolesRepository, 'findById' | 'update'>
   >;
   let outboxRepository: jest.Mocked<Pick<IOutboxRepository, 'create'>>;
   let unitOfWork: jest.Mocked<IUnitOfWork>;
@@ -62,11 +63,8 @@ describe('SoftDeleteRoleHandler', () => {
 
     rolesRepository = {
       findById: jest.fn(),
-      findAll: jest.fn(),
       update: jest.fn(),
-    } as unknown as jest.Mocked<
-      Pick<IRolesRepository, 'findById' | 'findAll' | 'update'>
-    >;
+    } as unknown as jest.Mocked<Pick<IRolesRepository, 'findById' | 'update'>>;
 
     outboxRepository = {
       create: jest.fn(),
@@ -103,40 +101,22 @@ describe('SoftDeleteRoleHandler', () => {
     expect(outboxRepository.create).not.toHaveBeenCalled();
   });
 
-  it('refuses to disable the last active Super Admin', async () => {
-    const { role, softDelete } = roleWith(true, 'Super Admin');
+  it('refuses to disable a Super Admin', async () => {
+    const role = persistentRole(true, 'Super Admin');
 
     rolesRepository.findById.mockResolvedValue(role);
-    rolesRepository.findAll.mockResolvedValue([role]);
 
     await expect(
       handler.execute(new SoftDeleteRoleCommand(id, headers)),
     ).rejects.toThrow(ConflictException);
 
-    expect(softDelete).not.toHaveBeenCalled();
+    expect(role.isDeleted()).toBe(false);
     expect(rolesRepository.update).not.toHaveBeenCalled();
     expect(outboxRepository.create).not.toHaveBeenCalled();
   });
 
-  it('disables a Super Admin when another active one remains', async () => {
-    const { role, softDelete } = roleWith(true, 'Super Admin');
-    const another = {
-      getId: () => '8f1d8f7d-2ecb-4f5c-9a2b-6c3d4e5f6071',
-      getIsSuperAdmin: () => true,
-      isDeleted: () => false,
-    } as unknown as Role;
-
-    rolesRepository.findById.mockResolvedValue(role);
-    rolesRepository.findAll.mockResolvedValue([role, another]);
-
-    await handler.execute(new SoftDeleteRoleCommand(id, headers));
-
-    expect(softDelete).toHaveBeenCalledTimes(1);
-    expect(rolesRepository.update).toHaveBeenCalledWith(role);
-  });
-
   it('disables a regular role and appends an event', async () => {
-    const { role, softDelete } = roleWith(false);
+    const role = persistentRole(false);
 
     rolesRepository.findById.mockResolvedValue(role);
 
@@ -144,8 +124,7 @@ describe('SoftDeleteRoleHandler', () => {
       new SoftDeleteRoleCommand(id, headers),
     );
 
-    expect(rolesRepository.findAll).not.toHaveBeenCalled();
-    expect(softDelete).toHaveBeenCalledTimes(1);
+    expect(role.isDeleted()).toBe(true);
     expect(rolesRepository.update).toHaveBeenCalledWith(role);
     expect(outboxRepository.create.mock.calls).toEqual([
       [

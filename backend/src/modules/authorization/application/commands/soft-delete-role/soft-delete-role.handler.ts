@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ConflictException, Inject, NotFoundException } from '@nestjs/common';
+import { Inject, NotFoundException } from '@nestjs/common';
 import {
   type IRolesRepository,
   ROLES_REPOSITORY,
@@ -38,22 +38,6 @@ export class SoftDeleteRoleHandler implements ICommandHandler<SoftDeleteRoleComm
 
       if (!role) {
         throw new NotFoundException(`Role id ${command.id} not found`);
-      }
-
-      if (role.getIsSuperAdmin() && !role.isDeleted()) {
-        const roles = await this.rolesRepository.findAll();
-        const otherSuperAdmins = roles.filter(
-          (candidate) =>
-            candidate.getId() !== role.getId() &&
-            candidate.getIsSuperAdmin() &&
-            !candidate.isDeleted(),
-        );
-
-        if (otherSuperAdmins.length === 0) {
-          throw new ConflictException(
-            'Cannot disable the last active Super Admin',
-          );
-        }
       }
 
       const previousName = role.getName();

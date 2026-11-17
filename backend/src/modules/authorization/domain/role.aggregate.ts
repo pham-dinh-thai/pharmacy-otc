@@ -138,6 +138,10 @@ export class Role {
       throw new ConflictException('Role is already disabled');
     }
 
+    if (this.isSuperAdmin) {
+      throw new ConflictException('Cannot disable a Super Admin role');
+    }
+
     this.deletedAt = new Date();
     this.touch();
   }
