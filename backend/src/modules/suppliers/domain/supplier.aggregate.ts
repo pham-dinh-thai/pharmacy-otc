@@ -1,5 +1,8 @@
+import {
+  SupplierAlreadyDeletedException,
+  SupplierNotDeletedException,
+} from './exceptions/supplier.exceptions';
 import { Id } from '../../../shared/value-objects/id.value-object';
-import { SupplierStatus } from './enums/supplier-status.enum';
 import { SupplierCode } from './value-objects/supplier-code.value-object';
 import { SupplierPhone } from './value-objects/supplier-phone.value-object';
 
@@ -16,13 +19,13 @@ export type FromPersistentSupplierProps = {
   id: string;
   code: string;
   name: string;
-  status: SupplierStatus;
   phone: string | null;
   email: string | null;
   address: string | null;
   taxCode: string | null;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt?: Date | null;
 };
 
 export type UpdateSupplierProps = {
@@ -38,9 +41,9 @@ export class Supplier {
     private readonly id: Id,
     private readonly code: SupplierCode,
     private name: string,
-    private status: SupplierStatus,
     private readonly createdAt: Date,
     private updatedAt: Date,
+    private deletedAt: Date | null,
     private phone: SupplierPhone | null,
     private email: string | null,
     private address: string | null,
@@ -54,9 +57,9 @@ export class Supplier {
       Id.generate(),
       SupplierCode.fromNumber(props.sequence),
       props.name,
-      SupplierStatus.ACTIVE,
       now,
       now,
+      null,
       props.phone ? SupplierPhone.create(props.phone) : null,
       props.email,
       props.address,
@@ -69,9 +72,9 @@ export class Supplier {
       Id.create(props.id),
       SupplierCode.create(props.code),
       props.name,
-      props.status,
       props.createdAt,
       props.updatedAt,
+      props.deletedAt ?? null,
       props.phone ? SupplierPhone.create(props.phone) : null,
       props.email,
       props.address,
@@ -89,20 +92,28 @@ export class Supplier {
     this.updatedAt = new Date();
   }
 
-  public activate(): void {
-    this.status = SupplierStatus.ACTIVE;
+  public softDelete(): void {
+    if (this.isDeleted()) {
+      throw new SupplierAlreadyDeletedException();
+    }
+
+    this.deletedAt = new Date();
 
     this.updatedAt = new Date();
   }
 
-  public deactivate(): void {
-    this.status = SupplierStatus.INACTIVE;
+  public restore(): void {
+    if (!this.isDeleted()) {
+      throw new SupplierNotDeletedException();
+    }
+
+    this.deletedAt = null;
 
     this.updatedAt = new Date();
   }
 
-  public isActive(): boolean {
-    return this.status === SupplierStatus.ACTIVE;
+  public isDeleted(): boolean {
+    return this.deletedAt !== null;
   }
 
   public getId(): string {
@@ -117,16 +128,16 @@ export class Supplier {
     return this.name;
   }
 
-  public getStatus(): SupplierStatus {
-    return this.status;
-  }
-
   public getCreatedAt(): Date {
     return new Date(this.createdAt);
   }
 
   public getUpdatedAt(): Date {
     return new Date(this.updatedAt);
+  }
+
+  public getDeletedAt(): Date | null {
+    return this.deletedAt;
   }
 
   public getPhone(): string | null {

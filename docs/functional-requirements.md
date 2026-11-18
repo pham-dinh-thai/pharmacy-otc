@@ -17,7 +17,7 @@
 | Users | 🟡 | Tạo, đổi email, gán/bỏ role; thiếu list/detail, vô hiệu hoá |
 | Customers | 🟡 | Tự tạo khi đăng ký; thiếu hồ sơ/địa chỉ/API |
 | Products | 🟡 | Tạo/list cơ bản; thiếu SKU, category, đơn vị, mô tả, ảnh, sửa/xoá |
-| Suppliers | ✅ | Tạo/list/sửa/ngưng/kích hoạt |
+| Suppliers | ✅ | Tạo/list/sửa/xoá/khôi phục |
 | Goods receipts | 🟡 | Tạo/xác nhận/huỷ; thiếu list/detail |
 | Inventories | 🟡 | Xuất/kiểm kê theo lô; thiếu API đọc tồn/lô |
 | Orders | ⬜ | Module rỗng |
@@ -115,9 +115,10 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 | FR-SUP-01 | Tạo nhà cung cấp, sinh mã `SUP-0001` | ✅ |
 | FR-SUP-02 | Danh sách nhà cung cấp | ✅ |
 | FR-SUP-03 | Sửa thông tin | ✅ |
-| FR-SUP-04 | Ngưng/kích hoạt | ✅ |
-| FR-SUP-05 | Xoá nhà cung cấp | ⬜ |
-| FR-SUP-06 | Tìm kiếm/lọc theo trạng thái | ⬜ |
+| FR-SUP-04 | Xoá/khôi phục nhà cung cấp (soft delete) | ✅ |
+| FR-SUP-05 | Chặn thao tác trùng trạng thái xoá (đã xoá / chưa xoá) | ✅ |
+| FR-SUP-06 | Tìm kiếm/lọc theo trạng thái xoá | ✅ |
+| FR-SUP-07 | Xem chi tiết nhà cung cấp (kể cả đã xoá) | ✅ |
 
 ## 9. Goods receipts (phiếu nhập)
 

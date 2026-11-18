@@ -11,6 +11,7 @@ import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum
 
 type FindAll = () => Promise<Supplier[]>;
 type FindById = (id: string) => Promise<Supplier | null>;
+type FindByIdIncludingDeleted = (id: string) => Promise<Supplier | null>;
 type NextSequence = () => Promise<number>;
 type Create = (supplier: Supplier) => Promise<Supplier>;
 type Update = (supplier: Supplier) => Promise<Supplier>;
@@ -46,6 +47,7 @@ const setup = (sequence = 7) => {
   const repository: ISuppliersRepository = {
     findAll: jest.fn<FindAll>(),
     findById,
+    findByIdIncludingDeleted: jest.fn<FindByIdIncludingDeleted>(),
     nextSequence,
     create,
     update: jest.fn<Update>(),
@@ -98,7 +100,6 @@ describe('CreateSupplierHandler', () => {
           after: {
             code: 'SUP-0007',
             name: 'Công ty TNHH ABC',
-            status: created.getStatus(),
             phone: '0901234567',
             email: 'contact@abc.vn',
             address: '12 Nguyễn Huệ',

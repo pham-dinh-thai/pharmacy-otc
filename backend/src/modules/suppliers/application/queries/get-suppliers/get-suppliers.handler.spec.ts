@@ -1,10 +1,13 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { ISuppliersRepository } from '../../../domain/suppliers.repository';
+import {
+  FindSuppliersFilters,
+  ISuppliersRepository,
+} from '../../../domain/suppliers.repository';
 import { Supplier } from '../../../domain/supplier.aggregate';
-import { SupplierStatus } from '../../../domain/enums/supplier-status.enum';
+import { GetSuppliersQuery } from './get-suppliers.query';
 import { GetSuppliersHandler } from './get-suppliers.handler';
 
-type FindAll = () => Promise<Supplier[]>;
+type FindAll = (filters?: FindSuppliersFilters) => Promise<Supplier[]>;
 type FindById = (id: string) => Promise<Supplier | null>;
 type NextSequence = () => Promise<number>;
 type Create = (supplier: Supplier) => Promise<Supplier>;
@@ -23,7 +26,6 @@ const createSupplier = (
     id,
     code,
     name,
-    status: SupplierStatus.ACTIVE,
     phone: '0901234567',
     email: `${name.toLowerCase().replace(/\s+/g, '.')}@abc.vn`,
     address: '12 Nguyễn Huệ',
@@ -38,6 +40,7 @@ const setup = (suppliers: Supplier[]) => {
   const repository: ISuppliersRepository = {
     findAll,
     findById: jest.fn<FindById>(),
+    findByIdIncludingDeleted: jest.fn<FindById>(),
     nextSequence: jest.fn<NextSequence>(),
     create: jest.fn<Create>(),
     update: jest.fn<Update>(),
@@ -63,7 +66,7 @@ describe('GetSuppliersHandler', () => {
     );
     const { handler, findAll } = setup([newest, oldest]);
 
-    const result = await handler.execute();
+    const result = await handler.execute(new GetSuppliersQuery());
 
     expect(findAll).toHaveBeenCalledTimes(1);
     expect(result).toHaveLength(2);
@@ -71,7 +74,6 @@ describe('GetSuppliersHandler', () => {
       id: FIRST_ID,
       code: 'SUP-0002',
       name: 'Công ty ABC',
-      status: SupplierStatus.ACTIVE,
       phone: '0901234567',
       email: 'công.ty.abc@abc.vn',
       address: '12 Nguyễn Huệ',
@@ -83,9 +85,17 @@ describe('GetSuppliersHandler', () => {
     expect(result[1].code).toBe('SUP-0001');
   });
 
+  it('forwards deleted and search filters to the repository', async () => {
+    const { handler, findAll } = setup([]);
+
+    await handler.execute(new GetSuppliersQuery(true, 'abc'));
+
+    expect(findAll).toHaveBeenCalledWith({ deleted: true, search: 'abc' });
+  });
+
   it('returns an empty list when there are no suppliers', async () => {
     const { handler } = setup([]);
 
-    await expect(handler.execute()).resolves.toEqual([]);
+    await expect(handler.execute(new GetSuppliersQuery())).resolves.toEqual([]);
   });
 });

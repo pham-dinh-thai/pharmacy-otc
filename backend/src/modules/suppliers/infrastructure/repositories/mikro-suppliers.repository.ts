@@ -1,19 +1,47 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { ISuppliersRepository } from '../../domain/suppliers.repository';
-import { Supplier } from '../../domain/supplier.aggregate';
 import {
   EntityManager,
+  type FilterQuery,
   UniqueConstraintViolationException,
 } from '@mikro-orm/core';
+import {
+  type FindSuppliersFilters,
+  ISuppliersRepository,
+} from '../../domain/suppliers.repository';
+import { Supplier } from '../../domain/supplier.aggregate';
 import { SupplierMapper } from '../mappers/supplier.mapper';
 import { MikroSupplier } from '../entities/mikro-supplier.entity';
+
+const escapeLikePattern = (value: string): string =>
+  value.replace(/[\\%_]/g, '\\$&');
 
 @Injectable()
 export class MikroSuppliersRepository implements ISuppliersRepository {
   public constructor(private readonly entityManager: EntityManager) {}
 
-  public async findAll(): Promise<Supplier[]> {
+  public async findAll(filters?: FindSuppliersFilters): Promise<Supplier[]> {
+    const search = filters?.search?.trim();
+    const pattern = search ? `%${escapeLikePattern(search)}%` : undefined;
+
+    const deleted = filters?.deleted ?? false;
+
+    const where: FilterQuery<MikroSupplier> = {
+      deletedAt: deleted ? { $ne: null } : null,
+      ...(pattern
+        ? {
+            $or: [
+              { code: { $ilike: pattern } },
+              { name: { $ilike: pattern } },
+              { phone: { $ilike: pattern } },
+              { email: { $ilike: pattern } },
+              { taxCode: { $ilike: pattern } },
+            ],
+          }
+        : {}),
+    };
+
     const mikroSuppliers = await this.entityManager.findAll(MikroSupplier, {
+      where,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -23,6 +51,15 @@ export class MikroSuppliersRepository implements ISuppliersRepository {
   }
 
   public async findById(id: string): Promise<Supplier | null> {
+    const mikroSupplier = await this.entityManager.findOne(MikroSupplier, {
+      id,
+      deletedAt: null,
+    });
+
+    return mikroSupplier ? SupplierMapper.toDomain(mikroSupplier) : null;
+  }
+
+  public async findByIdIncludingDeleted(id: string): Promise<Supplier | null> {
     const mikroSupplier = await this.entityManager.findOne(MikroSupplier, {
       id,
     });

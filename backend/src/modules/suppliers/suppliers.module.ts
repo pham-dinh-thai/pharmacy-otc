@@ -6,9 +6,10 @@ import { SUPPLIERS_REPOSITORY } from './domain/suppliers.repository';
 import { MikroSuppliersRepository } from './infrastructure/repositories/mikro-suppliers.repository';
 import { CreateSupplierHandler } from './application/commands/create-supplier/create-supplier.handler';
 import { UpdateSupplierHandler } from './application/commands/update-supplier/update-supplier.handler';
+import { DeleteSupplierHandler } from './application/commands/delete-supplier/delete-supplier.handler';
+import { RestoreSupplierHandler } from './application/commands/restore-supplier/restore-supplier.handler';
+import { GetSupplierHandler } from './application/queries/get-supplier/get-supplier.handler';
 import { GetSuppliersHandler } from './application/queries/get-suppliers/get-suppliers.handler';
-import { DeactivateSupplierHandler } from './application/commands/deactivate-supplier/deactivate-supplier.handler';
-import { ActivateSupplierHandler } from './application/commands/activate-supplier/activate-supplier.handler';
 import { SecurityModule } from '../../shared/modules/security/security.module';
 import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 
@@ -23,9 +24,10 @@ import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
     { provide: SUPPLIERS_REPOSITORY, useClass: MikroSuppliersRepository },
     CreateSupplierHandler,
     UpdateSupplierHandler,
+    DeleteSupplierHandler,
+    RestoreSupplierHandler,
+    GetSupplierHandler,
     GetSuppliersHandler,
-    DeactivateSupplierHandler,
-    ActivateSupplierHandler,
   ],
 })
 export class SuppliersModule {}

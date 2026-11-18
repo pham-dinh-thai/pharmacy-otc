@@ -17,8 +17,13 @@ export class GetSuppliersHandler implements IQueryHandler<
     private readonly suppliersRepository: ISuppliersRepository,
   ) {}
 
-  public async execute(): Promise<SupplierListItemReadModel[]> {
-    const suppliers = await this.suppliersRepository.findAll();
+  public async execute(
+    query: GetSuppliersQuery,
+  ): Promise<SupplierListItemReadModel[]> {
+    const suppliers = await this.suppliersRepository.findAll({
+      deleted: query.deleted,
+      search: query.search,
+    });
 
     return suppliers.map(
       (supplier) =>
@@ -26,7 +31,6 @@ export class GetSuppliersHandler implements IQueryHandler<
           supplier.getId(),
           supplier.getCode(),
           supplier.getName(),
-          supplier.getStatus(),
           supplier.getPhone(),
           supplier.getEmail(),
           supplier.getAddress(),

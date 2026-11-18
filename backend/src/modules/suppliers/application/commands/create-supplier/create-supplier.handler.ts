@@ -54,7 +54,6 @@ export class CreateSupplierHandler implements ICommandHandler<CreateSupplierComm
           after: {
             code: supplier.getCode(),
             name: supplier.getName(),
-            status: supplier.getStatus(),
             phone: supplier.getPhone(),
             email: supplier.getEmail(),
             address: supplier.getAddress(),
