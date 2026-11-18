@@ -6,11 +6,12 @@ import {
 } from '../../../domain/suppliers.repository';
 import { GetSuppliersQuery } from './get-suppliers.query';
 import { SupplierListItemReadModel } from './supplier-list-item.read-model';
+import { SupplierListPageReadModel } from './supplier-list-page.read-model';
 
 @QueryHandler(GetSuppliersQuery)
 export class GetSuppliersHandler implements IQueryHandler<
   GetSuppliersQuery,
-  SupplierListItemReadModel[]
+  SupplierListPageReadModel
 > {
   public constructor(
     @Inject(SUPPLIERS_REPOSITORY)
@@ -19,26 +20,34 @@ export class GetSuppliersHandler implements IQueryHandler<
 
   public async execute(
     query: GetSuppliersQuery,
-  ): Promise<SupplierListItemReadModel[]> {
-    const suppliers = await this.suppliersRepository.findAll({
+  ): Promise<SupplierListPageReadModel> {
+    const { page, limit } = query;
+    const result = await this.suppliersRepository.findPage({
       deleted: query.deleted,
       search: query.search,
+      limit,
+      offset: (page - 1) * limit,
     });
 
-    return suppliers.map(
-      (supplier) =>
-        new SupplierListItemReadModel(
-          supplier.getId(),
-          supplier.getCode(),
-          supplier.getName(),
-          supplier.getPhone(),
-          supplier.getEmail(),
-          supplier.getAddress(),
-          supplier.getTaxCode(),
-          supplier.getCreatedAt(),
-          supplier.getUpdatedAt(),
-          supplier.getDeletedAt(),
-        ),
+    return new SupplierListPageReadModel(
+      result.items.map(
+        (supplier) =>
+          new SupplierListItemReadModel(
+            supplier.getId(),
+            supplier.getCode(),
+            supplier.getName(),
+            supplier.getPhone(),
+            supplier.getEmail(),
+            supplier.getAddress(),
+            supplier.getTaxCode(),
+            supplier.getCreatedAt(),
+            supplier.getUpdatedAt(),
+            supplier.getDeletedAt(),
+          ),
+      ),
+      result.total,
+      page,
+      limit,
     );
   }
 }

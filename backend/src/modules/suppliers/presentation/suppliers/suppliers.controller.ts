@@ -20,7 +20,7 @@ import { RestoreSupplierCommand } from '../../application/commands/restore-suppl
 import { GetSupplierQuery } from '../../application/queries/get-supplier/get-supplier.query';
 import { SupplierDetailReadModel } from '../../application/queries/get-supplier/supplier-detail.read-model';
 import { GetSuppliersQuery } from '../../application/queries/get-suppliers/get-suppliers.query';
-import { SupplierListItemReadModel } from '../../application/queries/get-suppliers/supplier-list-item.read-model';
+import { SupplierListPageReadModel } from '../../application/queries/get-suppliers/supplier-list-page.read-model';
 import { CreateSupplierRequest } from './requests/create-supplier.request';
 import { UpdateSupplierRequest } from './requests/update-supplier.request';
 import { ListSuppliersRequest } from './requests/list-suppliers.request';
@@ -44,9 +44,14 @@ export class SuppliersController {
   @RequirePermissions(['suppliers:read'])
   public findAll(
     @Query() request: ListSuppliersRequest,
-  ): Promise<SupplierListItemReadModel[]> {
+  ): Promise<SupplierListPageReadModel> {
     return this.queryBus.execute(
-      new GetSuppliersQuery(request.deleted, request.search),
+      new GetSuppliersQuery(
+        request.deleted,
+        request.search,
+        request.page,
+        request.limit,
+      ),
     );
   }
 

@@ -21,55 +21,55 @@ const persistentSupplier = (deletedAt: Date | null = null): MikroSupplier =>
   });
 
 const setup = () => {
-  const findAll = jest.fn<
-    (entity: unknown, options: unknown) => Promise<any[]>
-  >(() => Promise.resolve([]));
+  const findAndCount = jest.fn<
+    (entity: unknown, where: unknown, options: unknown) => Promise<any[]>
+  >(() => Promise.resolve([[], 0]));
   const findOne = jest.fn<(entity: unknown, where: unknown) => Promise<any>>(
     () => Promise.resolve(null),
   );
-  const entityManager = { findAll, findOne } as unknown as EntityManager;
+  const entityManager = { findAndCount, findOne } as unknown as EntityManager;
 
   return {
     repository: new MikroSuppliersRepository(entityManager),
-    findAll,
+    findAndCount,
     findOne,
   };
 };
 
 describe('MikroSuppliersRepository', () => {
-  describe('findAll', () => {
+  describe('findPage', () => {
     it('excludes soft-deleted suppliers by default and keeps createdAt desc ordering', async () => {
-      const { repository, findAll } = setup();
+      const { repository, findAndCount } = setup();
 
-      await repository.findAll();
+      await repository.findPage();
 
-      expect(findAll).toHaveBeenCalledWith(MikroSupplier, {
-        where: { deletedAt: null },
-        orderBy: { createdAt: 'desc' },
-      });
+      expect(findAndCount).toHaveBeenCalledWith(
+        MikroSupplier,
+        { deletedAt: null },
+        { orderBy: { createdAt: 'desc' } },
+      );
     });
 
     it('returns only soft-deleted suppliers when deleted is true', async () => {
-      const { repository, findAll } = setup();
+      const { repository, findAndCount } = setup();
 
-      await repository.findAll({ deleted: true });
+      await repository.findPage({ deleted: true });
 
-      expect(findAll).toHaveBeenCalledWith(MikroSupplier, {
-        where: { deletedAt: { $ne: null } },
-        orderBy: { createdAt: 'desc' },
-      });
+      expect(findAndCount).toHaveBeenCalledWith(
+        MikroSupplier,
+        { deletedAt: { $ne: null } },
+        { orderBy: { createdAt: 'desc' } },
+      );
     });
 
     it('searches code, name, phone, email and taxCode case-insensitively', async () => {
-      const { repository, findAll } = setup();
+      const { repository, findAndCount } = setup();
 
-      await repository.findAll({ search: '  abc  ' });
+      await repository.findPage({ search: '  abc  ' });
 
-      const where = findAll.mock.calls[0][1] as {
-        where: Record<string, unknown>;
-      };
-      expect(where.where.deletedAt).toBeNull();
-      expect(where.where.$or).toEqual([
+      const where = findAndCount.mock.calls[0][1] as Record<string, unknown>;
+      expect(where.deletedAt).toBeNull();
+      expect(where.$or).toEqual([
         { code: { $ilike: '%abc%' } },
         { name: { $ilike: '%abc%' } },
         { phone: { $ilike: '%abc%' } },
@@ -79,24 +79,38 @@ describe('MikroSuppliersRepository', () => {
     });
 
     it('escapes LIKE wildcards in the search term', async () => {
-      const { repository, findAll } = setup();
+      const { repository, findAndCount } = setup();
 
-      await repository.findAll({ search: '50%_' });
+      await repository.findPage({ search: '50%_' });
 
-      const where = findAll.mock.calls[0][1] as {
-        where: { $or: { code: { $ilike: string } }[] };
+      const where = findAndCount.mock.calls[0][1] as {
+        $or: { code: { $ilike: string } }[];
       };
-      expect(where.where.$or[0].code.$ilike).toBe('%50\\%\\_%');
+      expect(where.$or[0].code.$ilike).toBe('%50\\%\\_%');
     });
 
-    it('maps persisted deletedAt onto the domain supplier', async () => {
-      const { repository, findAll } = setup();
-      findAll.mockResolvedValue([persistentSupplier(DELETED_AT)]);
+    it('passes limit and offset to MikroORM', async () => {
+      const { repository, findAndCount } = setup();
 
-      const [supplier] = await repository.findAll({ deleted: true });
+      await repository.findPage({ limit: 10, offset: 20 });
 
-      expect(supplier.isDeleted()).toBe(true);
-      expect(supplier.getDeletedAt()).toEqual(DELETED_AT);
+      const options = findAndCount.mock.calls[0][2] as {
+        limit: number;
+        offset: number;
+      };
+      expect(options.limit).toBe(10);
+      expect(options.offset).toBe(20);
+    });
+
+    it('maps persisted deletedAt onto the domain supplier and returns the total', async () => {
+      const { repository, findAndCount } = setup();
+      findAndCount.mockResolvedValue([[persistentSupplier(DELETED_AT)], 1]);
+
+      const result = await repository.findPage({ deleted: true });
+
+      expect(result.total).toBe(1);
+      expect(result.items[0].isDeleted()).toBe(true);
+      expect(result.items[0].getDeletedAt()).toEqual(DELETED_AT);
     });
   });
 

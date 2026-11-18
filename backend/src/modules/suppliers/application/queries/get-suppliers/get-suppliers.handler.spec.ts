@@ -2,12 +2,13 @@ import { describe, expect, it, jest } from '@jest/globals';
 import {
   FindSuppliersFilters,
   ISuppliersRepository,
+  SupplierPage,
 } from '../../../domain/suppliers.repository';
 import { Supplier } from '../../../domain/supplier.aggregate';
 import { GetSuppliersQuery } from './get-suppliers.query';
 import { GetSuppliersHandler } from './get-suppliers.handler';
 
-type FindAll = (filters?: FindSuppliersFilters) => Promise<Supplier[]>;
+type FindPage = (filters?: FindSuppliersFilters) => Promise<SupplierPage>;
 type FindById = (id: string) => Promise<Supplier | null>;
 type NextSequence = () => Promise<number>;
 type Create = (supplier: Supplier) => Promise<Supplier>;
@@ -36,11 +37,11 @@ const createSupplier = (
     deletedAt,
   });
 
-const setup = (suppliers: Supplier[]) => {
-  const findAll = jest.fn<FindAll>(() => Promise.resolve(suppliers));
+const setup = (items: Supplier[], total = items.length) => {
+  const findPage = jest.fn<FindPage>(() => Promise.resolve({ items, total }));
 
   const repository: ISuppliersRepository = {
-    findAll,
+    findPage,
     findById: jest.fn<FindById>(),
     findByIdIncludingDeleted: jest.fn<FindById>(),
     nextSequence: jest.fn<NextSequence>(),
@@ -49,11 +50,11 @@ const setup = (suppliers: Supplier[]) => {
   };
   const handler = new GetSuppliersHandler(repository);
 
-  return { handler, findAll };
+  return { handler, findPage };
 };
 
 describe('GetSuppliersHandler', () => {
-  it('maps suppliers to list items and keeps repository order', async () => {
+  it('maps suppliers to a page and keeps repository order', async () => {
     const newest = createSupplier(
       FIRST_ID,
       'SUP-0002',
@@ -66,13 +67,21 @@ describe('GetSuppliersHandler', () => {
       'Công ty XYZ',
       new Date('2026-01-01T00:00:00Z'),
     );
-    const { handler, findAll } = setup([newest, oldest]);
+    const { handler, findPage } = setup([newest, oldest], 2);
 
     const result = await handler.execute(new GetSuppliersQuery());
 
-    expect(findAll).toHaveBeenCalledTimes(1);
-    expect(result).toHaveLength(2);
-    expect(result[0]).toEqual({
+    expect(findPage).toHaveBeenCalledWith({
+      deleted: undefined,
+      search: undefined,
+      limit: 20,
+      offset: 0,
+    });
+    expect(result.total).toBe(2);
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(20);
+    expect(result.items).toHaveLength(2);
+    expect(result.items[0]).toEqual({
       id: FIRST_ID,
       code: 'SUP-0002',
       name: 'Công ty ABC',
@@ -84,8 +93,8 @@ describe('GetSuppliersHandler', () => {
       updatedAt: new Date('2026-02-01T00:00:00Z'),
       deletedAt: null,
     });
-    expect(result[1].id).toBe(SECOND_ID);
-    expect(result[1].code).toBe('SUP-0001');
+    expect(result.items[1].id).toBe(SECOND_ID);
+    expect(result.items[1].code).toBe('SUP-0001');
   });
 
   it('includes deletedAt for soft-deleted list items', async () => {
@@ -101,20 +110,27 @@ describe('GetSuppliersHandler', () => {
 
     const result = await handler.execute(new GetSuppliersQuery(true));
 
-    expect(result[0].deletedAt).toEqual(deletedAt);
+    expect(result.items[0].deletedAt).toEqual(deletedAt);
   });
 
-  it('forwards deleted and search filters to the repository', async () => {
-    const { handler, findAll } = setup([]);
+  it('forwards filters and pagination to the repository', async () => {
+    const { handler, findPage } = setup([]);
 
-    await handler.execute(new GetSuppliersQuery(true, 'abc'));
+    await handler.execute(new GetSuppliersQuery(true, 'abc', 3, 10));
 
-    expect(findAll).toHaveBeenCalledWith({ deleted: true, search: 'abc' });
+    expect(findPage).toHaveBeenCalledWith({
+      deleted: true,
+      search: 'abc',
+      limit: 10,
+      offset: 20,
+    });
   });
 
-  it('returns an empty list when there are no suppliers', async () => {
+  it('returns an empty page when there are no suppliers', async () => {
     const { handler } = setup([]);
 
-    await expect(handler.execute(new GetSuppliersQuery())).resolves.toEqual([]);
+    await expect(
+      handler.execute(new GetSuppliersQuery()),
+    ).resolves.toMatchObject({ items: [], total: 0 });
   });
 });

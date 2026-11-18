@@ -19,7 +19,9 @@ const escapeLikePattern = (value: string): string =>
 export class MikroSuppliersRepository implements ISuppliersRepository {
   public constructor(private readonly entityManager: EntityManager) {}
 
-  public async findAll(filters?: FindSuppliersFilters): Promise<Supplier[]> {
+  public async findPage(
+    filters?: FindSuppliersFilters,
+  ): Promise<{ items: Supplier[]; total: number }> {
     const search = filters?.search?.trim();
     const pattern = search ? `%${escapeLikePattern(search)}%` : undefined;
 
@@ -40,14 +42,22 @@ export class MikroSuppliersRepository implements ISuppliersRepository {
         : {}),
     };
 
-    const mikroSuppliers = await this.entityManager.findAll(MikroSupplier, {
+    const [mikroSuppliers, total] = await this.entityManager.findAndCount(
+      MikroSupplier,
       where,
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return mikroSuppliers.map((mikroSupplier) =>
-      SupplierMapper.toDomain(mikroSupplier),
+      {
+        orderBy: { createdAt: 'desc' },
+        ...(filters?.limit !== undefined ? { limit: filters.limit } : {}),
+        ...(filters?.offset !== undefined ? { offset: filters.offset } : {}),
+      },
     );
+
+    return {
+      items: mikroSuppliers.map((mikroSupplier) =>
+        SupplierMapper.toDomain(mikroSupplier),
+      ),
+      total,
+    };
   }
 
   public async findById(id: string): Promise<Supplier | null> {

@@ -119,6 +119,7 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 | FR-SUP-05 | Chặn thao tác trùng trạng thái xoá (đã xoá / chưa xoá) | ✅ |
 | FR-SUP-06 | Tìm kiếm/lọc theo trạng thái xoá | ✅ |
 | FR-SUP-07 | Xem chi tiết nhà cung cấp (kể cả đã xoá) | ✅ |
+| FR-SUP-08 | Phân trang danh sách, chọn 10/20/50 bản ghi mỗi trang | ✅ |
 
 ## 9. Goods receipts (phiếu nhập)
 
