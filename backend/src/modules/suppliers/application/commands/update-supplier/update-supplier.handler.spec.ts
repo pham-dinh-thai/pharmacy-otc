@@ -5,7 +5,6 @@ import {
 } from '../../../domain/exceptions/supplier.exceptions';
 import { ISuppliersRepository } from '../../../domain/suppliers.repository';
 import { Supplier } from '../../../domain/supplier.aggregate';
-import { SupplierStatus } from '../../../domain/enums/supplier-status.enum';
 import { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import { IOutboxRepository } from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import { UpdateSupplierCommand } from './update-supplier.command';
@@ -15,6 +14,7 @@ import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum
 
 type FindAll = () => Promise<Supplier[]>;
 type FindById = (id: string) => Promise<Supplier | null>;
+type FindByIdIncludingDeleted = (id: string) => Promise<Supplier | null>;
 type NextSequence = () => Promise<number>;
 type Create = (supplier: Supplier) => Promise<Supplier>;
 type Update = (supplier: Supplier) => Promise<Supplier>;
@@ -46,7 +46,6 @@ const createSupplier = () =>
     id: SUPPLIER_ID,
     code: 'SUP-0007',
     name: 'Công ty TNHH ABC',
-    status: SupplierStatus.ACTIVE,
     phone: '0901234567',
     email: 'old@abc.vn',
     address: '12 Nguyễn Huệ',
@@ -67,6 +66,7 @@ const setup = (supplier: Supplier | null = createSupplier()) => {
   const repository: ISuppliersRepository = {
     findAll: jest.fn<FindAll>(),
     findById,
+    findByIdIncludingDeleted: jest.fn<FindByIdIncludingDeleted>(),
     nextSequence,
     create: jest.fn<Create>(),
     update,

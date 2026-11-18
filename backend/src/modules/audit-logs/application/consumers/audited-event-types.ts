@@ -14,8 +14,8 @@ import { USER_ROLE_REMOVED_EVENT } from '../../../users/domain/events/user-role-
 import { PRODUCT_CREATED_EVENT } from '../../../products/domain/events/product-created.event';
 import { SUPPLIER_CREATED_EVENT } from '../../../suppliers/domain/events/supplier-created.event';
 import { SUPPLIER_UPDATED_EVENT } from '../../../suppliers/domain/events/supplier-updated.event';
-import { SUPPLIER_ACTIVATED_EVENT } from '../../../suppliers/domain/events/supplier-activated.event';
-import { SUPPLIER_DEACTIVATED_EVENT } from '../../../suppliers/domain/events/supplier-deactivated.event';
+import { SUPPLIER_DELETED_EVENT } from '../../../suppliers/domain/events/supplier-deleted.event';
+import { SUPPLIER_RESTORED_EVENT } from '../../../suppliers/domain/events/supplier-restored.event';
 import { GOODS_RECEIPT_CREATED_EVENT } from '../../../goods-receipts/domain/events/goods-receipt-created.event';
 import { GOODS_RECEIPT_CONFIRMED_EVENT } from '../../../goods-receipts/domain/events/goods-receipt-confirmed.event';
 import { GOODS_RECEIPT_CANCELLED_EVENT } from '../../../goods-receipts/domain/events/goods-receipt-cancelled.event';
@@ -50,6 +50,8 @@ export type AuditAction =
   | 'remove_role'
   | 'activate'
   | 'deactivate'
+  | 'delete'
+  | 'restore'
   | 'confirm'
   | 'cancel'
   | 'issue'
@@ -78,8 +80,8 @@ export const AUDITED_EVENT_ACTIONS = {
   [PRODUCT_CREATED_EVENT]: 'create',
   [SUPPLIER_CREATED_EVENT]: 'create',
   [SUPPLIER_UPDATED_EVENT]: 'update',
-  [SUPPLIER_ACTIVATED_EVENT]: 'activate',
-  [SUPPLIER_DEACTIVATED_EVENT]: 'deactivate',
+  [SUPPLIER_DELETED_EVENT]: 'delete',
+  [SUPPLIER_RESTORED_EVENT]: 'restore',
   [GOODS_RECEIPT_CREATED_EVENT]: 'create',
   [GOODS_RECEIPT_CONFIRMED_EVENT]: 'confirm',
   [GOODS_RECEIPT_CANCELLED_EVENT]: 'cancel',

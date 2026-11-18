@@ -1,9 +1,18 @@
 import { Supplier } from './supplier.aggregate';
 
-export interface ISuppliersRepository {
-  findAll(): Promise<Supplier[]>;
+export type FindSuppliersFilters = {
+  search?: string;
+  deleted?: boolean;
+};
 
+export interface ISuppliersRepository {
+  findAll(filters?: FindSuppliersFilters): Promise<Supplier[]>;
+
+  /** Detail lookups exclude soft-deleted suppliers. */
   findById(id: string): Promise<Supplier | null>;
+
+  /** Used by delete/restore to detect the current soft-delete state. */
+  findByIdIncludingDeleted(id: string): Promise<Supplier | null>;
 
   nextSequence(): Promise<number>;
 

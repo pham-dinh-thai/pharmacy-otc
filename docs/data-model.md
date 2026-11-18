@@ -7,8 +7,8 @@
   `date`.
 - Tiền lưu `bigint` (VND), không dùng `numeric`/float sau migration
   `Migration20261114000000_money_to_bigint`.
-- Không xoá cứng dữ liệu nghiệp vụ quan trọng; dùng trạng thái (`inactive`,
-  `cancelled`) hoặc bảng audit.
+- Không xoá cứng dữ liệu nghiệp vụ quan trọng; dùng cờ xoá mềm (`deleted_at`),
+  trạng thái (`cancelled`) hoặc bảng audit.
 - `audit_logs` là **append-only**.
 - `outbox_events` nằm cùng DB để ghi atomic với nghiệp vụ.
 - Sai khác giữa domain và DB được xử lý ở domain; DB giữ ràng buộc tối thiểu.
@@ -79,7 +79,7 @@ erDiagram
         uuid id PK
         varchar code UK
         varchar name
-        varchar status
+        timestamptz deleted_at
         varchar phone
         varchar email
         varchar address
@@ -251,10 +251,10 @@ Hồ sơ khách hàng tối giản, tạo cùng lúc với đăng ký.
 | `id` | uuid PK | |
 | `code` | varchar unique | `SUP-0001` |
 | `name` | varchar | |
-| `status` | text | `active`, `inactive` |
 | `phone`, `email`, `address` | varchar nullable | |
 | `tax_code` | varchar unique nullable | |
 | `created_at`, `updated_at` | timestamptz | |
+| `deleted_at` | timestamptz nullable | `null` = còn dùng; có giá trị = đã xoá (soft delete) |
 
 ### `goods_receipts`
 
@@ -394,8 +394,8 @@ Ràng buộc DB đáng chú ý:
 - Unique: `users.email`, `roles.name`, `suppliers.code`, `suppliers.tax_code`,
   `goods_receipts.code`, `(product_id, lot_number)`,
   `(goods_receipt_id, product_id, lot_number)`.
-- Check: enum của `suppliers`, `goods_receipts`, `batches`, `expenses`,
-  `audit_logs`; `expenses.amount >= 0`.
+- Check: enum của `goods_receipts`, `batches`, `expenses`, `audit_logs`;
+  `expenses.amount >= 0`.
 - Domain check (không có ở DB): giá bán ≥ 0, số lượng ≥ 0, số lượng xuất > 0,
   không xuất quá tồn.
 
@@ -403,7 +403,6 @@ Ràng buộc DB đáng chú ý:
 
 | Enum | Giá trị |
 |---|---|
-| `SupplierStatus` | `active`, `inactive` |
 | `GoodsReceiptStatus` | `pending`, `confirmed`, `cancelled` |
 | `BatchStatus` | `active`, `expired`, `out` |
 | `ExpenseCategory` | `rent`, `utilities`, `salary`, `transport`, `marketing`, `office_supplies`, `other` |

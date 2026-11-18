@@ -1,25 +1,25 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { DeactivateSupplierCommand } from './deactivate-supplier.command';
 import { Inject } from '@nestjs/common';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { SupplierNotFoundException } from '../../../domain/exceptions/supplier.exceptions';
 import {
   type ISuppliersRepository,
   SUPPLIERS_REPOSITORY,
 } from '../../../domain/suppliers.repository';
 import {
-  type IUnitOfWork,
-  UNIT_OF_WORK,
-} from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import {
   type IOutboxRepository,
   OUTBOX_REPOSITORY,
 } from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import { SUPPLIER_DEACTIVATED_EVENT } from '../../../domain/events/supplier-deactivated.event';
+import {
+  type IUnitOfWork,
+  UNIT_OF_WORK,
+} from '../../../../../shared/modules/unit-of-work/unit-of-work';
+import { SUPPLIER_RESTORED_EVENT } from '../../../domain/events/supplier-restored.event';
 import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
+import { RestoreSupplierCommand } from './restore-supplier.command';
 
-@CommandHandler(DeactivateSupplierCommand)
-export class DeactivateSupplierHandler implements ICommandHandler<DeactivateSupplierCommand> {
+@CommandHandler(RestoreSupplierCommand)
+export class RestoreSupplierHandler implements ICommandHandler<RestoreSupplierCommand> {
   public constructor(
     @Inject(SUPPLIERS_REPOSITORY)
     private readonly suppliersRepository: ISuppliersRepository,
@@ -32,28 +32,30 @@ export class DeactivateSupplierHandler implements ICommandHandler<DeactivateSupp
   ) {}
 
   public async execute(
-    command: DeactivateSupplierCommand,
+    command: RestoreSupplierCommand,
   ): Promise<{ id: string }> {
     return this.unitOfWork.run(async () => {
-      const supplier = await this.suppliersRepository.findById(command.id);
+      const supplier = await this.suppliersRepository.findByIdIncludingDeleted(
+        command.id,
+      );
 
       if (!supplier) {
         throw new SupplierNotFoundException(command.id);
       }
 
-      const previousStatus = supplier.getStatus();
+      const previousDeletedAt = supplier.getDeletedAt();
 
-      supplier.deactivate();
+      supplier.restore();
 
       await this.suppliersRepository.update(supplier);
 
       await this.outboxRepository.create({
-        eventType: SUPPLIER_DEACTIVATED_EVENT,
+        eventType: SUPPLIER_RESTORED_EVENT,
         payload: auditEventPayload(command.headers, {
           entityType: EntityType.SUPPLIERS,
           entityId: supplier.getId(),
-          before: { status: previousStatus },
-          after: { status: supplier.getStatus() },
+          before: { deletedAt: previousDeletedAt },
+          after: { deletedAt: null },
         }),
       });
 

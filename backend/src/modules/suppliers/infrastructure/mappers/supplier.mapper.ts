@@ -7,13 +7,13 @@ export class SupplierMapper {
       id: mikroSupplier.id,
       code: mikroSupplier.code,
       name: mikroSupplier.name,
-      status: mikroSupplier.status,
       phone: mikroSupplier.phone,
       email: mikroSupplier.email,
       address: mikroSupplier.address,
       taxCode: mikroSupplier.taxCode,
       createdAt: mikroSupplier.createdAt,
       updatedAt: mikroSupplier.updatedAt,
+      deletedAt: mikroSupplier.deletedAt,
     });
   }
 
@@ -28,7 +28,7 @@ export class SupplierMapper {
     mikroSupplier.id = supplier.getId();
     mikroSupplier.code = supplier.getCode();
     mikroSupplier.name = supplier.getName();
-    mikroSupplier.status = supplier.getStatus();
+    mikroSupplier.deletedAt = supplier.getDeletedAt();
     mikroSupplier.createdAt = supplier.getCreatedAt();
     mikroSupplier.updatedAt = supplier.getUpdatedAt();
     mikroSupplier.phone = supplier.getPhone();

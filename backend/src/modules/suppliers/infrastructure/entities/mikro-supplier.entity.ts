@@ -1,10 +1,4 @@
-import {
-  Entity,
-  Enum,
-  PrimaryKey,
-  Property,
-} from '@mikro-orm/decorators/legacy';
-import { SupplierStatus } from '../../domain/enums/supplier-status.enum';
+import { Entity, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 
 @Entity({ tableName: 'suppliers' })
 export class MikroSupplier {
@@ -17,8 +11,13 @@ export class MikroSupplier {
   @Property({ type: 'string' })
   name!: string;
 
-  @Enum(() => SupplierStatus)
-  status!: SupplierStatus;
+  @Property({
+    fieldName: 'deleted_at',
+    type: 'timestamptz',
+    nullable: true,
+    default: null,
+  })
+  deletedAt!: Date | null;
 
   @Property({
     type: 'timestamptz',

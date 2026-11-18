@@ -9,6 +9,18 @@ export class SupplierNotFoundException extends DomainException {
   }
 }
 
+export class SupplierAlreadyDeletedException extends DomainException {
+  public constructor() {
+    super('Supplier is already deleted', 'SUPPLIER_ALREADY_DELETED');
+  }
+}
+
+export class SupplierNotDeletedException extends DomainException {
+  public constructor() {
+    super('Supplier is not deleted', 'SUPPLIER_NOT_DELETED');
+  }
+}
+
 export class InvalidSupplierCodeException extends DomainException {
   public constructor(message: string) {
     super(message, 'INVALID_SUPPLIER_CODE');

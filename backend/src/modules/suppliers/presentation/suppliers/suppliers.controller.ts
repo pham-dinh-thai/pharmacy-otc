@@ -1,24 +1,29 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Logger,
   Param,
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreateSupplierCommand } from '../../application/commands/create-supplier/create-supplier.command';
 import { UpdateSupplierCommand } from '../../application/commands/update-supplier/update-supplier.command';
 import { UpdateSupplierResponse } from '../../application/commands/update-supplier/update-supplier.response';
+import { DeleteSupplierCommand } from '../../application/commands/delete-supplier/delete-supplier.command';
+import { RestoreSupplierCommand } from '../../application/commands/restore-supplier/restore-supplier.command';
+import { GetSupplierQuery } from '../../application/queries/get-supplier/get-supplier.query';
+import { SupplierDetailReadModel } from '../../application/queries/get-supplier/supplier-detail.read-model';
 import { GetSuppliersQuery } from '../../application/queries/get-suppliers/get-suppliers.query';
 import { SupplierListItemReadModel } from '../../application/queries/get-suppliers/supplier-list-item.read-model';
 import { CreateSupplierRequest } from './requests/create-supplier.request';
 import { UpdateSupplierRequest } from './requests/update-supplier.request';
-import { DeactivateSupplierCommand } from '../../application/commands/deactivate-supplier/deactivate-supplier.command';
-import { ActivateSupplierCommand } from '../../application/commands/activate-supplier/activate-supplier.command';
+import { ListSuppliersRequest } from './requests/list-suppliers.request';
 import { AuthGuard } from '../../../../shared/modules/security/auth.guard';
 import { PermissionsGuard } from '../../../../shared/modules/security/permissions.guard';
 import { RequirePermissions } from '../../../../shared/modules/security/require-permissions.decorator';
@@ -37,8 +42,20 @@ export class SuppliersController {
 
   @Get()
   @RequirePermissions(['suppliers:read'])
-  public findAll(): Promise<SupplierListItemReadModel[]> {
-    return this.queryBus.execute(new GetSuppliersQuery());
+  public findAll(
+    @Query() request: ListSuppliersRequest,
+  ): Promise<SupplierListItemReadModel[]> {
+    return this.queryBus.execute(
+      new GetSuppliersQuery(request.deleted, request.search),
+    );
+  }
+
+  @Get(':id')
+  @RequirePermissions(['suppliers:read'])
+  public findOne(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ): Promise<SupplierDetailReadModel> {
+    return this.queryBus.execute(new GetSupplierQuery(id));
   }
 
   @Post()
@@ -87,32 +104,32 @@ export class SuppliersController {
     return response;
   }
 
-  @Patch(':id/deactivate')
-  @RequirePermissions(['suppliers:update'])
-  public deactivate(
+  @Delete(':id')
+  @RequirePermissions(['suppliers:delete'])
+  public delete(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @ActorContext() headers: ActorHeaders,
   ): Promise<{ id: string }> {
     const response = this.commandBus.execute(
-      new DeactivateSupplierCommand(id, headers),
+      new DeleteSupplierCommand(id, headers),
     );
 
-    this.logger.log(`Supplier ${id} deactivated`);
+    this.logger.log(`Supplier ${id} deleted`);
 
     return response;
   }
 
-  @Patch(':id/activate')
-  @RequirePermissions(['suppliers:update'])
-  public activate(
+  @Patch(':id/restore')
+  @RequirePermissions(['suppliers:delete'])
+  public restore(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @ActorContext() headers: ActorHeaders,
   ): Promise<{ id: string }> {
     const response = this.commandBus.execute(
-      new ActivateSupplierCommand(id, headers),
+      new RestoreSupplierCommand(id, headers),
     );
 
-    this.logger.log(`Supplier ${id} activated`);
+    this.logger.log(`Supplier ${id} restored`);
 
     return response;
   }
