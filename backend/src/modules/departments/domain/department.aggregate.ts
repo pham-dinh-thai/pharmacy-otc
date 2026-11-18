@@ -1,8 +1,11 @@
-import {
-  ConflictException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
 import { Id } from '../../../shared/value-objects/id.value-object';
+import {
+  DepartmentAlreadyDisabledException,
+  DepartmentDisabledException,
+  DepartmentNameRequiredException,
+  DepartmentNameTooLongException,
+  DepartmentNotDisabledException,
+} from './exceptions/department.exceptions';
 
 const MAX_NAME_LENGTH = 255;
 
@@ -60,7 +63,7 @@ export class Department {
 
   public softDelete(): void {
     if (this.isDeleted()) {
-      throw new ConflictException('Department is already disabled');
+      throw new DepartmentAlreadyDisabledException();
     }
 
     this.deletedAt = new Date();
@@ -69,7 +72,7 @@ export class Department {
 
   public restore(): void {
     if (!this.isDeleted()) {
-      throw new ConflictException('Department is not disabled');
+      throw new DepartmentNotDisabledException();
     }
 
     this.deletedAt = null;
@@ -102,7 +105,7 @@ export class Department {
 
   private assertActive(): void {
     if (this.isDeleted()) {
-      throw new ConflictException('Department is disabled');
+      throw new DepartmentDisabledException();
     }
   }
 
@@ -114,13 +117,11 @@ export class Department {
     const name = raw?.trim();
 
     if (!name) {
-      throw new UnprocessableEntityException('Department name is required');
+      throw new DepartmentNameRequiredException();
     }
 
     if (name.length > MAX_NAME_LENGTH) {
-      throw new UnprocessableEntityException(
-        `Department name must have at most ${MAX_NAME_LENGTH} characters`,
-      );
+      throw new DepartmentNameTooLongException(MAX_NAME_LENGTH);
     }
 
     return name;

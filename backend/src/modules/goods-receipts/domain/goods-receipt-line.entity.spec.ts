@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import {
-  ConflictException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+  InvalidAmountException,
+  InvalidLotNumberException,
+  InvalidQuantityException,
+} from '../../../shared/domain/exceptions/value-object.exceptions';
+import { GoodsReceiptLineAlreadyAttachedException } from './exceptions/goods-receipt.exceptions';
 import {
   CreateGoodsReceiptLineProps,
   GoodsReceiptLine,
@@ -58,7 +60,7 @@ describe('GoodsReceiptLine', () => {
       (lotNumber) => {
         expect(() =>
           createLine({ lotNumber: lotNumber as unknown as string }),
-        ).toThrow(UnprocessableEntityException);
+        ).toThrow(InvalidLotNumberException);
       },
     );
 
@@ -87,14 +89,14 @@ describe('GoodsReceiptLine', () => {
       'rejects invalid quantity %s',
       (quantity) => {
         expect(() => createLine({ quantity })).toThrow(
-          UnprocessableEntityException,
+          InvalidQuantityException,
         );
       },
     );
 
     it('rejects an invalid unit cost', () => {
       expect(() => createLine({ unitCost: '-1' })).toThrow(
-        UnprocessableEntityException,
+        InvalidAmountException,
       );
     });
 
@@ -155,7 +157,9 @@ describe('GoodsReceiptLine', () => {
       const line = createLine();
       line.attachBatch(BATCH_ID);
 
-      expect(() => line.attachBatch(BATCH_ID)).toThrow(ConflictException);
+      expect(() => line.attachBatch(BATCH_ID)).toThrow(
+        GoodsReceiptLineAlreadyAttachedException,
+      );
       expect(line.getBatchId()).toBe(BATCH_ID);
     });
   });

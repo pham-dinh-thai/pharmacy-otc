@@ -14,7 +14,7 @@ import {
   OUTBOX_REPOSITORY,
 } from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import { ActivateSupplierCommand } from './activate-supplier.command';
-import { NotFoundException } from '@nestjs/common';
+import { SupplierNotFoundException } from '../../../domain/exceptions/supplier.exceptions';
 import { Supplier } from '../../../domain/supplier.aggregate';
 import { SupplierStatus } from '../../../domain/enums/supplier-status.enum';
 import { SUPPLIER_ACTIVATED_EVENT } from '../../../domain/events/supplier-activated.event';
@@ -88,7 +88,7 @@ describe('ActivateSupplierHandler', () => {
         activateSupplierHandler.execute(
           new ActivateSupplierCommand(SUPPLIER_ID, headers),
         ),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(SupplierNotFoundException);
 
       expect(suppliersRepository.update).not.toHaveBeenCalled();
       expect(outboxRepository.create).not.toHaveBeenCalled();

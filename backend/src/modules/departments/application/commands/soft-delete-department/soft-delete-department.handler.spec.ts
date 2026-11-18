@@ -1,5 +1,8 @@
 import { jest } from '@jest/globals';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  DepartmentAlreadyDisabledException,
+  DepartmentNotFoundException,
+} from '../../../domain/exceptions/department.exceptions';
 import { Test } from '@nestjs/testing';
 import { SoftDeleteDepartmentHandler } from './soft-delete-department.handler';
 import { SoftDeleteDepartmentCommand } from './soft-delete-department.command';
@@ -72,7 +75,7 @@ describe('SoftDeleteDepartmentHandler', () => {
 
     await expect(
       handler.execute(new SoftDeleteDepartmentCommand(DEPARTMENT_ID, headers)),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(DepartmentNotFoundException);
 
     expect(update).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();
@@ -110,7 +113,7 @@ describe('SoftDeleteDepartmentHandler', () => {
 
     await expect(
       handler.execute(new SoftDeleteDepartmentCommand(DEPARTMENT_ID, headers)),
-    ).rejects.toThrow(ConflictException);
+    ).rejects.toThrow(DepartmentAlreadyDisabledException);
 
     expect(update).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();

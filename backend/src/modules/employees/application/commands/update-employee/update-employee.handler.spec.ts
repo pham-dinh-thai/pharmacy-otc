@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { EmployeeNotFoundException } from '../../../domain/exceptions/employee.exceptions';
+import { DepartmentDisabledException } from '../../../../departments/domain/exceptions/department.exceptions';
 import { Test } from '@nestjs/testing';
 import { UpdateEmployeeHandler } from './update-employee.handler';
 import { UpdateEmployeeCommand } from './update-employee.command';
@@ -105,7 +106,7 @@ describe('UpdateEmployeeHandler', () => {
           headers,
         ),
       ),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(EmployeeNotFoundException);
 
     expect(update).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();
@@ -200,9 +201,7 @@ describe('UpdateEmployeeHandler', () => {
   });
 
   it('rejects a disabled department without changing the employee', async () => {
-    validateDepartment.mockRejectedValueOnce(
-      new ConflictException('Department is disabled'),
-    );
+    validateDepartment.mockRejectedValueOnce(new DepartmentDisabledException());
 
     await expect(
       handler.execute(
@@ -214,7 +213,7 @@ describe('UpdateEmployeeHandler', () => {
           headers,
         ),
       ),
-    ).rejects.toThrow(ConflictException);
+    ).rejects.toThrow(DepartmentDisabledException);
 
     expect(update).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();

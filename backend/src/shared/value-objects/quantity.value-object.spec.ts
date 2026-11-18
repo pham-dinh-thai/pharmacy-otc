@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidQuantityException } from '../domain/exceptions/value-object.exceptions';
 import { Quantity } from './quantity.value-object';
 
 describe('Quantity', () => {
@@ -11,9 +11,7 @@ describe('Quantity', () => {
     it.each([-1, -100, 1.5, NaN, Infinity, -Infinity])(
       'rejects %s',
       (value) => {
-        expect(() => Quantity.create(value)).toThrow(
-          UnprocessableEntityException,
-        );
+        expect(() => Quantity.create(value)).toThrow(InvalidQuantityException);
       },
     );
   });
@@ -44,7 +42,7 @@ describe('Quantity', () => {
     it('rejects a result below zero', () => {
       const quantity = Quantity.create(10);
 
-      expect(() => quantity.subtract(11)).toThrow(UnprocessableEntityException);
+      expect(() => quantity.subtract(11)).toThrow(InvalidQuantityException);
       expect(quantity.getValue()).toBe(10);
     });
   });

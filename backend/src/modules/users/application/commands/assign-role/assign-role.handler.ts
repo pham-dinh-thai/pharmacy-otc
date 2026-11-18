@@ -1,5 +1,10 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ConflictException, Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import {
+  RoleDisabledException,
+  RoleNotFoundException,
+} from '../../../../authorization/domain/exceptions/role.exceptions';
+import { UserByIdNotFoundException } from '../../../domain/exceptions/user.exceptions';
 import {
   type IUsersRepository,
   USERS_REPOSITORY,
@@ -44,17 +49,17 @@ export class AssignRoleHandler implements ICommandHandler<AssignRoleCommand> {
       const role = await this.rolesRepository.findById(command.roleId);
 
       if (!role) {
-        throw new NotFoundException(`Role id ${command.roleId} not found`);
+        throw new RoleNotFoundException(command.roleId);
       }
 
       if (role.isDeleted()) {
-        throw new ConflictException('Role is disabled');
+        throw new RoleDisabledException();
       }
 
       const user = await this.usersRepository.findById(command.userId);
 
       if (!user) {
-        throw new NotFoundException(`User id ${command.userId} not found`);
+        throw new UserByIdNotFoundException(command.userId);
       }
 
       const previousRoleIds = user.getRoleIds();

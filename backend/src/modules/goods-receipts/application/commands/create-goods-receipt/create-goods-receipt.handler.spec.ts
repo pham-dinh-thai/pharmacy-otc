@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { DuplicateGoodsReceiptLineException } from '../../../domain/exceptions/goods-receipt.exceptions';
 import {
   FindGoodsReceiptOptions,
   IGoodsReceiptsRepository,
@@ -164,7 +164,7 @@ describe('CreateGoodsReceiptHandler', () => {
 
     await expect(
       handler.execute(createCommand([buildLine(), buildLine()])),
-    ).rejects.toThrow(UnprocessableEntityException);
+    ).rejects.toThrow(DuplicateGoodsReceiptLineException);
 
     expect(create).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();

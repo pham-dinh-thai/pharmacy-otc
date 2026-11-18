@@ -1,9 +1,8 @@
+import { Inject, Injectable } from '@nestjs/common';
 import {
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+  DepartmentDisabledException,
+  DepartmentNotFoundException,
+} from '../../../departments/domain/exceptions/department.exceptions';
 import {
   DEPARTMENTS_REPOSITORY,
   type IDepartmentsRepository,
@@ -20,11 +19,11 @@ export class AssignableDepartmentValidator {
     const department = await this.departmentsRepository.findById(departmentId);
 
     if (!department) {
-      throw new NotFoundException(`Department id ${departmentId} not found`);
+      throw new DepartmentNotFoundException(departmentId);
     }
 
     if (department.isDeleted()) {
-      throw new ConflictException('Department is disabled');
+      throw new DepartmentDisabledException();
     }
   }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidAmountException } from '../../../../shared/domain/exceptions/value-object.exceptions';
 import { UnitPrice } from './unit-price.object-value';
 
 describe('UnitPrice', () => {
@@ -23,7 +23,7 @@ describe('UnitPrice', () => {
     ['12.5', 'not an integer'],
     ['1000000000000000', 'too large'],
   ])('rejects %s', (raw, message) => {
-    expect(() => UnitPrice.create(raw)).toThrow(UnprocessableEntityException);
+    expect(() => UnitPrice.create(raw)).toThrow(InvalidAmountException);
     expect(() => UnitPrice.create(raw)).toThrow(message);
   });
 });

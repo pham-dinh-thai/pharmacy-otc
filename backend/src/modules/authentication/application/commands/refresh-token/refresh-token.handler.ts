@@ -1,6 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RefreshTokenCommand } from './refresh-token.command';
-import { Inject, UnauthorizedException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import {
+  AuthAccountNotFoundException,
+  AuthEmployeeResignedException,
+  AuthUserNotFoundException,
+  InvalidRefreshTokenException,
+} from '../../../domain/exceptions/authentication.exceptions';
 import {
   type IRefreshTokenVerifyPort,
   REFRESH_TOKEN_VERIFY_PORT,
@@ -65,24 +71,24 @@ export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand>
       command.refreshToken,
     );
     if (!isMatches) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new InvalidRefreshTokenException();
     }
 
     await this.refreshTokenStorePort.revoke(sub, jti);
 
     const user = await this.getUserByIdPort.execute(sub);
     if (!user) {
-      throw new UnauthorizedException('User Not Found');
+      throw new AuthUserNotFoundException();
     }
 
     const account = await this.accountsRepository.findByUserId(sub);
     if (!account) {
-      throw new UnauthorizedException('Account Not Found');
+      throw new AuthAccountNotFoundException();
     }
 
     const status = await this.getEmploymentStatusPort.execute(sub);
     if (status === EmployeeStatus.RESIGNED) {
-      throw new UnauthorizedException('Employee resigned');
+      throw new AuthEmployeeResignedException();
     }
 
     const mustChangePassword = account.getMustChangePassword();

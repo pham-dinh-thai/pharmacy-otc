@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { NotFoundException } from '@nestjs/common';
+import { EmployeeNotFoundException } from '../../../domain/exceptions/employee.exceptions';
 import { Test } from '@nestjs/testing';
 import { UpdateEmployeeStatusHandler } from './update-employee-status.handler';
 import { UpdateEmployeeStatusCommand } from './update-employee-status.command';
@@ -91,7 +91,7 @@ describe('UpdateEmployeeStatusHandler', () => {
           headers,
         ),
       ),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(EmployeeNotFoundException);
 
     expect(employeesRepository.update).not.toHaveBeenCalled();
     expect(outboxRepository.create).not.toHaveBeenCalled();

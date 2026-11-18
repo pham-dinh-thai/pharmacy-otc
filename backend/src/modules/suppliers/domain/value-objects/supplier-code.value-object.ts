@@ -1,4 +1,4 @@
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidSupplierCodeException } from '../exceptions/supplier.exceptions';
 
 export class SupplierCode {
   private static readonly PREFIX = 'SUP';
@@ -10,7 +10,7 @@ export class SupplierCode {
   // Generate code from sequence (sequence = 12 -> SUP-0012)
   public static fromNumber(sequence: number): SupplierCode {
     if (!Number.isInteger(sequence) || sequence <= 0) {
-      throw new UnprocessableEntityException('Invalid supplier code sequence');
+      throw new InvalidSupplierCodeException('Invalid supplier code sequence');
     }
 
     const digits = String(sequence).padStart(SupplierCode.MIN_DIGITS, '0');
@@ -21,7 +21,7 @@ export class SupplierCode {
   // Create from DB
   public static create(raw: unknown): SupplierCode {
     if (typeof raw !== 'string' || !SupplierCode.PATTERN.test(raw.trim())) {
-      throw new UnprocessableEntityException('Invalid supplier code format');
+      throw new InvalidSupplierCodeException('Invalid supplier code format');
     }
 
     return new SupplierCode(raw.trim());

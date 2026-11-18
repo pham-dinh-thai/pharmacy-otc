@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { BadRequestException } from '@nestjs/common';
+import { InvalidAuditLogDateRangeException } from '../../../domain/exceptions/audit-log.exceptions';
 import {
   AuditLogPage,
   FindAuditLogsOptions,
@@ -74,7 +74,7 @@ describe('ListAuditLogsHandler', () => {
           to: new Date('2026-01-01T00:00:00.000Z'),
         }),
       ),
-    ).rejects.toThrow(BadRequestException);
+    ).rejects.toThrow(InvalidAuditLogDateRangeException);
 
     expect(findPage).not.toHaveBeenCalled();
   });

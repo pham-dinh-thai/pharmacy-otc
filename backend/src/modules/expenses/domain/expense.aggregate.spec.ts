@@ -1,4 +1,4 @@
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidAmountException } from '../../../shared/domain/exceptions/value-object.exceptions';
 import { Expense } from './expense.aggregate';
 import { ExpenseCategory } from './enums/expense-category.enum';
 import { ExpenseStatus } from './enums/expense-status.enum';
@@ -55,7 +55,7 @@ describe('Expense', () => {
 
     it('rejects a negative amount', () => {
       expect(() => createExpense({ amount: '-1' })).toThrow(
-        UnprocessableEntityException,
+        InvalidAmountException,
       );
     });
   });

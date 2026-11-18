@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidLotNumberException } from '../../../../../shared/domain/exceptions/value-object.exceptions';
 import { Batch } from '../../../domain/batch/batch.entity';
 import { BatchStatus } from '../../../domain/batch/batch-status.enum';
 import {
@@ -119,7 +119,7 @@ describe('ReceiveStockHandler', () => {
     const { handler, save } = setup(null);
 
     await expect(handler.execute(createCommand('   '))).rejects.toThrow(
-      UnprocessableEntityException,
+      InvalidLotNumberException,
     );
 
     expect(save).not.toHaveBeenCalled();

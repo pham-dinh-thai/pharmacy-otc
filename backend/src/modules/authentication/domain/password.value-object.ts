@@ -1,5 +1,5 @@
-import { BadRequestException } from '@nestjs/common';
 import * as argon2 from 'argon2';
+import { InvalidPasswordException } from './exceptions/authentication.exceptions';
 
 export class Password {
   private static readonly MIN_LENGTH = 8;
@@ -45,25 +45,27 @@ export class Password {
 
   private static validate(plain: string): void {
     if (plain.length < Password.MIN_LENGTH) {
-      throw new BadRequestException(
+      throw new InvalidPasswordException(
         `Password must be at least ${Password.MIN_LENGTH} characters`,
       );
     }
 
     if (plain.length > Password.MAX_LENGTH) {
-      throw new BadRequestException(
+      throw new InvalidPasswordException(
         `Password must not exceed ${Password.MAX_LENGTH} characters`,
       );
     }
 
     if (!/[A-Za-z]/.test(plain)) {
-      throw new BadRequestException(
+      throw new InvalidPasswordException(
         'Password must contain at least one letter',
       );
     }
 
     if (!/\d/.test(plain)) {
-      throw new BadRequestException('Password must contain at least one digit');
+      throw new InvalidPasswordException(
+        'Password must contain at least one digit',
+      );
     }
   }
 }

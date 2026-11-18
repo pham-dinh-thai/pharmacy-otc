@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { SupplierPhoneRequiredException } from '../exceptions/supplier.exceptions';
 import { SupplierPhone } from './supplier-phone.value-object';
 
 describe('SupplierPhone', () => {
@@ -59,7 +59,7 @@ describe('SupplierPhone', () => {
     'rejects missing value %p',
     (value) => {
       expect(() => SupplierPhone.create(value)).toThrow(
-        UnprocessableEntityException,
+        SupplierPhoneRequiredException,
       );
     },
   );

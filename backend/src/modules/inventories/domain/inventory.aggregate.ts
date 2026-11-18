@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BatchNotFoundException } from './exceptions/inventory.exceptions';
 import { BatchStatus } from './batch/batch-status.enum';
 import { Batch } from './batch/batch.entity';
 
@@ -88,7 +88,7 @@ export class Inventory {
     const batch = this.batches.find((b) => b.getId() === batchId);
 
     if (!batch) {
-      throw new NotFoundException(`Batch id ${batchId} not found`);
+      throw new BatchNotFoundException(batchId);
     }
 
     return batch;

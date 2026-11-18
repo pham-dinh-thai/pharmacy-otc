@@ -1,8 +1,9 @@
 import {
-  ConflictException,
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+  GoodsReceiptLineNotFoundException,
+  GoodsReceiptNotPendingException,
+  GoodsReceiptHasNoLinesException,
+  DuplicateGoodsReceiptLineException,
+} from './exceptions/goods-receipt.exceptions';
 import { Id } from '../../../shared/value-objects/id.value-object';
 import { GoodsReceiptStatus } from './goods-receipt-status.enum';
 import { GoodsReceiptLine } from './goods-receipt-line.entity';
@@ -93,7 +94,7 @@ export class GoodsReceipt {
     );
 
     if (!line) {
-      throw new NotFoundException(`Goods receipt line ${lineId} not found`);
+      throw new GoodsReceiptLineNotFoundException(lineId);
     }
 
     line.attachBatch(batchId);
@@ -102,9 +103,7 @@ export class GoodsReceipt {
 
   public confirm(by: string): void {
     if (this.status !== GoodsReceiptStatus.PENDING) {
-      throw new ConflictException(
-        'Only pending goods receipts can be confirmed',
-      );
+      throw new GoodsReceiptNotPendingException('confirmed');
     }
 
     const now = new Date();
@@ -117,9 +116,7 @@ export class GoodsReceipt {
 
   public cancel(by: string): void {
     if (this.status !== GoodsReceiptStatus.PENDING) {
-      throw new ConflictException(
-        'Only pending goods receipts can be cancelled',
-      );
+      throw new GoodsReceiptNotPendingException('cancelled');
     }
 
     const now = new Date();
@@ -180,9 +177,7 @@ export class GoodsReceipt {
 
   private static assertHasLines(lines: GoodsReceiptLine[]): void {
     if (lines.length === 0) {
-      throw new UnprocessableEntityException(
-        'Goods receipt must have at least one line',
-      );
+      throw new GoodsReceiptHasNoLinesException();
     }
   }
 
@@ -193,8 +188,9 @@ export class GoodsReceipt {
       const key = `${line.getProductId()}::${line.getLotNumber()}`;
 
       if (keys.has(key)) {
-        throw new UnprocessableEntityException(
-          `Duplicate line for product ${line.getProductId()} and lot "${line.getLotNumber()}"`,
+        throw new DuplicateGoodsReceiptLineException(
+          line.getProductId(),
+          line.getLotNumber(),
         );
       }
 

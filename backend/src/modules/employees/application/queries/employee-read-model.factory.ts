@@ -1,4 +1,7 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { AccountNotFoundException } from '../../../authentication/domain/exceptions/authentication.exceptions';
+import { DepartmentNotFoundException } from '../../../departments/domain/exceptions/department.exceptions';
+import { UserByIdNotFoundException } from '../../../users/domain/exceptions/user.exceptions';
 import { Employee } from '../../domain/employee.aggregate';
 import { EmployeeReadModel } from './employee.read-model';
 import {
@@ -35,21 +38,21 @@ export class EmployeeReadModelFactory {
     ]);
 
     if (!user) {
-      throw new NotFoundException(
+      throw new UserByIdNotFoundException(
+        employee.getUserId(),
         `User id ${employee.getUserId()} for employee ${employee.getId()} not found`,
       );
     }
 
     if (!department) {
-      throw new NotFoundException(
+      throw new DepartmentNotFoundException(
+        employee.getDepartmentId(),
         `Department id ${employee.getDepartmentId()} for employee ${employee.getId()} not found`,
       );
     }
 
     if (!account) {
-      throw new NotFoundException(
-        `Account for user id ${employee.getUserId()} not found`,
-      );
+      throw new AccountNotFoundException(employee.getUserId());
     }
 
     return new EmployeeReadModel(

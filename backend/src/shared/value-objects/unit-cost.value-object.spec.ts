@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidAmountException } from '../domain/exceptions/value-object.exceptions';
 import { UnitCost } from './unit-cost.value-object';
 
 describe('UnitCost', () => {
@@ -17,9 +17,7 @@ describe('UnitCost', () => {
       'NaN',
       'not-a-number',
     ])('rejects %s', (value) => {
-      expect(() => UnitCost.create(value)).toThrow(
-        UnprocessableEntityException,
-      );
+      expect(() => UnitCost.create(value)).toThrow(InvalidAmountException);
     });
 
     it('rejects value greater than or equal to 10^15', () => {

@@ -1,6 +1,11 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { LoginCommand } from './login.command';
-import { BadRequestException, ConflictException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import {
+  AccountDeactivatedException,
+  EmployeeResignedException,
+  InvalidCredentialsException,
+} from '../../../domain/exceptions/authentication.exceptions';
 import {
   GET_USER_BY_EMAIL_PORT,
   type IGetUserByEmailPort,
@@ -79,22 +84,22 @@ export class LoginHandler implements ICommandHandler<LoginCommand> {
       // Doesn't matter if it's true or false; its main purpose is to prevent timing attack / user enumeration
       await Password.verifyDummy(command.password);
 
-      throw new BadRequestException('Email or password invalid');
+      throw new InvalidCredentialsException();
     }
 
     if (!account.getIsActive()) {
-      throw new ConflictException('Account deactivated');
+      throw new AccountDeactivatedException();
     }
 
     if (!(await account.verify(command.password))) {
-      throw new BadRequestException('Email or password invalid');
+      throw new InvalidCredentialsException();
     }
 
     const sub = account.getUserId();
 
     const status = await this.getEmploymentStatusPort.execute(sub);
     if (status === EmployeeStatus.RESIGNED) {
-      throw new ConflictException('Employee resigned');
+      throw new EmployeeResignedException();
     }
 
     const jti = randomUUID();

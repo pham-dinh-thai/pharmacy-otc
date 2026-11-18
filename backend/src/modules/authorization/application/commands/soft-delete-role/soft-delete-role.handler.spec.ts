@@ -6,7 +6,10 @@ import {
   it,
   jest,
 } from '@jest/globals';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  RoleNotFoundException,
+  SuperAdminRoleCannotBeDisabledException,
+} from '../../../domain/exceptions/role.exceptions';
 import { Test } from '@nestjs/testing';
 import { SoftDeleteRoleHandler } from './soft-delete-role.handler';
 import { SoftDeleteRoleCommand } from './soft-delete-role.command';
@@ -95,7 +98,7 @@ describe('SoftDeleteRoleHandler', () => {
 
     await expect(
       handler.execute(new SoftDeleteRoleCommand(id, headers)),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(RoleNotFoundException);
 
     expect(rolesRepository.update).not.toHaveBeenCalled();
     expect(outboxRepository.create).not.toHaveBeenCalled();
@@ -108,7 +111,7 @@ describe('SoftDeleteRoleHandler', () => {
 
     await expect(
       handler.execute(new SoftDeleteRoleCommand(id, headers)),
-    ).rejects.toThrow(ConflictException);
+    ).rejects.toThrow(SuperAdminRoleCannotBeDisabledException);
 
     expect(role.isDeleted()).toBe(false);
     expect(rolesRepository.update).not.toHaveBeenCalled();

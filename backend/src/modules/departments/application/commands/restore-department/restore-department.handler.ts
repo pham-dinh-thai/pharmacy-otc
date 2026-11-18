@@ -1,5 +1,6 @@
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { DepartmentNotFoundException } from '../../../domain/exceptions/department.exceptions';
 import {
   DEPARTMENTS_REPOSITORY,
   type IDepartmentsRepository,
@@ -35,7 +36,7 @@ export class RestoreDepartmentHandler implements ICommandHandler<RestoreDepartme
       const department = await this.departmentsRepository.findById(command.id);
 
       if (!department) {
-        throw new NotFoundException(`Department id ${command.id} not found`);
+        throw new DepartmentNotFoundException(command.id);
       }
 
       const previousName = department.getName();

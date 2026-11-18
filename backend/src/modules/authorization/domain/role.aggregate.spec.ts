@@ -1,8 +1,16 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import {
-  ConflictException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+  DuplicatePermissionsException,
+  InvalidPermissionException,
+  RoleAlreadyDisabledException,
+  RoleAlreadyHasPermissionException,
+  RoleDisabledException,
+  RoleMissingPermissionException,
+  RoleNameRequiredException,
+  RoleNameTooLongException,
+  RoleNotDisabledException,
+  SuperAdminRoleCannotBeDisabledException,
+} from './exceptions/role.exceptions';
 import { PermissionKey } from './permission/permission-catalog';
 import { Role } from './role.aggregate';
 
@@ -32,10 +40,10 @@ describe('Role', () => {
     expect(Role.create({ name: '  manager  ' }).getName()).toBe('manager');
 
     expect(() => Role.create({ name: '   ' })).toThrow(
-      UnprocessableEntityException,
+      RoleNameRequiredException,
     );
     expect(() => Role.create({ name: 'a'.repeat(51) })).toThrow(
-      UnprocessableEntityException,
+      RoleNameTooLongException,
     );
   });
 
@@ -54,17 +62,19 @@ describe('Role', () => {
 
     role.grant('orders:process');
 
-    expect(() => role.grant('orders:process')).toThrow(ConflictException);
+    expect(() => role.grant('orders:process')).toThrow(
+      RoleAlreadyHasPermissionException,
+    );
   });
 
   it('rejects invalid permission keys', () => {
     const role = createRole();
     const invalid = 'orders:approve' as unknown as PermissionKey;
 
-    expect(() => role.grant(invalid)).toThrow(UnprocessableEntityException);
+    expect(() => role.grant(invalid)).toThrow(InvalidPermissionException);
     expect(() =>
       Role.create({ name: 'manager', permissions: [invalid] }),
-    ).toThrow(UnprocessableEntityException);
+    ).toThrow(InvalidPermissionException);
   });
 
   it('rejects duplicate permissions on creation', () => {
@@ -73,7 +83,7 @@ describe('Role', () => {
         name: 'manager',
         permissions: ['orders:read', 'orders:read'],
       }),
-    ).toThrow(UnprocessableEntityException);
+    ).toThrow(DuplicatePermissionsException);
   });
 
   it('lets a manage permission cover every action on its resource', () => {
@@ -102,7 +112,9 @@ describe('Role', () => {
 
     expect(role.hasPermission('orders', 'read')).toBe(false);
     expect(role.getPermissions()).toEqual([]);
-    expect(() => role.revoke('orders:read')).toThrow(ConflictException);
+    expect(() => role.revoke('orders:read')).toThrow(
+      RoleMissingPermissionException,
+    );
   });
 
   it('updates name and updatedAt on rename', () => {
@@ -157,11 +169,11 @@ describe('Role', () => {
   it('rejects disabling an already disabled role and restoring an active role', () => {
     const role = createRole();
 
-    expect(() => role.restore()).toThrow(ConflictException);
+    expect(() => role.restore()).toThrow(RoleNotDisabledException);
 
     role.softDelete();
 
-    expect(() => role.softDelete()).toThrow(ConflictException);
+    expect(() => role.softDelete()).toThrow(RoleAlreadyDisabledException);
   });
 
   it('rejects every mutation while the role is disabled', () => {
@@ -172,17 +184,19 @@ describe('Role', () => {
 
     role.softDelete();
 
-    expect(() => role.rename('admin')).toThrow(ConflictException);
-    expect(() => role.grant('orders:process')).toThrow(ConflictException);
-    expect(() => role.revoke('orders:read')).toThrow(ConflictException);
-    expect(() => role.promoteToSuperAdmin()).toThrow(ConflictException);
-    expect(() => role.demoteFromSuperAdmin()).toThrow(ConflictException);
+    expect(() => role.rename('admin')).toThrow(RoleDisabledException);
+    expect(() => role.grant('orders:process')).toThrow(RoleDisabledException);
+    expect(() => role.revoke('orders:read')).toThrow(RoleDisabledException);
+    expect(() => role.promoteToSuperAdmin()).toThrow(RoleDisabledException);
+    expect(() => role.demoteFromSuperAdmin()).toThrow(RoleDisabledException);
   });
 
   it('refuses to disable a Super Admin role', () => {
     const role = Role.create({ name: 'admin', isSuperAdmin: true });
 
-    expect(() => role.softDelete()).toThrow(ConflictException);
+    expect(() => role.softDelete()).toThrow(
+      SuperAdminRoleCannotBeDisabledException,
+    );
     expect(role.isDeleted()).toBe(false);
   });
 

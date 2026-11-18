@@ -14,7 +14,7 @@ import {
 import { DeactivateSupplierHandler } from './deactivate-supplier.handler';
 import { jest } from '@jest/globals';
 import { DeactivateSupplierCommand } from './deactivate-supplier.command';
-import { NotFoundException } from '@nestjs/common';
+import { SupplierNotFoundException } from '../../../domain/exceptions/supplier.exceptions';
 import { Supplier } from '../../../domain/supplier.aggregate';
 import { SupplierStatus } from '../../../domain/enums/supplier-status.enum';
 import { SUPPLIER_DEACTIVATED_EVENT } from '../../../domain/events/supplier-deactivated.event';
@@ -86,7 +86,7 @@ describe('DeactivateSupplierHandler', () => {
         deactivateSupplierHandler.execute(
           new DeactivateSupplierCommand(SUPPLIER_ID, headers),
         ),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(SupplierNotFoundException);
 
       expect(suppliersRepository.update).toHaveBeenCalledTimes(0);
       expect(outboxRepository.create).not.toHaveBeenCalled();

@@ -1,7 +1,9 @@
 import {
-  ConflictException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+  DepartmentAlreadyDisabledException,
+  DepartmentDisabledException,
+  DepartmentNameRequiredException,
+  DepartmentNotDisabledException,
+} from './exceptions/department.exceptions';
 import { Department } from './department.aggregate';
 
 describe('Department', () => {
@@ -15,7 +17,7 @@ describe('Department', () => {
 
   it('rejects a blank name', () => {
     expect(() => Department.create({ name: '   ' })).toThrow(
-      UnprocessableEntityException,
+      DepartmentNameRequiredException,
     );
   });
 
@@ -35,7 +37,7 @@ describe('Department', () => {
     const department = Department.create({ name: 'Old' });
     department.softDelete();
 
-    expect(() => department.rename('New')).toThrow(ConflictException);
+    expect(() => department.rename('New')).toThrow(DepartmentDisabledException);
     expect(department.getName()).toBe('Old');
   });
 
@@ -57,9 +59,11 @@ describe('Department', () => {
     const department = Department.create({ name: 'Pharmacy' });
 
     department.softDelete();
-    expect(() => department.softDelete()).toThrow(ConflictException);
+    expect(() => department.softDelete()).toThrow(
+      DepartmentAlreadyDisabledException,
+    );
 
     department.restore();
-    expect(() => department.restore()).toThrow(ConflictException);
+    expect(() => department.restore()).toThrow(DepartmentNotDisabledException);
   });
 });

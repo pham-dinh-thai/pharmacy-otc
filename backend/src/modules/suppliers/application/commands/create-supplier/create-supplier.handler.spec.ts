@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidSupplierPhoneException } from '../../../domain/exceptions/supplier.exceptions';
 import { ISuppliersRepository } from '../../../domain/suppliers.repository';
 import { Supplier } from '../../../domain/supplier.aggregate';
 import { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
@@ -121,7 +121,7 @@ describe('CreateSupplierHandler', () => {
     const { handler, create, outboxCreate } = setup();
 
     await expect(handler.execute(createCommand('0123456789'))).rejects.toThrow(
-      UnprocessableEntityException,
+      InvalidSupplierPhoneException,
     );
 
     expect(create).not.toHaveBeenCalled();

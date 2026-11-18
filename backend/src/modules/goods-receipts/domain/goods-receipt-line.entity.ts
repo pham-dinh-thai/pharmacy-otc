@@ -1,7 +1,12 @@
 import {
-  ConflictException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+  GoodsReceiptLineAlreadyAttachedException,
+  InvalidGoodsReceiptLineQuantityException,
+  InvalidExpiresAtException,
+} from './exceptions/goods-receipt.exceptions';
+import {
+  InvalidLotNumberException,
+  ProductIdRequiredException,
+} from '../../../shared/domain/exceptions/value-object.exceptions';
 import { Id } from '../../../shared/value-objects/id.value-object';
 import { Quantity } from '../../../shared/value-objects/quantity.value-object';
 import { UnitCost } from '../../../shared/value-objects/unit-cost.value-object';
@@ -75,8 +80,9 @@ export class GoodsReceiptLine {
 
   public attachBatch(batchId: string): void {
     if (this.batchId) {
-      throw new ConflictException(
-        `Line ${this.getId()} is already attached to batch ${this.batchId}`,
+      throw new GoodsReceiptLineAlreadyAttachedException(
+        this.getId(),
+        this.batchId,
       );
     }
 
@@ -128,11 +134,11 @@ export class GoodsReceiptLine {
     const lotNumber = raw?.trim();
 
     if (!lotNumber) {
-      throw new UnprocessableEntityException('Lot number is required');
+      throw new InvalidLotNumberException('Lot number is required');
     }
 
     if (lotNumber.length > MAX_LOT_NUMBER_LENGTH) {
-      throw new UnprocessableEntityException(
+      throw new InvalidLotNumberException(
         `Lot number must have at most ${MAX_LOT_NUMBER_LENGTH} characters`,
       );
     }
@@ -144,7 +150,7 @@ export class GoodsReceiptLine {
     const productId = raw?.trim();
 
     if (!productId) {
-      throw new UnprocessableEntityException('Product id is required');
+      throw new ProductIdRequiredException();
     }
 
     return productId;
@@ -154,9 +160,7 @@ export class GoodsReceiptLine {
     const quantity = Quantity.create(value);
 
     if (quantity.isZero()) {
-      throw new UnprocessableEntityException(
-        'Goods receipt line quantity must be greater than 0',
-      );
+      throw new InvalidGoodsReceiptLineQuantityException();
     }
 
     return quantity;
@@ -164,7 +168,7 @@ export class GoodsReceiptLine {
 
   private static normalizeExpiresAt(value: Date): Date {
     if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
-      throw new UnprocessableEntityException('Expires at must be a valid date');
+      throw new InvalidExpiresAtException();
     }
 
     return value;

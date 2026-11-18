@@ -1,7 +1,8 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ChangeUserEmailCommand } from './change-user-email.command';
 import { ChangeUserEmailReadModel } from './change-user-email.read-model';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
 import {
   type IUsersRepository,
   USERS_REPOSITORY,
@@ -38,7 +39,7 @@ export class ChangeUserEmailHandler implements ICommandHandler<ChangeUserEmailCo
       const user = await this.usersRepository.findById(command.id);
 
       if (!user) {
-        throw new NotFoundException(`User with id ${command.id} not found`);
+        throw new UserNotFoundException(command.id);
       }
 
       const previousEmail = user.getEmail();

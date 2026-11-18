@@ -1,5 +1,8 @@
-import { UnprocessableEntityException } from '@nestjs/common';
 import { Id } from '../../../../shared/value-objects/id.value-object';
+import {
+  InvalidPermissionActionException,
+  UnknownPermissionResourceException,
+} from '../exceptions/role.exceptions';
 import {
   ActionOf,
   isActionAllowed,
@@ -80,7 +83,7 @@ export class Permission {
 
   private static normalizeResource(raw: string): Resource {
     if (!isResource(raw)) {
-      throw new UnprocessableEntityException(`Unknown resource "${raw}"`);
+      throw new UnknownPermissionResourceException(raw);
     }
 
     return raw;
@@ -94,9 +97,7 @@ export class Permission {
     }
 
     if (!action || !isActionAllowed(resource, action)) {
-      throw new UnprocessableEntityException(
-        `Invalid action "${raw}" for resource "${resource}"`,
-      );
+      throw new InvalidPermissionActionException(raw, resource);
     }
 
     return action;

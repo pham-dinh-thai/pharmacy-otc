@@ -1,4 +1,9 @@
-import { UnprocessableEntityException } from '@nestjs/common';
+import {
+  ExpenseAlreadyCancelledException,
+  ExpenseInvalidStatusException,
+  ExpenseNameRequiredException,
+  InvalidExpenseDateException,
+} from './exceptions/expense.exceptions';
 import { Id } from '../../../shared/value-objects/id.value-object';
 import { Money } from '../../../shared/value-objects/money.value-object';
 import { ExpenseCategory } from './enums/expense-category.enum';
@@ -87,7 +92,7 @@ export class Expense {
 
   public update(props: UpdateExpenseProps): void {
     if (this.status !== ExpenseStatus.PENDING) {
-      throw new UnprocessableEntityException(
+      throw new ExpenseInvalidStatusException(
         'Only pending expenses can be updated',
       );
     }
@@ -104,7 +109,7 @@ export class Expense {
 
   public approve(): void {
     if (this.status !== ExpenseStatus.PENDING) {
-      throw new UnprocessableEntityException(
+      throw new ExpenseInvalidStatusException(
         'Only pending expenses can be approved',
       );
     }
@@ -115,7 +120,7 @@ export class Expense {
 
   public pay(): void {
     if (this.status !== ExpenseStatus.APPROVED) {
-      throw new UnprocessableEntityException(
+      throw new ExpenseInvalidStatusException(
         'Only approved expenses can be paid',
       );
     }
@@ -126,13 +131,13 @@ export class Expense {
 
   public cancel(): void {
     if (this.status === ExpenseStatus.PAID) {
-      throw new UnprocessableEntityException(
+      throw new ExpenseInvalidStatusException(
         'Paid expenses can not be cancelled',
       );
     }
 
     if (this.status === ExpenseStatus.CANCELLED) {
-      throw new UnprocessableEntityException('Expense is already cancelled');
+      throw new ExpenseAlreadyCancelledException();
     }
 
     this.status = ExpenseStatus.CANCELLED;
@@ -191,7 +196,7 @@ export class Expense {
     const name = raw.trim();
 
     if (!name) {
-      throw new UnprocessableEntityException('Expense name is required');
+      throw new ExpenseNameRequiredException();
     }
 
     return name;
@@ -201,7 +206,7 @@ export class Expense {
     const date = new Date(raw);
 
     if (Number.isNaN(date.getTime())) {
-      throw new UnprocessableEntityException('Invalid expense date');
+      throw new InvalidExpenseDateException();
     }
 
     return date;

@@ -1,5 +1,5 @@
 import { afterEach, jest } from '@jest/globals';
-import { NotFoundException } from '@nestjs/common';
+import { RoleNotFoundException } from '../../../domain/exceptions/role.exceptions';
 import { Test } from '@nestjs/testing';
 import { RestoreRoleHandler } from './restore-role.handler';
 import { RestoreRoleCommand } from './restore-role.command';
@@ -88,7 +88,7 @@ describe('RestoreRoleHandler', () => {
 
     await expect(
       handler.execute(new RestoreRoleCommand(id, headers)),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(RoleNotFoundException);
 
     expect(rolesRepository.update).not.toHaveBeenCalled();
     expect(outboxRepository.create).not.toHaveBeenCalled();

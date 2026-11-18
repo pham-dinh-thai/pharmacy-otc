@@ -1,4 +1,4 @@
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidAmountException } from '../domain/exceptions/value-object.exceptions';
 import { Money } from './money.value-object';
 
 describe('Money', () => {
@@ -17,7 +17,7 @@ describe('Money', () => {
     it.each(['-1', '-0.01', '12.5', '1.234', 'Infinity', 'NaN', '', 'abc'])(
       'rejects %s',
       (value) => {
-        expect(() => Money.create(value)).toThrow(UnprocessableEntityException);
+        expect(() => Money.create(value)).toThrow(InvalidAmountException);
       },
     );
 

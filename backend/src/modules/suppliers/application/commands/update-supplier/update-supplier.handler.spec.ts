@@ -1,8 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import {
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+  InvalidSupplierPhoneException,
+  SupplierNotFoundException,
+} from '../../../domain/exceptions/supplier.exceptions';
 import { ISuppliersRepository } from '../../../domain/suppliers.repository';
 import { Supplier } from '../../../domain/supplier.aggregate';
 import { SupplierStatus } from '../../../domain/enums/supplier-status.enum';
@@ -153,7 +153,7 @@ describe('UpdateSupplierHandler', () => {
     const { handler, update, outboxCreate } = setup(null);
 
     await expect(handler.execute(createCommand())).rejects.toThrow(
-      NotFoundException,
+      SupplierNotFoundException,
     );
 
     expect(update).not.toHaveBeenCalled();
@@ -164,7 +164,7 @@ describe('UpdateSupplierHandler', () => {
     const { handler, update, outboxCreate } = setup();
 
     await expect(handler.execute(createCommand('0123456789'))).rejects.toThrow(
-      UnprocessableEntityException,
+      InvalidSupplierPhoneException,
     );
 
     expect(update).not.toHaveBeenCalled();

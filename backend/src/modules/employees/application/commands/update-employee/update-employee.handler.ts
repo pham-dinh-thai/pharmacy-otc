@@ -1,5 +1,6 @@
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { EmployeeNotFoundException } from '../../../domain/exceptions/employee.exceptions';
 import { UpdateEmployeeCommand } from './update-employee.command';
 import { UpdateEmployeeResponse } from './update-employee.response';
 import {
@@ -45,9 +46,7 @@ export class UpdateEmployeeHandler implements ICommandHandler<UpdateEmployeeComm
       );
 
       if (!employee) {
-        throw new NotFoundException(
-          `Employee id ${command.employeeId} not found`,
-        );
+        throw new EmployeeNotFoundException(command.employeeId);
       }
 
       await this.departmentValidator.validate(command.departmentId);

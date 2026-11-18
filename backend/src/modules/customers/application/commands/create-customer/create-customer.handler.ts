@@ -1,6 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateCustomerCommand } from './create-customer.command';
-import { ConflictException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { CustomerAlreadyExistsException } from '../../../domain/exceptions/customer.exceptions';
 import {
   type IUnitOfWork,
   UNIT_OF_WORK,
@@ -33,7 +34,7 @@ export class CreateCustomerHandler implements ICommandHandler<CreateCustomerComm
           customer.getUserId(),
         )
       ) {
-        throw new ConflictException(`Customer already exists`);
+        throw new CustomerAlreadyExistsException();
       }
 
       this.customersRepository.create(customer);

@@ -1,4 +1,4 @@
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidLotNumberException } from '../../../../../shared/domain/exceptions/value-object.exceptions';
 
 export class LotNumber {
   private static readonly MAX_LENGTH = 50;
@@ -9,11 +9,11 @@ export class LotNumber {
     const trimmed = raw?.trim();
 
     if (!trimmed) {
-      throw new UnprocessableEntityException('Lot number is required');
+      throw new InvalidLotNumberException('Lot number is required');
     }
 
     if (trimmed.length > LotNumber.MAX_LENGTH) {
-      throw new UnprocessableEntityException('Lot number is too long');
+      throw new InvalidLotNumberException('Lot number is too long');
     }
 
     return new LotNumber(trimmed);

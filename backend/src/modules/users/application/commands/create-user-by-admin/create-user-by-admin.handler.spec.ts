@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { ConflictException } from '@nestjs/common';
+import { UserEmailAlreadyExistsException } from '../../../domain/exceptions/user.exceptions';
 import { Test } from '@nestjs/testing';
 import { CreateUserByAdminHandler } from './create-user-by-admin.handler';
 import { CreateUserByAdminCommand } from './create-user-by-admin.command';
@@ -93,7 +93,7 @@ describe('CreateUserByAdminHandler', () => {
 
   it('does not append an event when creation is rejected', async () => {
     createUserService.create.mockRejectedValue(
-      new ConflictException('User email jane@example.com already exists'),
+      new UserEmailAlreadyExistsException('jane@example.com'),
     );
 
     await expect(
@@ -105,7 +105,7 @@ describe('CreateUserByAdminHandler', () => {
           headers,
         ),
       ),
-    ).rejects.toThrow(ConflictException);
+    ).rejects.toThrow(UserEmailAlreadyExistsException);
 
     expect(outboxRepository.create).not.toHaveBeenCalled();
   });

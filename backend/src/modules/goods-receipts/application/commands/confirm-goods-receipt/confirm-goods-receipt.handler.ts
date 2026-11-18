@@ -1,9 +1,10 @@
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
   type IGoodsReceiptsRepository,
   GOODS_RECEIPTS_REPOSITORY,
 } from '../../../domain/goods-receipts.repository';
+import { GoodsReceiptNotFoundException } from '../../../domain/exceptions/goods-receipt.exceptions';
 import { goodsReceiptSnapshot } from '../../../domain/goods-receipt.snapshot';
 import { type GoodsReceipt } from '../../../domain/goods-receipt.aggregate';
 import {
@@ -45,7 +46,7 @@ export class ConfirmGoodsReceiptHandler implements ICommandHandler<ConfirmGoodsR
       );
 
       if (!goodsReceipt) {
-        throw new NotFoundException(`Goods receipt id ${command.id} not found`);
+        throw new GoodsReceiptNotFoundException(command.id);
       }
 
       const previousStatus = goodsReceipt.getStatus();

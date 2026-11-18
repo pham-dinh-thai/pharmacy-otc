@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidEmployeePositionException } from './exceptions/employee.exceptions';
 import { Employee } from './employee.aggregate';
 import { EmployeePosition } from './enums/employee-position.enum';
 
@@ -30,7 +30,7 @@ describe('Employee position', () => {
         ...baseProps,
         position: 'Nhân viên nhân viên' as EmployeePosition,
       }),
-    ).toThrow(UnprocessableEntityException);
+    ).toThrow(InvalidEmployeePositionException);
   });
 
   it('rejects a position that differs only by casing', () => {
@@ -39,6 +39,6 @@ describe('Employee position', () => {
         ...baseProps,
         position: 'nhân viên' as EmployeePosition,
       }),
-    ).toThrow(UnprocessableEntityException);
+    ).toThrow(InvalidEmployeePositionException);
   });
 });

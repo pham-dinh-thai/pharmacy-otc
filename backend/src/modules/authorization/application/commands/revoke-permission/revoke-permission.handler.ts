@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { RoleNotFoundException } from '../../../domain/exceptions/role.exceptions';
 import {
   type IRolesRepository,
   ROLES_REPOSITORY,
@@ -37,7 +38,7 @@ export class RevokePermissionHandler implements ICommandHandler<RevokePermission
       const role = await this.rolesRepository.findById(command.id);
 
       if (!role) {
-        throw new NotFoundException(`Role id ${command.id} not found`);
+        throw new RoleNotFoundException(command.id);
       }
 
       const previousPermissions = role.getPermissions();

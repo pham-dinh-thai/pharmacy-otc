@@ -1,5 +1,6 @@
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { DepartmentNotFoundException } from '../../../domain/exceptions/department.exceptions';
 import {
   DEPARTMENTS_REPOSITORY,
   type IDepartmentsRepository,
@@ -23,7 +24,7 @@ export class GetDepartmentHandler implements IQueryHandler<
     const department = await this.departmentsRepository.findById(query.id);
 
     if (!department) {
-      throw new NotFoundException(`Department id ${query.id} not found`);
+      throw new DepartmentNotFoundException(query.id);
     }
 
     return new DepartmentListItemReadModel(

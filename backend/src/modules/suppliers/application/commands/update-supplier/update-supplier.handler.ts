@@ -4,7 +4,8 @@ import {
   type ISuppliersRepository,
   SUPPLIERS_REPOSITORY,
 } from '../../../domain/suppliers.repository';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { SupplierNotFoundException } from '../../../domain/exceptions/supplier.exceptions';
 import { UpdateSupplierResponse } from './update-supplier.response';
 import {
   type IUnitOfWork,
@@ -38,7 +39,7 @@ export class UpdateSupplierHandler implements ICommandHandler<UpdateSupplierComm
       const supplier = await this.suppliersRepository.findById(command.id);
 
       if (!supplier) {
-        throw new NotFoundException(`Supplier id ${command.id} not found`);
+        throw new SupplierNotFoundException(command.id);
       }
 
       const before = {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidGoodsReceiptCodeException } from '../exceptions/goods-receipt.exceptions';
 import { GoodsReceiptCode } from './goods-receipt-code.value-object';
 
 describe('GoodsReceiptCode', () => {
@@ -17,7 +17,7 @@ describe('GoodsReceiptCode', () => {
       'rejects invalid sequence %s',
       (sequence) => {
         expect(() => GoodsReceiptCode.fromNumber(sequence)).toThrow(
-          UnprocessableEntityException,
+          InvalidGoodsReceiptCodeException,
         );
       },
     );
@@ -32,7 +32,7 @@ describe('GoodsReceiptCode', () => {
       'rejects invalid code %p',
       (code) => {
         expect(() => GoodsReceiptCode.create(code)).toThrow(
-          UnprocessableEntityException,
+          InvalidGoodsReceiptCodeException,
         );
       },
     );
