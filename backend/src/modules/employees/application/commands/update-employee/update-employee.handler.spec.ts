@@ -67,7 +67,7 @@ describe('UpdateEmployeeHandler', () => {
         {
           provide: EMPLOYEES_REPOSITORY,
           useValue: {
-            findAll: jest.fn(),
+            findPage: jest.fn(),
             findById,
             findStatusByUserId: jest.fn(),
             create: jest.fn(),

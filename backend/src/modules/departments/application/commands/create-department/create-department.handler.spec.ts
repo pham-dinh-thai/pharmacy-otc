@@ -35,7 +35,7 @@ describe('CreateDepartmentHandler', () => {
         {
           provide: DEPARTMENTS_REPOSITORY,
           useValue: {
-            findAll: jest.fn(),
+            findPage: jest.fn(),
             findById: jest.fn(),
             create,
             update: jest.fn(),

@@ -50,7 +50,7 @@ describe('SoftDeleteDepartmentHandler', () => {
         {
           provide: DEPARTMENTS_REPOSITORY,
           useValue: {
-            findAll: jest.fn(),
+            findPage: jest.fn(),
             findById,
             create: jest.fn(),
             update,

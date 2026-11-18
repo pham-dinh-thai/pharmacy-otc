@@ -8,6 +8,7 @@ import { CreateEmployeeCommand } from '../../application/commands/create-employe
 import { UpdateEmployeeCommand } from '../../application/commands/update-employee/update-employee.command';
 import { UpdateEmployeeStatusCommand } from '../../application/commands/update-employee-status/update-employee-status.command';
 import { GetEmployeesQuery } from '../../application/queries/get-employees/get-employees.query';
+import { ListEmployeesRequest } from './requests/list-employees.request';
 import { GetEmployeeQuery } from '../../application/queries/get-employee/get-employee.query';
 import { GetEmployeeDepartmentsQuery } from '../../application/queries/get-employee-departments/get-employee-departments.query';
 import { CreateEmployeeRequest } from './requests/create-employee.request';
@@ -60,15 +61,22 @@ describe('EmployeesController', () => {
   });
 
   it('dispatches list, detail and department option queries', async () => {
+    const listRequest = new ListEmployeesRequest();
+    listRequest.page = 3;
+    listRequest.limit = 10;
+
     await controller.findDepartments();
-    await controller.findAll();
+    await controller.findAll(listRequest);
     await controller.findOne(EMPLOYEE_ID);
 
     expect(executeQuery).toHaveBeenNthCalledWith(
       1,
       new GetEmployeeDepartmentsQuery(),
     );
-    expect(executeQuery).toHaveBeenNthCalledWith(2, new GetEmployeesQuery());
+    expect(executeQuery).toHaveBeenNthCalledWith(
+      2,
+      new GetEmployeesQuery(3, 10),
+    );
     expect(executeQuery).toHaveBeenNthCalledWith(
       3,
       new GetEmployeeQuery(EMPLOYEE_ID),

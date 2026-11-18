@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -23,9 +24,11 @@ import { SoftDeleteDepartmentCommand } from '../../application/commands/soft-del
 import { RestoreDepartmentCommand } from '../../application/commands/restore-department/restore-department.command';
 import { GetDepartmentsQuery } from '../../application/queries/get-departments/get-departments.query';
 import { DepartmentListItemReadModel } from '../../application/queries/get-departments/department-list-item.read-model';
+import { DepartmentPageReadModel } from '../../application/queries/get-departments/department-page.read-model';
 import { GetDepartmentQuery } from '../../application/queries/get-department/get-department.query';
 import { CreateDepartmentRequest } from './requests/create-department.request';
 import { UpdateDepartmentRequest } from './requests/update-department.request';
+import { ListDepartmentsRequest } from './requests/list-departments.request';
 
 @Controller('departments')
 @UseGuards(AuthGuard, PermissionsGuard)
@@ -39,8 +42,12 @@ export class DepartmentsController {
 
   @Get()
   @RequirePermissions(['departments:read'])
-  public findAll(): Promise<DepartmentListItemReadModel[]> {
-    return this.queryBus.execute(new GetDepartmentsQuery());
+  public findAll(
+    @Query() request: ListDepartmentsRequest,
+  ): Promise<DepartmentPageReadModel> {
+    return this.queryBus.execute(
+      new GetDepartmentsQuery(request.page, request.limit),
+    );
   }
 
   @Get(':id')

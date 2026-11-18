@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -18,6 +19,7 @@ import { ActorContext } from '../../../../shared/modules/security/actor-context.
 import { type ActorHeaders } from '../../../../shared/types/actor-headers';
 import { EmployeeStatus } from '../../domain/enums/employee-status.enum';
 import { EmployeeReadModel } from '../../application/queries/employee.read-model';
+import { EmployeePageReadModel } from '../../application/queries/get-employees/employee-page.read-model';
 import { EmployeeDepartmentOptionReadModel } from '../../application/queries/get-employee-departments/employee-department-option.read-model';
 import { GetEmployeesQuery } from '../../application/queries/get-employees/get-employees.query';
 import { GetEmployeeQuery } from '../../application/queries/get-employee/get-employee.query';
@@ -29,6 +31,7 @@ import { UpdateEmployeeStatusCommand } from '../../application/commands/update-e
 import { CreateEmployeeRequest } from './requests/create-employee.request';
 import { UpdateEmployeeRequest } from './requests/update-employee.request';
 import { UpdateEmployeeStatusRequest } from './requests/update-employee-status.request';
+import { ListEmployeesRequest } from './requests/list-employees.request';
 
 @Controller('employees')
 @UseGuards(AuthGuard, PermissionsGuard)
@@ -48,8 +51,12 @@ export class EmployeesController {
 
   @Get()
   @RequirePermissions(['employees:read'])
-  public findAll(): Promise<EmployeeReadModel[]> {
-    return this.queryBus.execute(new GetEmployeesQuery());
+  public findAll(
+    @Query() request: ListEmployeesRequest,
+  ): Promise<EmployeePageReadModel> {
+    return this.queryBus.execute(
+      new GetEmployeesQuery(request.page, request.limit),
+    );
   }
 
   @Get(':id')

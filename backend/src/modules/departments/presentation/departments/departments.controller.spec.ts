@@ -9,6 +9,7 @@ import { UpdateDepartmentCommand } from '../../application/commands/update-depar
 import { SoftDeleteDepartmentCommand } from '../../application/commands/soft-delete-department/soft-delete-department.command';
 import { RestoreDepartmentCommand } from '../../application/commands/restore-department/restore-department.command';
 import { GetDepartmentsQuery } from '../../application/queries/get-departments/get-departments.query';
+import { ListDepartmentsRequest } from './requests/list-departments.request';
 import { GetDepartmentQuery } from '../../application/queries/get-department/get-department.query';
 import { CreateDepartmentRequest } from './requests/create-department.request';
 import { UpdateDepartmentRequest } from './requests/update-department.request';
@@ -54,10 +55,17 @@ describe('DepartmentsController', () => {
   });
 
   it('dispatches list and detail queries', async () => {
-    await controller.findAll();
+    const listRequest = new ListDepartmentsRequest();
+    listRequest.page = 3;
+    listRequest.limit = 10;
+
+    await controller.findAll(listRequest);
     await controller.findOne(DEPARTMENT_ID);
 
-    expect(executeQuery).toHaveBeenNthCalledWith(1, new GetDepartmentsQuery());
+    expect(executeQuery).toHaveBeenNthCalledWith(
+      1,
+      new GetDepartmentsQuery(3, 10),
+    );
     expect(executeQuery).toHaveBeenNthCalledWith(
       2,
       new GetDepartmentQuery(DEPARTMENT_ID),

@@ -7,7 +7,11 @@ import {
   EntityManager,
   UniqueConstraintViolationException,
 } from '@mikro-orm/core';
-import { type IRolesRepository } from '../../domain/roles.repository';
+import {
+  type FindRolesOptions,
+  type IRolesRepository,
+  type RolePage,
+} from '../../domain/roles.repository';
 import { Role } from '../../domain/role.aggregate';
 import { RoleMapper } from '../mappers/role.mapper';
 import { MikroRole } from '../entities/mikro-role.entity';
@@ -17,12 +21,21 @@ import { PermissionKey } from '../../domain/permission/permission-catalog';
 export class MikroRolesRepository implements IRolesRepository {
   public constructor(private readonly entityManager: EntityManager) {}
 
-  public async findAll(): Promise<Role[]> {
-    const mikroRoles = await this.entityManager.findAll(MikroRole, {
-      orderBy: { createdAt: 'desc' },
-    });
+  public async findPage(options: FindRolesOptions): Promise<RolePage> {
+    const [mikroRoles, total] = await this.entityManager.findAndCount(
+      MikroRole,
+      {},
+      {
+        orderBy: { createdAt: 'desc' },
+        limit: options.limit,
+        offset: options.offset,
+      },
+    );
 
-    return mikroRoles.map((mikroRole) => RoleMapper.toDomain(mikroRole));
+    return {
+      items: mikroRoles.map((mikroRole) => RoleMapper.toDomain(mikroRole)),
+      total,
+    };
   }
 
   public async findById(id: string): Promise<Role | null> {

@@ -57,6 +57,7 @@
 | FR-RBAC-05 | Đặt/bỏ cờ Super Admin | ✅ |
 | FR-RBAC-06 | Chặn endpoint theo permission | ✅ |
 | FR-RBAC-07 | Seed role mặc định (quản trị, kho, kế toán…) | ⬜ |
+| FR-RBAC-08 | Phân trang danh sách role, chọn 10/20/50 bản ghi mỗi trang | ✅ |
 
 **Quy tắc**
 
@@ -76,6 +77,8 @@
 | FR-USER-05 | Danh sách/chi tiết người dùng | ⬜ (có permission `users:read`) |
 | FR-USER-06 | Vô hiệu hoá/xoá người dùng | ⬜ |
 | FR-USER-07 | Cấp tài khoản/mật khẩu ban đầu hoặc lời mời | ⬜ |
+| FR-HR-01 | Phân trang danh sách phòng ban, chọn 10/20/50 bản ghi mỗi trang | ✅ |
+| FR-HR-02 | Phân trang danh sách nhân viên, chọn 10/20/50 bản ghi mỗi trang | ✅ |
 
 **Ghi chú:** người dùng do quản trị tạo hiện **chưa có account/mật khẩu**, nên
 chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.

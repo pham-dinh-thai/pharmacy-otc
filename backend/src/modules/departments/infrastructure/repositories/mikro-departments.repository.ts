@@ -7,7 +7,11 @@ import {
   EntityManager,
   UniqueConstraintViolationException,
 } from '@mikro-orm/core';
-import { type IDepartmentsRepository } from '../../domain/departments.repository';
+import {
+  type DepartmentPage,
+  type FindDepartmentsOptions,
+  type IDepartmentsRepository,
+} from '../../domain/departments.repository';
 import { Department } from '../../domain/department.aggregate';
 import { DepartmentMapper } from '../mappers/department.mapper';
 import { MikroDepartment } from '../entities/mikro-department.entity';
@@ -16,14 +20,25 @@ import { MikroDepartment } from '../entities/mikro-department.entity';
 export class MikroDepartmentsRepository implements IDepartmentsRepository {
   public constructor(private readonly entityManager: EntityManager) {}
 
-  public async findAll(): Promise<Department[]> {
-    const mikroDepartments = await this.entityManager.findAll(MikroDepartment, {
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return mikroDepartments.map((mikroDepartment) =>
-      DepartmentMapper.toDomain(mikroDepartment),
+  public async findPage(
+    options: FindDepartmentsOptions,
+  ): Promise<DepartmentPage> {
+    const [mikroDepartments, total] = await this.entityManager.findAndCount(
+      MikroDepartment,
+      {},
+      {
+        orderBy: { createdAt: 'desc' },
+        limit: options.limit,
+        offset: options.offset,
+      },
     );
+
+    return {
+      items: mikroDepartments.map((mikroDepartment) =>
+        DepartmentMapper.toDomain(mikroDepartment),
+      ),
+      total,
+    };
   }
 
   public async findActive(): Promise<Department[]> {

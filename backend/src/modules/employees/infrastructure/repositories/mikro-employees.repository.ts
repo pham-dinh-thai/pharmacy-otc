@@ -10,19 +10,32 @@ import {
 import { MikroEmployee } from '../../infrastructure/entities/mikro-employee.entity';
 import { Employee } from '../../domain/employee.aggregate';
 import { EmployeeStatus } from '../../domain/enums/employee-status.enum';
-import { type IEmployeesRepository } from '../../domain/employees.repository';
+import {
+  type EmployeePage,
+  type FindEmployeesOptions,
+  type IEmployeesRepository,
+} from '../../domain/employees.repository';
 import { EmployeeMapper } from '../mappers/employee.mapper';
 
 @Injectable()
 export class MikroEmployeesRepository implements IEmployeesRepository {
   public constructor(private readonly entityManager: EntityManager) {}
 
-  public async findAll(): Promise<Employee[]> {
-    const employees = await this.entityManager.findAll(MikroEmployee, {
-      orderBy: { createdAt: 'desc' },
-    });
+  public async findPage(options: FindEmployeesOptions): Promise<EmployeePage> {
+    const [employees, total] = await this.entityManager.findAndCount(
+      MikroEmployee,
+      {},
+      {
+        orderBy: { createdAt: 'desc' },
+        limit: options.limit,
+        offset: options.offset,
+      },
+    );
 
-    return employees.map((employee) => EmployeeMapper.toDomain(employee));
+    return {
+      items: employees.map((employee) => EmployeeMapper.toDomain(employee)),
+      total,
+    };
   }
 
   public async findById(id: string): Promise<Employee | null> {

@@ -1,8 +1,18 @@
 import { PermissionKey } from './permission/permission-catalog';
 import { Role } from './role.aggregate';
 
+export type RolePage = {
+  items: Role[];
+  total: number;
+};
+
+export type FindRolesOptions = {
+  limit: number;
+  offset: number;
+};
+
 export interface IRolesRepository {
-  findAll(): Promise<Role[]>;
+  findPage(options: FindRolesOptions): Promise<RolePage>;
 
   findById(id: string): Promise<Role | null>;
 
