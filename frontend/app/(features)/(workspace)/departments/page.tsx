@@ -2,12 +2,19 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { WorkspacePage } from '@/components/layout/WorkspaceShell';
+import { ListFilterForm } from '@/components/pagination/ListFilterForm';
 import { PageSizeForm } from '@/components/pagination/PageSizeForm';
 import { PaginationNav } from '@/components/pagination/PaginationNav';
 import { FormMessage } from '@/components/roles/FormMessage';
 import { fetchCurrentUser, hasPermission } from '@/lib/account';
 import { authFetch } from '@/lib/auth';
 import type { DepartmentPage } from '@/lib/departments';
+import {
+  compactListFilters,
+  first,
+  listApiQuery,
+  parseTriState,
+} from '@/lib/list-filters';
 import { listPageHref, parseLimit, parsePage } from '@/lib/pagination';
 import { disableDepartment, restoreDepartment } from './actions';
 
@@ -31,12 +38,6 @@ const UPDATED_MESSAGES: Record<string, string> = {
   restored: 'Đã khôi phục phòng ban.',
 };
 
-function first(value: string | string[] | undefined): string {
-  if (Array.isArray(value)) return value[0] ?? '';
-
-  return value ?? '';
-}
-
 function formatDate(value: string): string {
   return new Date(value).toLocaleString('vi-VN', {
     dateStyle: 'short',
@@ -50,6 +51,8 @@ async function DepartmentsList({
   searchParams: Promise<{
     error?: string;
     updated?: string;
+    search?: string | string[];
+    deleted?: string | string[];
     page?: string | string[];
     limit?: string | string[];
   }>;
@@ -64,8 +67,11 @@ async function DepartmentsList({
   const query = await searchParams;
   const page = parsePage(first(query.page));
   const limit = parseLimit(first(query.limit));
-  const listHref = listPageHref('/departments', page, limit);
-  const res = await authFetch(`/departments?page=${page}&limit=${limit}`);
+  const search = first(query.search).trim();
+  const deleted = parseTriState(first(query.deleted));
+  const filters = compactListFilters({ search, deleted });
+  const listHref = listPageHref('/departments', page, limit, filters);
+  const res = await authFetch(`/departments?${listApiQuery(filters, page, limit)}`);
 
   if (res.status === 401) redirect(`/login?next=${encodeURIComponent(listHref)}`);
   if (res.status === 403) redirect('/dashboard');
@@ -76,7 +82,7 @@ async function DepartmentsList({
   const totalPages = Math.max(1, Math.ceil(result.total / result.limit));
 
   if (result.page > totalPages) {
-    redirect(listPageHref('/departments', totalPages, limit));
+    redirect(listPageHref('/departments', totalPages, limit, filters));
   }
   const activeDepartments = departments.filter(
     (department) => department.deletedAt === null,
@@ -109,13 +115,32 @@ async function DepartmentsList({
       <FormMessage message={errorMessage} />
       <FormMessage message={updatedMessage} tone="success" />
 
+      <ListFilterForm
+        action="/departments"
+        limit={limit}
+        search={search}
+        searchPlaceholder="Tên phòng ban"
+        selects={[
+          {
+            name: 'deleted',
+            label: 'Trạng thái',
+            options: [
+              { value: 'all', label: 'Tất cả' },
+              { value: 'false', label: 'Đang hoạt động' },
+              { value: 'true', label: 'Đã vô hiệu hoá' },
+            ],
+          },
+        ]}
+        values={{ deleted }}
+      />
+
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">
         <p className="text-[13px] text-muted">
           {result.total} phòng ban · Trang {result.page}/{totalPages}
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
-          <PageSizeForm action="/departments" limit={limit} />
+          <PageSizeForm action="/departments" limit={limit} filters={filters} />
 
           {canCreate && (
             <Link
@@ -287,6 +312,7 @@ async function DepartmentsList({
         limit={limit}
         totalPages={totalPages}
         label="Phân trang phòng ban"
+        filters={filters}
       />
     </WorkspacePage>
   );
@@ -298,6 +324,8 @@ export default function DepartmentsPage({
   searchParams: Promise<{
     error?: string;
     updated?: string;
+    search?: string | string[];
+    deleted?: string | string[];
     page?: string | string[];
     limit?: string | string[];
   }>;

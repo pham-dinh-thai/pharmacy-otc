@@ -7,12 +7,14 @@ export function PaginationNav({
   limit,
   totalPages,
   label,
+  filters = {},
 }: {
   path: string;
   page: number;
   limit: number;
   totalPages: number;
   label: string;
+  filters?: Record<string, string>;
 }) {
   if (totalPages <= 1) return null;
 
@@ -23,7 +25,7 @@ export function PaginationNav({
     >
       {page > 1 ? (
         <Link
-          href={listPageHref(path, page - 1, limit)}
+          href={listPageHref(path, page - 1, limit, filters)}
           className="text-[13px] font-medium text-accent hover:underline"
         >
           ← Trang trước
@@ -38,7 +40,7 @@ export function PaginationNav({
 
       {page < totalPages ? (
         <Link
-          href={listPageHref(path, page + 1, limit)}
+          href={listPageHref(path, page + 1, limit, filters)}
           className="text-[13px] font-medium text-accent hover:underline"
         >
           Trang sau →

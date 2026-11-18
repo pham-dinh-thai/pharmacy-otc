@@ -2,12 +2,19 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { WorkspacePage } from '@/components/layout/WorkspaceShell';
+import { ListFilterForm } from '@/components/pagination/ListFilterForm';
 import { PageSizeForm } from '@/components/pagination/PageSizeForm';
 import { PaginationNav } from '@/components/pagination/PaginationNav';
 import { FormMessage } from '@/components/roles/FormMessage';
 import { PermissionChips } from '@/components/roles/PermissionChips';
 import { authFetch } from '@/lib/auth';
 import { fetchCurrentUser } from '@/lib/account';
+import {
+  compactListFilters,
+  first,
+  listApiQuery,
+  parseTriState,
+} from '@/lib/list-filters';
 import { listPageHref, parseLimit, parsePage } from '@/lib/pagination';
 import type { RolePage } from '@/lib/roles';
 import { disableRole, restoreRole } from './actions';
@@ -30,12 +37,6 @@ const UPDATED_MESSAGES: Record<string, string> = {
   restored: 'Đã khôi phục vai trò.',
 };
 
-function first(value: string | string[] | undefined): string {
-  if (Array.isArray(value)) return value[0] ?? '';
-
-  return value ?? '';
-}
-
 function formatDate(value: string): string {
   return new Date(value).toLocaleString('vi-VN', {
     dateStyle: 'short',
@@ -49,6 +50,9 @@ async function RolesList({
   searchParams: Promise<{
     error?: string;
     updated?: string;
+    search?: string | string[];
+    deleted?: string | string[];
+    isSuperAdmin?: string | string[];
     page?: string | string[];
     limit?: string | string[];
   }>;
@@ -61,8 +65,12 @@ async function RolesList({
   const query = await searchParams;
   const page = parsePage(first(query.page));
   const limit = parseLimit(first(query.limit));
-  const listHref = listPageHref('/roles', page, limit);
-  const res = await authFetch(`/roles?page=${page}&limit=${limit}`);
+  const search = first(query.search).trim();
+  const deleted = parseTriState(first(query.deleted));
+  const isSuperAdmin = parseTriState(first(query.isSuperAdmin));
+  const filters = compactListFilters({ search, deleted, isSuperAdmin });
+  const listHref = listPageHref('/roles', page, limit, filters);
+  const res = await authFetch(`/roles?${listApiQuery(filters, page, limit)}`);
 
   if (res.status === 401) redirect(`/login?next=${encodeURIComponent(listHref)}`);
   if (!res.ok) throw new Error(`Failed to fetch roles: ${res.status}`);
@@ -72,7 +80,7 @@ async function RolesList({
   const totalPages = Math.max(1, Math.ceil(result.total / result.limit));
 
   if (result.page > totalPages) {
-    redirect(listPageHref('/roles', totalPages, limit));
+    redirect(listPageHref('/roles', totalPages, limit, filters));
   }
   const activeRoles = roles.filter((role) => role.deletedAt === null);
   const disabledRoles = roles.filter((role) => role.deletedAt !== null);
@@ -97,13 +105,41 @@ async function RolesList({
       <FormMessage message={errorMessage} />
       <FormMessage message={updatedMessage} tone="success" />
 
+      <ListFilterForm
+        action="/roles"
+        limit={limit}
+        search={search}
+        searchPlaceholder="Tên vai trò"
+        selects={[
+          {
+            name: 'deleted',
+            label: 'Trạng thái',
+            options: [
+              { value: 'all', label: 'Tất cả' },
+              { value: 'false', label: 'Đang hoạt động' },
+              { value: 'true', label: 'Đã vô hiệu hoá' },
+            ],
+          },
+          {
+            name: 'isSuperAdmin',
+            label: 'Loại vai trò',
+            options: [
+              { value: 'all', label: 'Tất cả' },
+              { value: 'true', label: 'Super Admin' },
+              { value: 'false', label: 'Vai trò thường' },
+            ],
+          },
+        ]}
+        values={{ deleted, isSuperAdmin }}
+      />
+
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">
         <p className="text-[13px] text-muted">
           {result.total} vai trò · Trang {result.page}/{totalPages}
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
-          <PageSizeForm action="/roles" limit={limit} />
+          <PageSizeForm action="/roles" limit={limit} filters={filters} />
 
           {canCreate && (
             <Link
@@ -302,6 +338,7 @@ async function RolesList({
         limit={limit}
         totalPages={totalPages}
         label="Phân trang vai trò"
+        filters={filters}
       />
     </WorkspacePage>
   );
@@ -313,6 +350,9 @@ export default function RolesPage({
   searchParams: Promise<{
     error?: string;
     updated?: string;
+    search?: string | string[];
+    deleted?: string | string[];
+    isSuperAdmin?: string | string[];
     page?: string | string[];
     limit?: string | string[];
   }>;

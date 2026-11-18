@@ -2,16 +2,25 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { WorkspacePage } from '@/components/layout/WorkspaceShell';
+import { ListFilterForm } from '@/components/pagination/ListFilterForm';
 import { PageSizeForm } from '@/components/pagination/PageSizeForm';
 import { PaginationNav } from '@/components/pagination/PaginationNav';
 import { FormMessage } from '@/components/roles/FormMessage';
 import { fetchCurrentUser, hasPermission } from '@/lib/account';
 import { authFetch } from '@/lib/auth';
 import {
+  EMPLOYEE_POSITIONS,
   EMPLOYEE_STATUS_LABELS,
+  type EmployeeDepartmentOption,
   type EmployeePage,
   type EmployeeStatus,
+  isEmployeePosition,
 } from '@/lib/employees';
+import {
+  compactListFilters,
+  first,
+  listApiQuery,
+} from '@/lib/list-filters';
 import { listPageHref, parseLimit, parsePage } from '@/lib/pagination';
 import { resignEmployee } from './actions';
 
@@ -41,10 +50,10 @@ const STATUS_CLASS: Record<EmployeeStatus, string> = {
   resigned: 'border-rule text-muted',
 };
 
-function first(value: string | string[] | undefined): string {
-  if (Array.isArray(value)) return value[0] ?? '';
-
-  return value ?? '';
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
 }
 
 function formatDate(value: string): string {
@@ -70,6 +79,10 @@ async function EmployeesList({
   searchParams: Promise<{
     error?: string;
     updated?: string;
+    search?: string | string[];
+    departmentId?: string | string[];
+    position?: string | string[];
+    status?: string | string[];
     page?: string | string[];
     limit?: string | string[];
   }>;
@@ -84,19 +97,43 @@ async function EmployeesList({
   const query = await searchParams;
   const page = parsePage(first(query.page));
   const limit = parseLimit(first(query.limit));
-  const listHref = listPageHref('/employees', page, limit);
-  const res = await authFetch(`/employees?page=${page}&limit=${limit}`);
+  const search = first(query.search).trim();
+  const rawDepartmentId = first(query.departmentId);
+  const rawPosition = first(query.position);
+  const rawStatus = first(query.status);
+  const departmentId = isUuid(rawDepartmentId) ? rawDepartmentId : '';
+  const position = isEmployeePosition(rawPosition) ? rawPosition : '';
+  const status =
+    rawStatus in EMPLOYEE_STATUS_LABELS ? (rawStatus as EmployeeStatus) : '';
+  const filters = compactListFilters({
+    search,
+    departmentId,
+    position,
+    status,
+  });
+  const listHref = listPageHref('/employees', page, limit, filters);
+  const [res, departmentRes] = await Promise.all([
+    authFetch(`/employees?${listApiQuery(filters, page, limit)}`),
+    authFetch('/employees/departments'),
+  ]);
 
-  if (res.status === 401) redirect(`/login?next=${encodeURIComponent(listHref)}`);
-  if (res.status === 403) redirect('/dashboard');
+  if (res.status === 401 || departmentRes.status === 401) {
+    redirect(`/login?next=${encodeURIComponent(listHref)}`);
+  }
+  if (res.status === 403 || departmentRes.status === 403) redirect('/dashboard');
   if (!res.ok) throw new Error(`Failed to fetch employees: ${res.status}`);
+  if (!departmentRes.ok) {
+    throw new Error(`Failed to fetch departments: ${departmentRes.status}`);
+  }
 
+  const departmentOptions: EmployeeDepartmentOption[] =
+    await departmentRes.json();
   const result = (await res.json()) as EmployeePage;
   const employees = result.items;
   const totalPages = Math.max(1, Math.ceil(result.total / result.limit));
 
   if (result.page > totalPages) {
-    redirect(listPageHref('/employees', totalPages, limit));
+    redirect(listPageHref('/employees', totalPages, limit, filters));
   }
   const canCreate =
     user.isSuperAdmin || hasPermission(user, 'employees:create');
@@ -122,13 +159,52 @@ async function EmployeesList({
       <FormMessage message={errorMessage} />
       <FormMessage message={updatedMessage} tone="success" />
 
+      <ListFilterForm
+        action="/employees"
+        limit={limit}
+        search={search}
+        searchPlaceholder="Tên hoặc email nhân viên"
+        selects={[
+          {
+            name: 'departmentId',
+            label: 'Phòng ban',
+            options: [
+              { value: '', label: 'Tất cả' },
+              ...departmentOptions.map((department) => ({
+                value: department.id,
+                label: department.name,
+              })),
+            ],
+          },
+          {
+            name: 'position',
+            label: 'Chức danh',
+            options: [
+              { value: '', label: 'Tất cả' },
+              ...EMPLOYEE_POSITIONS.map((item) => ({ value: item, label: item })),
+            ],
+          },
+          {
+            name: 'status',
+            label: 'Trạng thái',
+            options: [
+              { value: '', label: 'Tất cả' },
+              ...Object.entries(EMPLOYEE_STATUS_LABELS).map(
+                ([value, label]) => ({ value, label }),
+              ),
+            ],
+          },
+        ]}
+        values={{ departmentId, position, status }}
+      />
+
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">
         <p className="text-[13px] text-muted">
           {result.total} nhân viên · Trang {result.page}/{totalPages}
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
-          <PageSizeForm action="/employees" limit={limit} />
+          <PageSizeForm action="/employees" limit={limit} filters={filters} />
 
           {canCreate && (
             <Link
@@ -237,6 +313,7 @@ async function EmployeesList({
         limit={limit}
         totalPages={totalPages}
         label="Phân trang nhân viên"
+        filters={filters}
       />
     </WorkspacePage>
   );
@@ -248,6 +325,10 @@ export default function EmployeesPage({
   searchParams: Promise<{
     error?: string;
     updated?: string;
+    search?: string | string[];
+    departmentId?: string | string[];
+    position?: string | string[];
+    status?: string | string[];
     page?: string | string[];
     limit?: string | string[];
   }>;

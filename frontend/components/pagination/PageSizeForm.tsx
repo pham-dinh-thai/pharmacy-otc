@@ -5,16 +5,22 @@ import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from '@/lib/pagination';
 const SELECT_CLASS =
   'border border-rule bg-paper px-3 py-2 text-[13px] focus:border-ink';
 
-/** Đổi kích thước trang thì tự submit, quay về trang 1. */
+/** Đổi kích thước trang thì tự submit, quay về trang 1 và giữ nguyên filter. */
 export function PageSizeForm({
   action,
   limit = DEFAULT_PAGE_SIZE,
+  filters = {},
 }: {
   action: string;
   limit?: number;
+  filters?: Record<string, string>;
 }) {
   return (
     <form method="get" action={action} className="flex items-center gap-2">
+      {Object.entries(filters).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
+
       <label className="flex items-center gap-2 text-[13px] text-muted">
         Mỗi trang
         <select
