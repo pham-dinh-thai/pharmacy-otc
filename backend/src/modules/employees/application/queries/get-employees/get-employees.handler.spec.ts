@@ -1,5 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { Employee } from '../../../domain/employee.aggregate';
+import { EmployeePosition } from '../../../domain/enums/employee-position.enum';
 import { EmployeeStatus } from '../../../domain/enums/employee-status.enum';
 import {
   type EmployeePage,
@@ -12,6 +13,7 @@ import { GetEmployeesHandler } from './get-employees.handler';
 import { GetEmployeesQuery } from './get-employees.query';
 
 const EMPLOYEE_ID = 'b3d7f2a8-7a0e-4f1c-9c1a-4d3f5e6a7b8c';
+const DEPARTMENT_ID = '4e770b20-0ab6-494a-9bfd-e475e07c7a17';
 
 const readModel = (): EmployeeReadModel =>
   new EmployeeReadModel(
@@ -20,7 +22,7 @@ const readModel = (): EmployeeReadModel =>
     'Nguyen',
     'Van A',
     'nguyen@example.com',
-    '4e770b20-0ab6-494a-9bfd-e475e07c7a17',
+    DEPARTMENT_ID,
     'Pharmacy',
     null,
     EmployeeStatus.WORKING,
@@ -53,25 +55,55 @@ describe('GetEmployeesHandler', () => {
 
     const result = await handler.execute(new GetEmployeesQuery());
 
-    expect(findPage).toHaveBeenCalledWith({ limit: 20, offset: 0 });
+    expect(findPage).toHaveBeenCalledWith({
+      limit: 20,
+      offset: 0,
+      search: undefined,
+      departmentId: undefined,
+      position: undefined,
+      status: undefined,
+    });
     expect(create).toHaveBeenCalledTimes(1);
     expect(result).toMatchObject({ total: 13, page: 1, limit: 20 });
     expect(result.items[0].id).toBe(EMPLOYEE_ID);
   });
 
-  it('forwards page and limit as an offset', async () => {
+  it('forwards every filter to the repository', async () => {
     const { handler, findPage } = setup([]);
 
-    await handler.execute(new GetEmployeesQuery(2, 10));
+    await handler.execute(
+      new GetEmployeesQuery({
+        page: 2,
+        limit: 10,
+        search: ' nguyen ',
+        departmentId: DEPARTMENT_ID,
+        position: EmployeePosition.PHARMACIST,
+        status: EmployeeStatus.WORKING,
+      }),
+    );
 
-    expect(findPage).toHaveBeenCalledWith({ limit: 10, offset: 10 });
+    expect(findPage).toHaveBeenCalledWith({
+      limit: 10,
+      offset: 10,
+      search: 'nguyen',
+      departmentId: DEPARTMENT_ID,
+      position: EmployeePosition.PHARMACIST,
+      status: EmployeeStatus.WORKING,
+    });
   });
 
   it('clamps page and limit to the documented range', async () => {
     const { handler, findPage } = setup([]);
 
-    await handler.execute(new GetEmployeesQuery(-5, 0));
+    await handler.execute(new GetEmployeesQuery({ page: -5, limit: 0 }));
 
-    expect(findPage).toHaveBeenCalledWith({ limit: 1, offset: 0 });
+    expect(findPage).toHaveBeenCalledWith({
+      limit: 1,
+      offset: 0,
+      search: undefined,
+      departmentId: undefined,
+      position: undefined,
+      status: undefined,
+    });
   });
 });

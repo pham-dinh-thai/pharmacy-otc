@@ -15,10 +15,11 @@ const validateRequest = async (payload: Record<string, unknown>) => {
 };
 
 describe('ListDepartmentsRequest', () => {
-  it('accepts an empty query', async () => {
-    const { errors } = await validateRequest({});
+  it('defaults deleted to all and accepts an empty query', async () => {
+    const { instance, errors } = await validateRequest({});
 
     expect(errors).toHaveLength(0);
+    expect(instance.deleted).toBe('all');
   });
 
   it('coerces page and limit from strings to integers', async () => {
@@ -32,12 +33,37 @@ describe('ListDepartmentsRequest', () => {
     expect(instance.limit).toBe(10);
   });
 
-  it.each([{ page: '0' }, { page: '1.5' }, { limit: '0' }, { limit: '101' }])(
-    'rejects invalid pagination values %p',
-    async (payload) => {
-      const { errors } = await validateRequest(payload);
+  it.each([
+    ['true', true],
+    ['false', false],
+    ['all', 'all'],
+    [true, true],
+  ])('coerces deleted=%p to %p', async (value, expected) => {
+    const { instance, errors } = await validateRequest({ deleted: value });
 
-      expect(errors.length).toBeGreaterThan(0);
-    },
-  );
+    expect(errors).toHaveLength(0);
+    expect(instance.deleted).toBe(expected);
+  });
+
+  it('trims the search term and ignores blank values', async () => {
+    const { instance, errors } = await validateRequest({ search: '  kho  ' });
+    const blank = await validateRequest({ search: '   ' });
+
+    expect(errors).toHaveLength(0);
+    expect(instance.search).toBe('kho');
+    expect(blank.instance.search).toBeNull();
+    expect(blank.errors).toHaveLength(0);
+  });
+
+  it.each([
+    { page: '0' },
+    { page: '1.5' },
+    { limit: '0' },
+    { limit: '101' },
+    { deleted: 'yes' },
+  ])('rejects invalid values %p', async (payload) => {
+    const { errors } = await validateRequest(payload);
+
+    expect(errors.length).toBeGreaterThan(0);
+  });
 });

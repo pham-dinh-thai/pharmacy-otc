@@ -58,13 +58,20 @@ describe('DepartmentsController', () => {
     const listRequest = new ListDepartmentsRequest();
     listRequest.page = 3;
     listRequest.limit = 10;
+    listRequest.search = 'kho';
+    listRequest.deleted = false;
 
     await controller.findAll(listRequest);
     await controller.findOne(DEPARTMENT_ID);
 
     expect(executeQuery).toHaveBeenNthCalledWith(
       1,
-      new GetDepartmentsQuery(3, 10),
+      new GetDepartmentsQuery({
+        page: 3,
+        limit: 10,
+        search: 'kho',
+        deleted: false,
+      }),
     );
     expect(executeQuery).toHaveBeenNthCalledWith(
       2,

@@ -23,10 +23,14 @@ export class GetEmployeesHandler implements IQueryHandler<
   public async execute(
     query: GetEmployeesQuery,
   ): Promise<EmployeePageReadModel> {
-    const { page, limit } = query;
+    const { page, limit, search, departmentId, position, status } = query;
     const result = await this.employeesRepository.findPage({
       limit,
       offset: (page - 1) * limit,
+      search,
+      departmentId,
+      position,
+      status,
     });
 
     return new EmployeePageReadModel(

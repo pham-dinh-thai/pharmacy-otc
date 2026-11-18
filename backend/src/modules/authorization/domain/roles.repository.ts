@@ -1,3 +1,4 @@
+import { type TriStateFilter } from '../../../shared/utils/list-filters';
 import { PermissionKey } from './permission/permission-catalog';
 import { Role } from './role.aggregate';
 
@@ -9,6 +10,9 @@ export type RolePage = {
 export type FindRolesOptions = {
   limit: number;
   offset: number;
+  search?: string;
+  deleted?: TriStateFilter;
+  isSuperAdmin?: TriStateFilter;
 };
 
 export interface IRolesRepository {

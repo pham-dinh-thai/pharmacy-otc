@@ -46,7 +46,12 @@ export class DepartmentsController {
     @Query() request: ListDepartmentsRequest,
   ): Promise<DepartmentPageReadModel> {
     return this.queryBus.execute(
-      new GetDepartmentsQuery(request.page, request.limit),
+      new GetDepartmentsQuery({
+        page: request.page,
+        limit: request.limit,
+        search: request.search,
+        deleted: request.deleted,
+      }),
     );
   }
 

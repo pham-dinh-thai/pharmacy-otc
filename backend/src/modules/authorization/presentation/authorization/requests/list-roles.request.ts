@@ -1,7 +1,34 @@
-import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
+import {
+  parseTriStateFilter,
+  trimToNull,
+  type TriStateFilter,
+} from '../../../../../shared/utils/list-filters';
 
 export class ListRolesRequest {
+  @Transform(trimToNull)
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  search?: string;
+
+  @Transform(parseTriStateFilter)
+  @IsIn(['all', true, false])
+  deleted: TriStateFilter = 'all';
+
+  @Transform(parseTriStateFilter)
+  @IsIn(['all', true, false])
+  isSuperAdmin: TriStateFilter = 'all';
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()

@@ -35,7 +35,13 @@ describe('ListRolesHandler', () => {
 
     const result = await handler.execute(new ListRolesQuery());
 
-    expect(findPage).toHaveBeenCalledWith({ limit: 20, offset: 0 });
+    expect(findPage).toHaveBeenCalledWith({
+      limit: 20,
+      offset: 0,
+      search: undefined,
+      deleted: 'all',
+      isSuperAdmin: 'all',
+    });
     expect(result).toMatchObject({ total: 11, page: 1, limit: 20 });
     expect(result.items[0]).toMatchObject({
       id: ROLE_ID,
@@ -44,19 +50,39 @@ describe('ListRolesHandler', () => {
     });
   });
 
-  it('forwards page and limit as an offset', async () => {
+  it('forwards every filter to the repository', async () => {
     const { handler, findPage } = setup([]);
 
-    await handler.execute(new ListRolesQuery(3, 10));
+    await handler.execute(
+      new ListRolesQuery({
+        page: 3,
+        limit: 10,
+        search: '  admin  ',
+        deleted: false,
+        isSuperAdmin: true,
+      }),
+    );
 
-    expect(findPage).toHaveBeenCalledWith({ limit: 10, offset: 20 });
+    expect(findPage).toHaveBeenCalledWith({
+      limit: 10,
+      offset: 20,
+      search: 'admin',
+      deleted: false,
+      isSuperAdmin: true,
+    });
   });
 
   it('clamps page and limit to the documented range', async () => {
     const { handler, findPage } = setup([]);
 
-    await handler.execute(new ListRolesQuery(0, 500));
+    await handler.execute(new ListRolesQuery({ page: 0, limit: 500 }));
 
-    expect(findPage).toHaveBeenCalledWith({ limit: 100, offset: 0 });
+    expect(findPage).toHaveBeenCalledWith({
+      limit: 100,
+      offset: 0,
+      search: undefined,
+      deleted: 'all',
+      isSuperAdmin: 'all',
+    });
   });
 });

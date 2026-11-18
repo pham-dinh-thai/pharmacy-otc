@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   EntityManager,
+  type FilterQuery,
   UniqueConstraintViolationException,
 } from '@mikro-orm/core';
 import {
@@ -13,6 +14,7 @@ import {
   type RolePage,
 } from '../../domain/roles.repository';
 import { Role } from '../../domain/role.aggregate';
+import { likePattern } from '../../../../shared/utils/list-filters';
 import { RoleMapper } from '../mappers/role.mapper';
 import { MikroRole } from '../entities/mikro-role.entity';
 import { PermissionKey } from '../../domain/permission/permission-catalog';
@@ -22,9 +24,22 @@ export class MikroRolesRepository implements IRolesRepository {
   public constructor(private readonly entityManager: EntityManager) {}
 
   public async findPage(options: FindRolesOptions): Promise<RolePage> {
+    const pattern = likePattern(options.search);
+    const where: FilterQuery<MikroRole> = {
+      ...(options.deleted === true
+        ? { deletedAt: { $ne: null } }
+        : options.deleted === false
+          ? { deletedAt: null }
+          : {}),
+      ...(typeof options.isSuperAdmin === 'boolean'
+        ? { isSuperAdmin: options.isSuperAdmin }
+        : {}),
+      ...(pattern ? { name: { $ilike: pattern } } : {}),
+    };
+
     const [mikroRoles, total] = await this.entityManager.findAndCount(
       MikroRole,
-      {},
+      where,
       {
         orderBy: { createdAt: 'desc' },
         limit: options.limit,

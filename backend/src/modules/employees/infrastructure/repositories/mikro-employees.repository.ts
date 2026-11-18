@@ -5,8 +5,11 @@ import {
 } from '@nestjs/common';
 import {
   EntityManager,
+  type FilterQuery,
   UniqueConstraintViolationException,
 } from '@mikro-orm/core';
+import { MikroUser } from '../../../users/infrastructure/entities/mikro-user.entity';
+import { likePattern } from '../../../../shared/utils/list-filters';
 import { MikroEmployee } from '../../infrastructure/entities/mikro-employee.entity';
 import { Employee } from '../../domain/employee.aggregate';
 import { EmployeeStatus } from '../../domain/enums/employee-status.enum';
@@ -22,9 +25,36 @@ export class MikroEmployeesRepository implements IEmployeesRepository {
   public constructor(private readonly entityManager: EntityManager) {}
 
   public async findPage(options: FindEmployeesOptions): Promise<EmployeePage> {
+    const where: FilterQuery<MikroEmployee> = {
+      ...(options.departmentId ? { departmentId: options.departmentId } : {}),
+      ...(options.position ? { position: options.position } : {}),
+      ...(options.status ? { status: options.status } : {}),
+    };
+
+    const pattern = likePattern(options.search);
+
+    if (pattern) {
+      const users = await this.entityManager.find(
+        MikroUser,
+        {
+          $or: [
+            { firstName: { $ilike: pattern } },
+            { lastName: { $ilike: pattern } },
+            { email: { $ilike: pattern } },
+          ],
+        },
+        { fields: ['id'] },
+      );
+      const userIds = users.map((user) => user.id);
+
+      if (userIds.length === 0) return { items: [], total: 0 };
+
+      where.userId = { $in: userIds };
+    }
+
     const [employees, total] = await this.entityManager.findAndCount(
       MikroEmployee,
-      {},
+      where,
       {
         orderBy: { createdAt: 'desc' },
         limit: options.limit,

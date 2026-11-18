@@ -15,10 +15,12 @@ const validateRequest = async (payload: Record<string, unknown>) => {
 };
 
 describe('ListRolesRequest', () => {
-  it('accepts an empty query', async () => {
-    const { errors } = await validateRequest({});
+  it('defaults both tri-state filters to all', async () => {
+    const { instance, errors } = await validateRequest({});
 
     expect(errors).toHaveLength(0);
+    expect(instance.deleted).toBe('all');
+    expect(instance.isSuperAdmin).toBe('all');
   });
 
   it('coerces page and limit from strings to integers', async () => {
@@ -32,12 +34,39 @@ describe('ListRolesRequest', () => {
     expect(instance.limit).toBe(50);
   });
 
-  it.each([{ page: '0' }, { page: '2.5' }, { limit: '0' }, { limit: '101' }])(
-    'rejects invalid pagination values %p',
-    async (payload) => {
-      const { errors } = await validateRequest(payload);
+  it.each([
+    ['true', true],
+    ['false', false],
+    ['all', 'all'],
+    [true, true],
+  ])('coerces boolean filters %p to %p', async (value, expected) => {
+    const { instance, errors } = await validateRequest({
+      deleted: value,
+      isSuperAdmin: value,
+    });
 
-      expect(errors.length).toBeGreaterThan(0);
-    },
-  );
+    expect(errors).toHaveLength(0);
+    expect(instance.deleted).toBe(expected);
+    expect(instance.isSuperAdmin).toBe(expected);
+  });
+
+  it('trims the search term', async () => {
+    const { instance, errors } = await validateRequest({ search: ' admin ' });
+
+    expect(errors).toHaveLength(0);
+    expect(instance.search).toBe('admin');
+  });
+
+  it.each([
+    { page: '0' },
+    { page: '2.5' },
+    { limit: '0' },
+    { limit: '101' },
+    { deleted: 'yes' },
+    { isSuperAdmin: '1' },
+  ])('rejects invalid values %p', async (payload) => {
+    const { errors } = await validateRequest(payload);
+
+    expect(errors.length).toBeGreaterThan(0);
+  });
 });

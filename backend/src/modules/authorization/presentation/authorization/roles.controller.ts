@@ -46,7 +46,13 @@ export class RolesController {
     @Query() request: ListRolesRequest,
   ): Promise<RolePageReadModel> {
     return this.queryBus.execute(
-      new ListRolesQuery(request.page, request.limit),
+      new ListRolesQuery({
+        page: request.page,
+        limit: request.limit,
+        search: request.search,
+        deleted: request.deleted,
+        isSuperAdmin: request.isSuperAdmin,
+      }),
     );
   }
 

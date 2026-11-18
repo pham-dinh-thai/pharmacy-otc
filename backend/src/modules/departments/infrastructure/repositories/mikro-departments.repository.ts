@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   EntityManager,
+  type FilterQuery,
   UniqueConstraintViolationException,
 } from '@mikro-orm/core';
 import {
@@ -13,6 +14,7 @@ import {
   type IDepartmentsRepository,
 } from '../../domain/departments.repository';
 import { Department } from '../../domain/department.aggregate';
+import { likePattern } from '../../../../shared/utils/list-filters';
 import { DepartmentMapper } from '../mappers/department.mapper';
 import { MikroDepartment } from '../entities/mikro-department.entity';
 
@@ -23,9 +25,19 @@ export class MikroDepartmentsRepository implements IDepartmentsRepository {
   public async findPage(
     options: FindDepartmentsOptions,
   ): Promise<DepartmentPage> {
+    const pattern = likePattern(options.search);
+    const where: FilterQuery<MikroDepartment> = {
+      ...(options.deleted === true
+        ? { deletedAt: { $ne: null } }
+        : options.deleted === false
+          ? { deletedAt: null }
+          : {}),
+      ...(pattern ? { name: { $ilike: pattern } } : {}),
+    };
+
     const [mikroDepartments, total] = await this.entityManager.findAndCount(
       MikroDepartment,
-      {},
+      where,
       {
         orderBy: { createdAt: 'desc' },
         limit: options.limit,

@@ -55,7 +55,14 @@ export class EmployeesController {
     @Query() request: ListEmployeesRequest,
   ): Promise<EmployeePageReadModel> {
     return this.queryBus.execute(
-      new GetEmployeesQuery(request.page, request.limit),
+      new GetEmployeesQuery({
+        page: request.page,
+        limit: request.limit,
+        search: request.search,
+        departmentId: request.departmentId,
+        position: request.position,
+        status: request.status,
+      }),
     );
   }
 

@@ -64,6 +64,8 @@ describe('EmployeesController', () => {
     const listRequest = new ListEmployeesRequest();
     listRequest.page = 3;
     listRequest.limit = 10;
+    listRequest.search = 'Nguyen';
+    listRequest.status = EmployeeStatus.WORKING;
 
     await controller.findDepartments();
     await controller.findAll(listRequest);
@@ -75,7 +77,12 @@ describe('EmployeesController', () => {
     );
     expect(executeQuery).toHaveBeenNthCalledWith(
       2,
-      new GetEmployeesQuery(3, 10),
+      new GetEmployeesQuery({
+        page: 3,
+        limit: 10,
+        search: 'Nguyen',
+        status: EmployeeStatus.WORKING,
+      }),
     );
     expect(executeQuery).toHaveBeenNthCalledWith(
       3,

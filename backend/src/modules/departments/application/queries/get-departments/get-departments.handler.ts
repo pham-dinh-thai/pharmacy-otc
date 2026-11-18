@@ -21,10 +21,12 @@ export class GetDepartmentsHandler implements IQueryHandler<
   public async execute(
     query: GetDepartmentsQuery,
   ): Promise<DepartmentPageReadModel> {
-    const { page, limit } = query;
+    const { page, limit, search, deleted } = query;
     const result = await this.departmentsRepository.findPage({
       limit,
       offset: (page - 1) * limit,
+      search,
+      deleted,
     });
 
     return new DepartmentPageReadModel(

@@ -57,7 +57,7 @@
 | FR-RBAC-05 | Đặt/bỏ cờ Super Admin | ✅ |
 | FR-RBAC-06 | Chặn endpoint theo permission | ✅ |
 | FR-RBAC-07 | Seed role mặc định (quản trị, kho, kế toán…) | ⬜ |
-| FR-RBAC-08 | Phân trang danh sách role, chọn 10/20/50 bản ghi mỗi trang | ✅ |
+| FR-RBAC-08 | Phân trang và lọc danh sách role (tên, Super Admin, trạng thái xoá mềm), chọn 10/20/50 bản ghi mỗi trang | ✅ |
 
 **Quy tắc**
 
@@ -77,8 +77,10 @@
 | FR-USER-05 | Danh sách/chi tiết người dùng | ⬜ (có permission `users:read`) |
 | FR-USER-06 | Vô hiệu hoá/xoá người dùng | ⬜ |
 | FR-USER-07 | Cấp tài khoản/mật khẩu ban đầu hoặc lời mời | ⬜ |
-| FR-HR-01 | Phân trang danh sách phòng ban, chọn 10/20/50 bản ghi mỗi trang | ✅ |
-| FR-HR-02 | Phân trang danh sách nhân viên, chọn 10/20/50 bản ghi mỗi trang | ✅ |
+| FR-HR-01 | Phân trang và lọc danh sách phòng ban (tên, trạng thái xoá mềm), chọn 10/20/50 bản ghi mỗi trang | ✅ |
+| FR-HR-02 | Phân trang và lọc danh sách nhân viên (tên/email, phòng ban, chức danh, trạng thái), chọn 10/20/50 bản ghi mỗi trang | ✅ |
+
+**Lọc danh sách HR:** `deleted=all|false|true` với mặc định `all` để vẫn thấy bản ghi đã vô hiệu hoá và nút khôi phục. Nhân viên nhận thêm `departmentId`, `position`, `status`; role nhận thêm `isSuperAdmin=all|true|false`. Mọi filter được giữ cùng `page`/`limit` trên link phân trang và `returnTo` sau thao tác.
 
 **Ghi chú:** người dùng do quản trị tạo hiện **chưa có account/mật khẩu**, nên
 chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.

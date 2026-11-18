@@ -19,10 +19,13 @@ export class ListRolesHandler implements IQueryHandler<
   ) {}
 
   public async execute(query: ListRolesQuery): Promise<RolePageReadModel> {
-    const { page, limit } = query;
+    const { page, limit, search, deleted, isSuperAdmin } = query;
     const result = await this.rolesRepository.findPage({
       limit,
       offset: (page - 1) * limit,
+      search,
+      deleted,
+      isSuperAdmin,
     });
 
     return new RolePageReadModel(
