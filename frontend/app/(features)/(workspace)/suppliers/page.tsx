@@ -13,17 +13,15 @@ import {
   supplierListHref,
   supplierQuery,
   supplierStateLabel,
-  SUPPLIER_DELETED_FILTERS,
   type Supplier,
   type SupplierDeletedFilter,
 } from '@/lib/suppliers';
 import { deleteSupplier, restoreSupplier } from './actions';
+import { SupplierFilters } from './supplier-filters';
 
 const TH_CLASS =
   'border-b border-rule py-2 pr-4 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-muted';
 const TD_CLASS = 'border-b border-rule py-4 pr-4 align-top';
-const INPUT_CLASS =
-  'w-full border border-rule bg-paper px-3 py-2.5 text-[14px] placeholder:text-muted/60 focus:border-ink';
 
 const ERROR_MESSAGES: Record<string, string> = {
   missing: 'Thiếu thông tin nhà cung cấp.',
@@ -135,66 +133,7 @@ async function SuppliersList({
       <FormMessage message={errorMessage} />
       <FormMessage message={updatedMessage} tone="success" />
 
-      <form
-        method="get"
-        action="/suppliers"
-        role="search"
-        className="flex flex-wrap items-end gap-3 border-b border-rule pb-4"
-      >
-        <div className="min-w-[240px] flex-1">
-          <label
-            htmlFor="supplier-search"
-            className="mb-1.5 block text-[13px] font-medium text-muted"
-          >
-            Tìm kiếm
-          </label>
-          <input
-            id="supplier-search"
-            name="search"
-            type="search"
-            defaultValue={search}
-            placeholder="Mã, tên, điện thoại, email hoặc mã số thuế"
-            className={INPUT_CLASS}
-          />
-        </div>
-
-        <div className="w-full sm:w-[200px]">
-          <label
-            htmlFor="supplier-deleted"
-            className="mb-1.5 block text-[13px] font-medium text-muted"
-          >
-            Trạng thái
-          </label>
-          <select
-            id="supplier-deleted"
-            name="deleted"
-            defaultValue={deletedFilter}
-            className={INPUT_CLASS}
-          >
-            {SUPPLIER_DELETED_FILTERS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <button
-          type="submit"
-          className="bg-accent px-5 py-2.5 text-[13px] font-semibold text-paper transition-colors hover:bg-ink"
-        >
-          Tìm kiếm
-        </button>
-
-        {(search || deletedFilter !== 'false') && (
-          <Link
-            href="/suppliers"
-            className="px-1 py-2.5 text-[13px] font-medium text-accent hover:underline"
-          >
-            Xoá bộ lọc
-          </Link>
-        )}
-      </form>
+      <SupplierFilters search={search} deleted={deletedFilter} />
 
       <div className="mt-6 flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">
         <p className="text-[13px] text-muted">{suppliers.length} nhà cung cấp</p>
