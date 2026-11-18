@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { NotFoundException } from '@nestjs/common';
+import { RoleNotFoundException } from '../../../domain/exceptions/role.exceptions';
 import { Test } from '@nestjs/testing';
 import { SetRoleSuperAdminHandler } from './set-role-super-admin.handler';
 import { SetRoleSuperAdminCommand } from './set-role-super-admin.command';
@@ -90,7 +90,7 @@ describe('SetRoleSuperAdminHandler', () => {
 
     await expect(
       handler.execute(new SetRoleSuperAdminCommand(id, true, headers)),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(RoleNotFoundException);
 
     expect(rolesRepository.update).not.toHaveBeenCalled();
     expect(outboxRepository.create).not.toHaveBeenCalled();

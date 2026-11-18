@@ -1,5 +1,8 @@
-import { ConflictException } from '@nestjs/common';
 import { Id } from '../../../shared/value-objects/id.value-object';
+import {
+  CurrentPasswordMismatchException,
+  NewPasswordConfirmationMismatchException,
+} from './exceptions/authentication.exceptions';
 import { Password } from './password.value-object';
 
 export type CreateAccountProps = {
@@ -83,13 +86,11 @@ export class Account {
     const isMatchesWithCurrentPassword =
       await this.password.verify(currentPassword);
     if (!isMatchesWithCurrentPassword) {
-      throw new ConflictException('Current password is mismatch');
+      throw new CurrentPasswordMismatchException();
     }
 
     if (newPassword !== newPasswordConfirmation) {
-      throw new ConflictException(
-        'New password is mismatch with new password confirmation',
-      );
+      throw new NewPasswordConfirmationMismatchException();
     }
 
     this.password = await Password.fromPlainText(newPassword);

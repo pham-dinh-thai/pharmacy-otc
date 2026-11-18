@@ -1,5 +1,8 @@
 import { jest } from '@jest/globals';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  DepartmentNotFoundException,
+  DepartmentNotDisabledException,
+} from '../../../domain/exceptions/department.exceptions';
 import { Test } from '@nestjs/testing';
 import { RestoreDepartmentHandler } from './restore-department.handler';
 import { RestoreDepartmentCommand } from './restore-department.command';
@@ -76,7 +79,7 @@ describe('RestoreDepartmentHandler', () => {
 
     await expect(
       handler.execute(new RestoreDepartmentCommand(DEPARTMENT_ID, headers)),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(DepartmentNotFoundException);
 
     expect(update).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();
@@ -119,7 +122,7 @@ describe('RestoreDepartmentHandler', () => {
 
     await expect(
       handler.execute(new RestoreDepartmentCommand(DEPARTMENT_ID, headers)),
-    ).rejects.toThrow(ConflictException);
+    ).rejects.toThrow(DepartmentNotDisabledException);
 
     expect(update).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();

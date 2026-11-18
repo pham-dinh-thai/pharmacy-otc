@@ -1,9 +1,10 @@
-import { BadRequestException, Inject } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import {
   AUDIT_LOGS_REPOSITORY,
   type IAuditLogsRepository,
 } from '../../../domain/audit-logs.repository';
+import { InvalidAuditLogDateRangeException } from '../../../domain/exceptions/audit-log.exceptions';
 import { ListAuditLogsQuery } from './list-audit-logs.query';
 import { AuditLogPageReadModel } from './audit-log-page.read-model';
 
@@ -23,7 +24,7 @@ export class ListAuditLogsHandler implements IQueryHandler<
     const { filters, page, limit } = query;
 
     if (filters.from && filters.to && filters.from > filters.to) {
-      throw new BadRequestException('from must be before or equal to to');
+      throw new InvalidAuditLogDateRangeException();
     }
 
     const result = await this.auditLogsRepository.findPage({

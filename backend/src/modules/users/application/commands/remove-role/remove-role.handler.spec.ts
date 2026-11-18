@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { NotFoundException } from '@nestjs/common';
+import { UserByIdNotFoundException } from '../../../domain/exceptions/user.exceptions';
 import { Test } from '@nestjs/testing';
 import { RemoveRoleHandler } from './remove-role.handler';
 import { RemoveRoleCommand } from './remove-role.command';
@@ -69,7 +69,7 @@ describe('RemoveRoleHandler', () => {
 
     await expect(
       handler.execute(new RemoveRoleCommand(userId, roleId, headers)),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(UserByIdNotFoundException);
 
     expect(usersRepository.update).not.toHaveBeenCalled();
     expect(outboxRepository.create).not.toHaveBeenCalled();

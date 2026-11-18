@@ -1,4 +1,4 @@
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidIdException } from '../domain/exceptions/value-object.exceptions';
 import { randomUUID } from 'crypto';
 
 const UUID_V4_REGEX =
@@ -15,11 +15,11 @@ export class Id {
     const trimmed = value?.trim();
 
     if (!trimmed) {
-      throw new UnprocessableEntityException('Id is required');
+      throw new InvalidIdException('Id is required');
     }
 
     if (!UUID_V4_REGEX.test(trimmed)) {
-      throw new UnprocessableEntityException(
+      throw new InvalidIdException(
         `Invalid Id: "${trimmed}" is not a valid UUID v4`,
       );
     }

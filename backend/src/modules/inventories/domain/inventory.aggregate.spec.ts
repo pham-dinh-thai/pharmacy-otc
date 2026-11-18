@@ -1,8 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
+import { InvalidQuantityException } from '../../../shared/domain/exceptions/value-object.exceptions';
 import {
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+  BatchNotFoundException,
+  InsufficientStockException,
+} from './exceptions/inventory.exceptions';
 import { Batch } from './batch/batch.entity';
 import { BatchStatus } from './batch/batch-status.enum';
 import { Inventory } from './inventory.aggregate';
@@ -112,7 +113,7 @@ describe('Inventory', () => {
       const inventory = Inventory.fromPersistent(PRODUCT_ID, [batch]);
 
       expect(() => inventory.issueStock(batch.getId(), 11)).toThrow(
-        UnprocessableEntityException,
+        InsufficientStockException,
       );
       expect(batch.getQuantity()).toBe(10);
       expect(inventory.getUpdatedBatches()).toEqual([]);
@@ -122,7 +123,7 @@ describe('Inventory', () => {
       const inventory = Inventory.create(PRODUCT_ID);
 
       expect(() => inventory.issueStock(UNKNOWN_BATCH_ID, 1)).toThrow(
-        NotFoundException,
+        BatchNotFoundException,
       );
     });
   });
@@ -154,7 +155,7 @@ describe('Inventory', () => {
       const inventory = Inventory.fromPersistent(PRODUCT_ID, [batch]);
 
       expect(() => inventory.reconcileStock(batch.getId(), -1)).toThrow(
-        UnprocessableEntityException,
+        InvalidQuantityException,
       );
       expect(batch.getQuantity()).toBe(10);
       expect(inventory.getUpdatedBatches()).toEqual([]);
@@ -164,7 +165,7 @@ describe('Inventory', () => {
       const inventory = Inventory.create(PRODUCT_ID);
 
       expect(() => inventory.reconcileStock(UNKNOWN_BATCH_ID, 1)).toThrow(
-        NotFoundException,
+        BatchNotFoundException,
       );
     });
   });

@@ -1,6 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetUserRoleIdsQuery } from './get-user-role-ids.query';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { UserNotFoundException } from '../../../domain/exceptions/user.exceptions';
 import {
   type IUsersRepository,
   USERS_REPOSITORY,
@@ -19,7 +20,7 @@ export class GetUserRoleIdsHandler implements IQueryHandler<GetUserRoleIdsQuery>
     const user = await this.usersRepository.findById(query.id);
 
     if (!user) {
-      throw new NotFoundException(`User with id ${query.id} not found`);
+      throw new UserNotFoundException(query.id);
     }
 
     return {

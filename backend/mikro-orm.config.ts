@@ -65,7 +65,7 @@ export default defineConfig({
 
   migrations: {
     tableName: 'mikro_orm_migrations',
-    path: './dist/migrations',
+    path: './dist/src/migrations',
     pathTs: './src/migrations',
     glob: '!(*.d).{js,ts}',
     transactional: true,

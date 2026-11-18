@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { NotFoundException } from '@nestjs/common';
+import { RoleNotFoundException } from '../../../domain/exceptions/role.exceptions';
 import { Test } from '@nestjs/testing';
 import { RevokePermissionHandler } from './revoke-permission.handler';
 import { RevokePermissionCommand } from './revoke-permission.command';
@@ -69,7 +69,7 @@ describe('RevokePermissionHandler', () => {
       handler.execute(
         new RevokePermissionCommand(id, 'orders:process', headers),
       ),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(RoleNotFoundException);
 
     expect(rolesRepository.update).not.toHaveBeenCalled();
     expect(outboxRepository.create).not.toHaveBeenCalled();

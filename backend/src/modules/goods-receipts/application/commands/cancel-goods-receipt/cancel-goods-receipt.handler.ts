@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { GoodsReceiptNotFoundException } from '../../../domain/exceptions/goods-receipt.exceptions';
 import {
   type IGoodsReceiptsRepository,
   GOODS_RECEIPTS_REPOSITORY,
@@ -39,7 +40,7 @@ export class CancelGoodsReceiptHandler implements ICommandHandler<CancelGoodsRec
       );
 
       if (!goodsReceipt) {
-        throw new NotFoundException(`Goods receipt id ${command.id} not found`);
+        throw new GoodsReceiptNotFoundException(command.id);
       }
 
       const previousStatus = goodsReceipt.getStatus();

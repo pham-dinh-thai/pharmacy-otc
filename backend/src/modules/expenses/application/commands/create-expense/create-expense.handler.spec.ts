@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidAmountException } from '../../../../../shared/domain/exceptions/value-object.exceptions';
 import { Expense } from '../../../domain/expense.aggregate';
 import { ExpenseCategory } from '../../../domain/enums/expense-category.enum';
 import { ExpenseStatus } from '../../../domain/enums/expense-status.enum';
@@ -117,7 +117,7 @@ describe('CreateExpenseHandler', () => {
     const { handler, create, outboxCreate } = setup();
 
     await expect(handler.execute(createCommand('1.5'))).rejects.toThrow(
-      UnprocessableEntityException,
+      InvalidAmountException,
     );
 
     expect(create).not.toHaveBeenCalled();

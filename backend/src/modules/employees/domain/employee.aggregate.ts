@@ -1,7 +1,12 @@
-import { UnprocessableEntityException } from '@nestjs/common';
+import { type DomainException } from '../../../shared/domain/exceptions/domain.exception';
 import { Id } from '../../../shared/value-objects/id.value-object';
 import { EmployeeStatus } from './enums/employee-status.enum';
 import { EmployeePosition } from './enums/employee-position.enum';
+import {
+  DepartmentIdRequiredException,
+  InvalidEmployeePositionException,
+  UserIdRequiredException,
+} from './exceptions/employee.exceptions';
 
 export type CreateEmployeeProps = {
   userId: string;
@@ -36,8 +41,11 @@ export class Employee {
 
     return new Employee(
       Id.generate(),
-      Employee.normalizeId(props.userId, 'User id is required'),
-      Employee.normalizeId(props.departmentId, 'Department id is required'),
+      Employee.normalizeId(props.userId, () => new UserIdRequiredException()),
+      Employee.normalizeId(
+        props.departmentId,
+        () => new DepartmentIdRequiredException(),
+      ),
       Employee.normalizePosition(props.position),
       props.status ?? EmployeeStatus.WORKING,
       now,
@@ -63,7 +71,7 @@ export class Employee {
   ): void {
     const nextDepartmentId = Employee.normalizeId(
       departmentId,
-      'Department id is required',
+      () => new DepartmentIdRequiredException(),
     );
     const nextPosition = Employee.normalizePosition(position);
 
@@ -117,11 +125,14 @@ export class Employee {
     this.updatedAt = new Date();
   }
 
-  private static normalizeId(raw: string, message: string): string {
+  private static normalizeId(
+    raw: string,
+    error: () => DomainException,
+  ): string {
     const value = raw?.trim();
 
     if (!value) {
-      throw new UnprocessableEntityException(message);
+      throw error();
     }
 
     return value;
@@ -135,7 +146,7 @@ export class Employee {
     }
 
     if (!Object.values(EmployeePosition).includes(raw)) {
-      throw new UnprocessableEntityException('Invalid employee position');
+      throw new InvalidEmployeePositionException();
     }
 
     return raw;

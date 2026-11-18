@@ -1,5 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidQuantityException } from '../../../../../shared/domain/exceptions/value-object.exceptions';
+import {
+  InsufficientStockException,
+  InvalidStockQuantityException,
+} from '../../exceptions/inventory.exceptions';
 import { StockQuantity } from './stock-quantity.value-object';
 
 describe('StockQuantity', () => {
@@ -12,7 +16,7 @@ describe('StockQuantity', () => {
       'rejects %s',
       (value) => {
         expect(() => StockQuantity.create(value)).toThrow(
-          UnprocessableEntityException,
+          InvalidQuantityException,
         );
       },
     );
@@ -28,7 +32,7 @@ describe('StockQuantity', () => {
     it.each([0, -1, 1.5, NaN, Infinity])('rejects %s', (value) => {
       expect(() =>
         StockQuantity.assertPositive(value, 'Issue quantity'),
-      ).toThrow(UnprocessableEntityException);
+      ).toThrow(InvalidStockQuantityException);
     });
 
     it('uses the label in the error message', () => {
@@ -50,7 +54,7 @@ describe('StockQuantity', () => {
     it('rejects when requested quantity is greater than available', () => {
       const quantity = StockQuantity.create(10);
 
-      expect(() => quantity.decrease(11)).toThrow(UnprocessableEntityException);
+      expect(() => quantity.decrease(11)).toThrow(InsufficientStockException);
       expect(() => quantity.decrease(11)).toThrow(
         'Not enough stock: available 10, requested 11',
       );

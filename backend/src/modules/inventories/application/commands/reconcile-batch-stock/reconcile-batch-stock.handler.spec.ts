@@ -1,8 +1,9 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { InvalidQuantityException } from '../../../../../shared/domain/exceptions/value-object.exceptions';
 import {
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+  BatchNotFoundException,
+  InventoryNotFoundException,
+} from '../../../domain/exceptions/inventory.exceptions';
 import { Batch } from '../../../domain/batch/batch.entity';
 import { BatchStatus } from '../../../domain/batch/batch-status.enum';
 import {
@@ -147,7 +148,7 @@ describe('ReconcileBatchStockHandler', () => {
           headers,
         ),
       ),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(InventoryNotFoundException);
 
     expect(save).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();
@@ -166,7 +167,7 @@ describe('ReconcileBatchStockHandler', () => {
           headers,
         ),
       ),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(BatchNotFoundException);
 
     expect(save).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();
@@ -181,7 +182,7 @@ describe('ReconcileBatchStockHandler', () => {
       handler.execute(
         new ReconcileBatchStockCommand(PRODUCT_ID, batchId, -1, headers),
       ),
-    ).rejects.toThrow(UnprocessableEntityException);
+    ).rejects.toThrow(InvalidQuantityException);
 
     expect(inventory.getBatches()[0].getQuantity()).toBe(10);
     expect(save).not.toHaveBeenCalled();

@@ -1,4 +1,7 @@
-import { UnprocessableEntityException } from '@nestjs/common';
+import {
+  InvalidStockQuantityException,
+  InsufficientStockException,
+} from '../../exceptions/inventory.exceptions';
 import { Quantity } from '../../../../../shared/value-objects/quantity.value-object';
 
 export class StockQuantity {
@@ -10,7 +13,7 @@ export class StockQuantity {
 
   public static assertPositive(value: number, label: string): void {
     if (!Number.isInteger(value) || value <= 0) {
-      throw new UnprocessableEntityException(
+      throw new InvalidStockQuantityException(
         `${label} must be a positive integer`,
       );
     }
@@ -18,9 +21,7 @@ export class StockQuantity {
 
   public decrease(quantity: number): StockQuantity {
     if (quantity > this.quantity.getValue()) {
-      throw new UnprocessableEntityException(
-        `Not enough stock: available ${this.quantity.getValue()}, requested ${quantity}`,
-      );
+      throw new InsufficientStockException(this.quantity.getValue(), quantity);
     }
 
     return new StockQuantity(this.quantity.subtract(quantity));

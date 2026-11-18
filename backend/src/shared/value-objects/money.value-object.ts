@@ -1,4 +1,4 @@
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidAmountException } from '../domain/exceptions/value-object.exceptions';
 
 const INTEGER_PATTERN = /^-?\d+$/;
 const MAX_VALUE = 10n ** 15n;
@@ -14,11 +14,11 @@ export class Money {
     const value = Money.parse(raw);
 
     if (value < 0n) {
-      throw new UnprocessableEntityException('Amount can not be less than 0');
+      throw new InvalidAmountException('Amount can not be less than 0');
     }
 
     if (value >= MAX_VALUE) {
-      throw new UnprocessableEntityException(
+      throw new InvalidAmountException(
         'Amount is too large (max value: 10^15)',
       );
     }
@@ -33,9 +33,7 @@ export class Money {
 
     if (typeof raw === 'number') {
       if (!Number.isSafeInteger(raw)) {
-        throw new UnprocessableEntityException(
-          'Amount must be an integer in VND',
-        );
+        throw new InvalidAmountException('Amount must be an integer in VND');
       }
 
       return BigInt(raw);
@@ -44,7 +42,7 @@ export class Money {
     const text = typeof raw === 'string' ? raw.trim() : '';
 
     if (!INTEGER_PATTERN.test(text)) {
-      throw new UnprocessableEntityException(
+      throw new InvalidAmountException(
         `Invalid amount: "${raw}" is not an integer in VND`,
       );
     }
@@ -58,7 +56,7 @@ export class Money {
 
   public multiply(factor: number): Money {
     if (!Number.isSafeInteger(factor) || factor < 0) {
-      throw new UnprocessableEntityException(
+      throw new InvalidAmountException(
         'Amount multiplier must be a non-negative integer',
       );
     }

@@ -1,8 +1,9 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import {
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+  BatchNotFoundException,
+  InsufficientStockException,
+  InventoryNotFoundException,
+} from '../../../domain/exceptions/inventory.exceptions';
 import { Batch } from '../../../domain/batch/batch.entity';
 import { BatchStatus } from '../../../domain/batch/batch-status.enum';
 import {
@@ -134,7 +135,7 @@ describe('IssueBatchStockHandler', () => {
           headers,
         ),
       ),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(InventoryNotFoundException);
 
     expect(save).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();
@@ -153,7 +154,7 @@ describe('IssueBatchStockHandler', () => {
           headers,
         ),
       ),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(BatchNotFoundException);
 
     expect(save).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();
@@ -168,7 +169,7 @@ describe('IssueBatchStockHandler', () => {
       handler.execute(
         new IssueBatchStockCommand(PRODUCT_ID, batchId, 11, headers),
       ),
-    ).rejects.toThrow(UnprocessableEntityException);
+    ).rejects.toThrow(InsufficientStockException);
 
     expect(inventory.getBatches()[0].getQuantity()).toBe(10);
     expect(save).not.toHaveBeenCalled();

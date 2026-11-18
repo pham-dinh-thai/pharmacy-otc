@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import { InvalidPasswordException } from '../../../../authentication/domain/exceptions/authentication.exceptions';
+import { DepartmentDisabledException } from '../../../../departments/domain/exceptions/department.exceptions';
 import { Test } from '@nestjs/testing';
 import { CreateEmployeeHandler } from './create-employee.handler';
 import { CreateEmployeeCommand } from './create-employee.command';
@@ -164,11 +165,11 @@ describe('CreateEmployeeHandler', () => {
   });
 
   it('does not create anything when the department cannot be assigned', async () => {
-    validateDepartment.mockRejectedValueOnce(
-      new ConflictException('Department is disabled'),
-    );
+    validateDepartment.mockRejectedValueOnce(new DepartmentDisabledException());
 
-    await expect(handler.execute(command)).rejects.toThrow(ConflictException);
+    await expect(handler.execute(command)).rejects.toThrow(
+      DepartmentDisabledException,
+    );
 
     expect(createUser).not.toHaveBeenCalled();
     expect(createAccount).not.toHaveBeenCalled();
@@ -189,7 +190,7 @@ describe('CreateEmployeeHandler', () => {
           headers,
         ),
       ),
-    ).rejects.toThrow(BadRequestException);
+    ).rejects.toThrow(InvalidPasswordException);
 
     expect(createEmployee).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();

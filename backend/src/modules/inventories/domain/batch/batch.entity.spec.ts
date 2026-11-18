@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidQuantityException } from '../../../../shared/domain/exceptions/value-object.exceptions';
+import { InvalidStockQuantityException } from '../exceptions/inventory.exceptions';
 import { Batch, CreateBatchProps } from './batch.entity';
 import { BatchStatus } from './batch-status.enum';
 
@@ -114,7 +115,7 @@ describe('Batch', () => {
         const batch = createBatch({ quantity: 10 });
 
         expect(() => batch.issue(quantity)).toThrow(
-          UnprocessableEntityException,
+          InvalidStockQuantityException,
         );
         expect(batch.getQuantity()).toBe(10);
       },
@@ -167,7 +168,7 @@ describe('Batch', () => {
         const batch = createBatch({ quantity: 10 });
 
         expect(() => batch.reconcile(quantity)).toThrow(
-          UnprocessableEntityException,
+          InvalidQuantityException,
         );
         expect(batch.getQuantity()).toBe(10);
       },

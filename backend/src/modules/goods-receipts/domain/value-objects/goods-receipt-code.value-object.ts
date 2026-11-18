@@ -1,4 +1,4 @@
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidGoodsReceiptCodeException } from '../exceptions/goods-receipt.exceptions';
 
 export class GoodsReceiptCode {
   private static readonly PREFIX = 'GR';
@@ -9,7 +9,7 @@ export class GoodsReceiptCode {
 
   public static fromNumber(sequence: number): GoodsReceiptCode {
     if (!Number.isInteger(sequence) || sequence <= 0) {
-      throw new UnprocessableEntityException(
+      throw new InvalidGoodsReceiptCodeException(
         'Invalid goods receipt code sequence',
       );
     }
@@ -21,7 +21,7 @@ export class GoodsReceiptCode {
 
   public static create(raw: unknown): GoodsReceiptCode {
     if (typeof raw !== 'string' || !GoodsReceiptCode.PATTERN.test(raw.trim())) {
-      throw new UnprocessableEntityException(
+      throw new InvalidGoodsReceiptCodeException(
         'Invalid goods receipt code format',
       );
     }

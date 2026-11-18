@@ -1,5 +1,6 @@
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { RoleNotFoundException } from '../../../domain/exceptions/role.exceptions';
 import {
   type IRolesRepository,
   ROLES_REPOSITORY,
@@ -21,7 +22,7 @@ export class GetRoleHandler implements IQueryHandler<
     const role = await this.rolesRepository.findById(query.id);
 
     if (!role) {
-      throw new NotFoundException(`Role id ${query.id} not found`);
+      throw new RoleNotFoundException(query.id);
     }
 
     return RoleReadModel.fromRole(role);

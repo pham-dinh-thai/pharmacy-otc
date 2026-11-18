@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { NotFoundException } from '@nestjs/common';
+import { RoleNotFoundException } from '../../../domain/exceptions/role.exceptions';
 import { Test } from '@nestjs/testing';
 import { GrantPermissionHandler } from './grant-permission.handler';
 import { GrantPermissionCommand } from './grant-permission.command';
@@ -69,7 +69,7 @@ describe('GrantPermissionHandler', () => {
       handler.execute(
         new GrantPermissionCommand(id, 'orders:process', headers),
       ),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(RoleNotFoundException);
 
     expect(rolesRepository.update).not.toHaveBeenCalled();
     expect(outboxRepository.create).not.toHaveBeenCalled();

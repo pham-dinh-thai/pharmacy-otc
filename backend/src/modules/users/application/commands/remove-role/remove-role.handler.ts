@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { UserByIdNotFoundException } from '../../../domain/exceptions/user.exceptions';
 import {
   type IUsersRepository,
   USERS_REPOSITORY,
@@ -37,7 +38,7 @@ export class RemoveRoleHandler implements ICommandHandler<RemoveRoleCommand> {
       const user = await this.usersRepository.findById(command.userId);
 
       if (!user) {
-        throw new NotFoundException(`User id ${command.userId} not found`);
+        throw new UserByIdNotFoundException(command.userId);
       }
 
       const previousRoleIds = user.getRoleIds();

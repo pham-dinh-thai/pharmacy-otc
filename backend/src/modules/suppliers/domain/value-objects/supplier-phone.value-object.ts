@@ -1,4 +1,7 @@
-import { UnprocessableEntityException } from '@nestjs/common';
+import {
+  SupplierPhoneRequiredException,
+  InvalidSupplierPhoneException,
+} from '../exceptions/supplier.exceptions';
 
 // +84, 84 or 0
 const PREFIX = '(?:\\+84|84|0)';
@@ -38,13 +41,13 @@ export class SupplierPhone {
 
   public static create(number: unknown): SupplierPhone {
     if (typeof number !== 'string' || !number.trim()) {
-      throw new UnprocessableEntityException('Phone number is required');
+      throw new SupplierPhoneRequiredException();
     }
 
     const cleaned = number.replace(/[\s.\-()]/g, ''); // Remove spaces, periods, hyphens, and parentheses
 
     if (!SupplierPhone.VIETNAM_PHONE_NUMBER_PATTERN.test(cleaned)) {
-      throw new UnprocessableEntityException('Invalid Vietnam phone number');
+      throw new InvalidSupplierPhoneException();
     }
 
     return new SupplierPhone(SupplierPhone.normalize(cleaned));

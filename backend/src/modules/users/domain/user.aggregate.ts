@@ -1,5 +1,5 @@
-import { UnprocessableEntityException } from '@nestjs/common';
 import { Id } from '../../../shared/value-objects/id.value-object';
+import { RoleIdRequiredException } from './exceptions/user.exceptions';
 
 export type CreateUserProps = {
   firstName: string;
@@ -124,7 +124,7 @@ export class User {
     const trimmed = roleId?.trim();
 
     if (!trimmed) {
-      throw new UnprocessableEntityException('Role id is required');
+      throw new RoleIdRequiredException();
     }
 
     return trimmed;

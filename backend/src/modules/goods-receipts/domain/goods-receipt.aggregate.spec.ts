@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import {
-  ConflictException,
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+  DuplicateGoodsReceiptLineException,
+  GoodsReceiptLineNotFoundException,
+  GoodsReceiptNotPendingException,
+} from './exceptions/goods-receipt.exceptions';
 import { GoodsReceiptLine } from './goods-receipt-line.entity';
 import { GoodsReceipt } from './goods-receipt.aggregate';
 import { GoodsReceiptStatus } from './goods-receipt-status.enum';
@@ -79,7 +79,7 @@ describe('GoodsReceipt', () => {
 
     it('rejects duplicated product and lot in the same receipt', () => {
       expect(() => createReceipt([createLine(), createLine()])).toThrow(
-        UnprocessableEntityException,
+        DuplicateGoodsReceiptLineException,
       );
     });
 
@@ -168,7 +168,7 @@ describe('GoodsReceipt', () => {
 
       expect(() =>
         receipt.attachBatch('11111111-1111-4111-8111-111111111111', BATCH_ID),
-      ).toThrow(NotFoundException);
+      ).toThrow(GoodsReceiptLineNotFoundException);
     });
   });
 
@@ -199,14 +199,18 @@ describe('GoodsReceipt', () => {
       const receipt = createReceipt();
       receipt.confirm(CONFIRMED_BY);
 
-      expect(() => receipt.confirm(CONFIRMED_BY)).toThrow(ConflictException);
+      expect(() => receipt.confirm(CONFIRMED_BY)).toThrow(
+        GoodsReceiptNotPendingException,
+      );
     });
 
     it('rejects confirming a cancelled receipt', () => {
       const receipt = createReceipt();
       receipt.cancel(CANCELLED_BY);
 
-      expect(() => receipt.confirm(CONFIRMED_BY)).toThrow(ConflictException);
+      expect(() => receipt.confirm(CONFIRMED_BY)).toThrow(
+        GoodsReceiptNotPendingException,
+      );
     });
   });
 
@@ -237,14 +241,18 @@ describe('GoodsReceipt', () => {
       const receipt = createReceipt();
       receipt.confirm(CONFIRMED_BY);
 
-      expect(() => receipt.cancel(CANCELLED_BY)).toThrow(ConflictException);
+      expect(() => receipt.cancel(CANCELLED_BY)).toThrow(
+        GoodsReceiptNotPendingException,
+      );
     });
 
     it('rejects cancelling twice', () => {
       const receipt = createReceipt();
       receipt.cancel(CANCELLED_BY);
 
-      expect(() => receipt.cancel(CANCELLED_BY)).toThrow(ConflictException);
+      expect(() => receipt.cancel(CANCELLED_BY)).toThrow(
+        GoodsReceiptNotPendingException,
+      );
     });
   });
 });

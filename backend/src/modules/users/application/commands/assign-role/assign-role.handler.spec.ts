@@ -1,5 +1,9 @@
 import { jest } from '@jest/globals';
-import { NotFoundException, ConflictException } from '@nestjs/common';
+import { UserByIdNotFoundException } from '../../../domain/exceptions/user.exceptions';
+import {
+  RoleDisabledException,
+  RoleNotFoundException,
+} from '../../../../authorization/domain/exceptions/role.exceptions';
 import { Test } from '@nestjs/testing';
 import { AssignRoleHandler } from './assign-role.handler';
 import { AssignRoleCommand } from './assign-role.command';
@@ -80,7 +84,7 @@ describe('AssignRoleHandler', () => {
 
     await expect(
       handler.execute(new AssignRoleCommand(userId, roleId, headers)),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(RoleNotFoundException);
 
     expect(usersRepository.update).not.toHaveBeenCalled();
     expect(outboxRepository.create).not.toHaveBeenCalled();
@@ -95,7 +99,7 @@ describe('AssignRoleHandler', () => {
 
     await expect(
       handler.execute(new AssignRoleCommand(userId, roleId, headers)),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(UserByIdNotFoundException);
 
     expect(usersRepository.update).not.toHaveBeenCalled();
     expect(outboxRepository.create).not.toHaveBeenCalled();
@@ -109,7 +113,7 @@ describe('AssignRoleHandler', () => {
 
     await expect(
       handler.execute(new AssignRoleCommand(userId, roleId, headers)),
-    ).rejects.toThrow(ConflictException);
+    ).rejects.toThrow(RoleDisabledException);
 
     expect(usersRepository.update).not.toHaveBeenCalled();
     expect(outboxRepository.create).not.toHaveBeenCalled();

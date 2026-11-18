@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  GoodsReceiptNotFoundException,
+  GoodsReceiptNotPendingException,
+} from '../../../domain/exceptions/goods-receipt.exceptions';
 import {
   type FindGoodsReceiptOptions,
   type IGoodsReceiptsRepository,
@@ -216,7 +219,7 @@ describe('ConfirmGoodsReceiptHandler', () => {
       handler.execute(
         new ConfirmGoodsReceiptCommand(RECEIPT_ID, CONFIRMED_BY, headers),
       ),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(GoodsReceiptNotFoundException);
 
     expect(update).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();
@@ -233,7 +236,7 @@ describe('ConfirmGoodsReceiptHandler', () => {
       handler.execute(
         new ConfirmGoodsReceiptCommand(RECEIPT_ID, CONFIRMED_BY, headers),
       ),
-    ).rejects.toThrow(ConflictException);
+    ).rejects.toThrow(GoodsReceiptNotPendingException);
 
     expect(update).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();

@@ -1,8 +1,16 @@
-import {
-  ConflictException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
 import { Id } from '../../../shared/value-objects/id.value-object';
+import {
+  DuplicatePermissionsException,
+  InvalidPermissionException,
+  RoleAlreadyDisabledException,
+  RoleAlreadyHasPermissionException,
+  RoleDisabledException,
+  RoleMissingPermissionException,
+  RoleNameRequiredException,
+  RoleNameTooLongException,
+  RoleNotDisabledException,
+  SuperAdminRoleCannotBeDisabledException,
+} from './exceptions/role.exceptions';
 import {
   isPermissionKey,
   PermissionKey,
@@ -80,9 +88,7 @@ export class Role {
     Role.assertValidPermission(permission);
 
     if (this.permissions.has(permission)) {
-      throw new ConflictException(
-        `Role already has permission "${permission}"`,
-      );
+      throw new RoleAlreadyHasPermissionException(permission);
     }
 
     this.permissions.add(permission);
@@ -94,9 +100,7 @@ export class Role {
     Role.assertValidPermission(permission);
 
     if (!this.permissions.has(permission)) {
-      throw new ConflictException(
-        `Role does not have permission "${permission}"`,
-      );
+      throw new RoleMissingPermissionException(permission);
     }
 
     this.permissions.delete(permission);
@@ -135,11 +139,11 @@ export class Role {
 
   public softDelete(): void {
     if (this.isDeleted()) {
-      throw new ConflictException('Role is already disabled');
+      throw new RoleAlreadyDisabledException();
     }
 
     if (this.isSuperAdmin) {
-      throw new ConflictException('Cannot disable a Super Admin role');
+      throw new SuperAdminRoleCannotBeDisabledException();
     }
 
     this.deletedAt = new Date();
@@ -148,7 +152,7 @@ export class Role {
 
   public restore(): void {
     if (!this.isDeleted()) {
-      throw new ConflictException('Role is not disabled');
+      throw new RoleNotDisabledException();
     }
 
     this.deletedAt = null;
@@ -189,7 +193,7 @@ export class Role {
 
   private assertActive(): void {
     if (this.isDeleted()) {
-      throw new ConflictException('Role is disabled');
+      throw new RoleDisabledException();
     }
   }
 
@@ -201,13 +205,11 @@ export class Role {
     const name = raw?.trim();
 
     if (!name) {
-      throw new UnprocessableEntityException('Role name is required');
+      throw new RoleNameRequiredException();
     }
 
     if (name.length > MAX_NAME_LENGTH) {
-      throw new UnprocessableEntityException(
-        `Role name must have at most ${MAX_NAME_LENGTH} characters`,
-      );
+      throw new RoleNameTooLongException(MAX_NAME_LENGTH);
     }
 
     return name;
@@ -221,9 +223,7 @@ export class Role {
     permission: string,
   ): asserts permission is PermissionKey {
     if (!isPermissionKey(permission)) {
-      throw new UnprocessableEntityException(
-        `Invalid permission "${permission}"`,
-      );
+      throw new InvalidPermissionException(permission);
     }
   }
 
@@ -231,9 +231,7 @@ export class Role {
     permissions: PermissionKey[],
   ): void {
     if (new Set(permissions).size !== permissions.length) {
-      throw new UnprocessableEntityException(
-        'Duplicate permissions are not allowed',
-      );
+      throw new DuplicatePermissionsException();
     }
   }
 }

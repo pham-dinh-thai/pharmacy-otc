@@ -1,5 +1,6 @@
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { User } from '../../domain/user.aggregate';
+import { UserEmailAlreadyExistsException } from '../../domain/exceptions/user.exceptions';
 import {
   type IUsersRepository,
   USERS_REPOSITORY,
@@ -24,7 +25,7 @@ export class CreateUserService {
 
   public async create(input: CreateUserInput): Promise<User> {
     if (await this.usersRepository.existsByEmail(input.email)) {
-      throw new ConflictException(`User email ${input.email} already exists`);
+      throw new UserEmailAlreadyExistsException(input.email);
     }
 
     const user = User.create(input);

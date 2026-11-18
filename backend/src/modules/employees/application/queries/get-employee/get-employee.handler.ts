@@ -1,5 +1,6 @@
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { EmployeeNotFoundException } from '../../../domain/exceptions/employee.exceptions';
 import {
   EMPLOYEES_REPOSITORY,
   type IEmployeesRepository,
@@ -24,7 +25,7 @@ export class GetEmployeeHandler implements IQueryHandler<
     const employee = await this.employeesRepository.findById(query.id);
 
     if (!employee) {
-      throw new NotFoundException(`Employee id ${query.id} not found`);
+      throw new EmployeeNotFoundException(query.id);
     }
 
     return this.readModelFactory.create(employee);

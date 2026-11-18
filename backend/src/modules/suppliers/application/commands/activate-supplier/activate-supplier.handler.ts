@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { SupplierNotFoundException } from '../../../domain/exceptions/supplier.exceptions';
 import {
   type ISuppliersRepository,
   SUPPLIERS_REPOSITORY,
@@ -37,7 +38,7 @@ export class ActivateSupplierHandler implements ICommandHandler<ActivateSupplier
       const supplier = await this.suppliersRepository.findById(command.id);
 
       if (!supplier) {
-        throw new NotFoundException(`Supplier id ${command.id} not found`);
+        throw new SupplierNotFoundException(command.id);
       }
 
       const previousStatus = supplier.getStatus();

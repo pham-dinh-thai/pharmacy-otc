@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidLotNumberException } from '../../../../../shared/domain/exceptions/value-object.exceptions';
 import { LotNumber } from './lot-number.value-object';
 
 describe('LotNumber', () => {
@@ -9,7 +9,7 @@ describe('LotNumber', () => {
 
   it.each(['', '   ', null, undefined])('rejects empty value %p', (value) => {
     expect(() => LotNumber.create(value as unknown as string)).toThrow(
-      UnprocessableEntityException,
+      InvalidLotNumberException,
     );
   });
 

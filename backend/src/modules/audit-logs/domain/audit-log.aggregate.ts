@@ -1,4 +1,4 @@
-import { UnprocessableEntityException } from '@nestjs/common';
+import { InvalidAuditLogException } from './exceptions/audit-log.exceptions';
 import { Id } from '../../../shared/value-objects/id.value-object';
 import { ActorType } from './enums/actor-type.enum';
 import { AuditStatus } from './enums/audit-status.enum';
@@ -255,7 +255,7 @@ export class AuditLog {
     }
 
     if (Number.isNaN(occurredAt.getTime())) {
-      throw new UnprocessableEntityException(
+      throw new InvalidAuditLogException(
         'Audit log occurredAt must be a valid date',
       );
     }
@@ -271,11 +271,11 @@ export class AuditLog {
     const value = raw?.trim();
 
     if (!value) {
-      throw new UnprocessableEntityException(`Audit log ${field} is required`);
+      throw new InvalidAuditLogException(`Audit log ${field} is required`);
     }
 
     if (value.length > maxLength) {
-      throw new UnprocessableEntityException(
+      throw new InvalidAuditLogException(
         `Audit log ${field} must have at most ${maxLength} characters`,
       );
     }
@@ -295,7 +295,7 @@ export class AuditLog {
     }
 
     if (value.length > maxLength) {
-      throw new UnprocessableEntityException(
+      throw new InvalidAuditLogException(
         `Audit log ${field} must have at most ${maxLength} characters`,
       );
     }
@@ -312,7 +312,7 @@ export class AuditLog {
     }
 
     if (typeof snapshot !== 'object' || Array.isArray(snapshot)) {
-      throw new UnprocessableEntityException(
+      throw new InvalidAuditLogException(
         `Audit log ${field} must be a JSON object`,
       );
     }
@@ -335,7 +335,7 @@ export class AuditLog {
 
     if (typeof value === 'number') {
       if (!Number.isFinite(value)) {
-        throw new UnprocessableEntityException(
+        throw new InvalidAuditLogException(
           `Audit log ${path} must be JSON-serializable`,
         );
       }
@@ -344,7 +344,7 @@ export class AuditLog {
     }
 
     if (typeof value !== 'object') {
-      throw new UnprocessableEntityException(
+      throw new InvalidAuditLogException(
         `Audit log ${path} must be JSON-serializable`,
       );
     }
@@ -354,7 +354,7 @@ export class AuditLog {
     }
 
     if (ancestors.has(value)) {
-      throw new UnprocessableEntityException(
+      throw new InvalidAuditLogException(
         `Audit log ${path} must not contain circular references`,
       );
     }

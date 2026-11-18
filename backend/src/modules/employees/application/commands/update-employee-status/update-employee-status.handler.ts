@@ -1,5 +1,6 @@
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { EmployeeNotFoundException } from '../../../domain/exceptions/employee.exceptions';
 import {
   EMPLOYEES_REPOSITORY,
   type IEmployeesRepository,
@@ -34,9 +35,7 @@ export class UpdateEmployeeStatusHandler implements ICommandHandler<UpdateEmploy
       );
 
       if (!employee) {
-        throw new NotFoundException(
-          `Employee id ${command.employeeId} not found`,
-        );
+        throw new EmployeeNotFoundException(command.employeeId);
       }
 
       const statusChanged = await this.statusTransition.apply(

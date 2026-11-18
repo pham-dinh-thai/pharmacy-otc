@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { DepartmentNameRequiredException } from '../../../domain/exceptions/department.exceptions';
 import { Test } from '@nestjs/testing';
 import { CreateDepartmentHandler } from './create-department.handler';
 import { CreateDepartmentCommand } from './create-department.command';
@@ -81,7 +81,7 @@ describe('CreateDepartmentHandler', () => {
   it('does not save or emit an event for a blank name', async () => {
     await expect(
       handler.execute(new CreateDepartmentCommand('   ', headers)),
-    ).rejects.toThrow(UnprocessableEntityException);
+    ).rejects.toThrow(DepartmentNameRequiredException);
 
     expect(create).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();

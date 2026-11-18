@@ -1,6 +1,10 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ReconcileBatchStockCommand } from './reconcile-batch-stock.command';
-import { Inject, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import {
+  InventoryNotFoundException,
+  BatchNotFoundException,
+} from '../../../domain/exceptions/inventory.exceptions';
 import {
   type IInventoriesRepository,
   INVENTORIES_REPOSITORY,
@@ -38,9 +42,7 @@ export class ReconcileBatchStockHandler implements ICommandHandler<ReconcileBatc
       );
 
       if (!inventory) {
-        throw new NotFoundException(
-          `Inventory with productId ${command.productId} not found`,
-        );
+        throw new InventoryNotFoundException(command.productId);
       }
 
       const batch = inventory
@@ -48,7 +50,7 @@ export class ReconcileBatchStockHandler implements ICommandHandler<ReconcileBatc
         .find((item) => item.getId() === command.batchId);
 
       if (!batch) {
-        throw new NotFoundException(`Batch id ${command.batchId} not found`);
+        throw new BatchNotFoundException(command.batchId);
       }
 
       const beforeQuantity = batch.getQuantity();
