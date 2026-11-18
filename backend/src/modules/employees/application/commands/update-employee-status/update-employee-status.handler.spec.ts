@@ -9,6 +9,7 @@ import {
 } from '../../../domain/employees.repository';
 import { Employee } from '../../../domain/employee.aggregate';
 import { EmployeeStatus } from '../../../domain/enums/employee-status.enum';
+import { EmployeePosition } from '../../../domain/enums/employee-position.enum';
 import { EMPLOYEE_STATUS_CHANGED_EVENT } from '../../../domain/events/employee-status-changed.event';
 import { EMPLOYEE_RESIGNED_EVENT } from '../../../domain/events/employee-resigned.event';
 import {
@@ -38,7 +39,7 @@ const employeeWithStatus = (status: EmployeeStatus): Employee =>
     id: EMPLOYEE_ID,
     userId: USER_ID,
     departmentId: 'b3d7f2a8-7a0e-4f1c-9c1a-4d3f5e6a7b8c',
-    position: 'Pharmacist',
+    position: EmployeePosition.PHARMACIST,
     status,
     createdAt: new Date('2026-11-17T00:00:00.000Z'),
     updatedAt: new Date('2026-11-17T00:00:00.000Z'),

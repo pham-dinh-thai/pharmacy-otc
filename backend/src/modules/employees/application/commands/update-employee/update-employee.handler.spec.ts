@@ -6,6 +6,7 @@ import { UpdateEmployeeCommand } from './update-employee.command';
 import { EMPLOYEES_REPOSITORY } from '../../../domain/employees.repository';
 import { Employee } from '../../../domain/employee.aggregate';
 import { EmployeeStatus } from '../../../domain/enums/employee-status.enum';
+import { EmployeePosition } from '../../../domain/enums/employee-position.enum';
 import {
   OUTBOX_REPOSITORY,
   type IOutboxRepository,
@@ -39,7 +40,7 @@ const employeeWithStatus = (status: EmployeeStatus): Employee =>
     id: EMPLOYEE_ID,
     userId: USER_ID,
     departmentId: DEPARTMENT_ID,
-    position: 'Pharmacist',
+    position: EmployeePosition.PHARMACIST,
     status,
     createdAt: new Date('2026-11-17T00:00:00.000Z'),
     updatedAt: new Date('2026-11-17T00:00:00.000Z'),
@@ -115,7 +116,7 @@ describe('UpdateEmployeeHandler', () => {
       new UpdateEmployeeCommand(
         EMPLOYEE_ID,
         NEXT_DEPARTMENT_ID,
-        '  Store Manager  ',
+        EmployeePosition.MANAGER,
         undefined,
         headers,
       ),
@@ -131,10 +132,13 @@ describe('UpdateEmployeeHandler', () => {
         audit: {
           entityType: EntityType.EMPLOYEES,
           entityId: EMPLOYEE_ID,
-          before: { departmentId: DEPARTMENT_ID, position: 'Pharmacist' },
+          before: {
+            departmentId: DEPARTMENT_ID,
+            position: EmployeePosition.PHARMACIST,
+          },
           after: {
             departmentId: NEXT_DEPARTMENT_ID,
-            position: 'Store Manager',
+            position: EmployeePosition.MANAGER,
           },
         },
       },
@@ -142,7 +146,7 @@ describe('UpdateEmployeeHandler', () => {
     expect(result).toMatchObject({
       id: EMPLOYEE_ID,
       departmentId: NEXT_DEPARTMENT_ID,
-      position: 'Store Manager',
+      position: EmployeePosition.MANAGER,
       status: EmployeeStatus.WORKING,
     });
   });
@@ -190,7 +194,7 @@ describe('UpdateEmployeeHandler', () => {
       ),
     );
 
-    expect(result.position).toBe('Pharmacist');
+    expect(result.position).toBe(EmployeePosition.PHARMACIST);
     expect(update).not.toHaveBeenCalled();
     expect(outboxCreate).not.toHaveBeenCalled();
   });
@@ -205,7 +209,7 @@ describe('UpdateEmployeeHandler', () => {
         new UpdateEmployeeCommand(
           EMPLOYEE_ID,
           DEPARTMENT_ID,
-          'Pharmacist',
+          EmployeePosition.PHARMACIST,
           undefined,
           headers,
         ),

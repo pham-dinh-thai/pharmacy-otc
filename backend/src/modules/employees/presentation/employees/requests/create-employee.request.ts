@@ -1,6 +1,8 @@
 import { Transform } from 'class-transformer';
+import { EmployeePosition } from '../../../domain/enums/employee-position.enum';
 import {
   IsEmail,
+  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -44,7 +46,6 @@ export class CreateEmployeeRequest {
 
   @Transform(trim)
   @IsOptional()
-  @IsString()
-  @MaxLength(255)
-  position?: string | null;
+  @IsEnum(EmployeePosition)
+  position?: EmployeePosition | null;
 }

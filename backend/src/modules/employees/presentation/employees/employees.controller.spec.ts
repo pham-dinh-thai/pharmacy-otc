@@ -14,6 +14,7 @@ import { CreateEmployeeRequest } from './requests/create-employee.request';
 import { UpdateEmployeeRequest } from './requests/update-employee.request';
 import { UpdateEmployeeStatusRequest } from './requests/update-employee-status.request';
 import { EmployeeStatus } from '../../domain/enums/employee-status.enum';
+import { EmployeePosition } from '../../domain/enums/employee-position.enum';
 import { type ActorHeaders } from '../../../../shared/types/actor-headers';
 
 const EMPLOYEE_ID = '4e770b20-0ab6-494a-9bfd-e475e07c7a17';
@@ -81,7 +82,7 @@ describe('EmployeesController', () => {
     request.email = 'minh@example.com';
     request.password = 'secret123';
     request.departmentId = DEPARTMENT_ID;
-    request.position = 'Pharmacist';
+    request.position = EmployeePosition.PHARMACIST;
 
     await controller.create(request, headers);
 
@@ -92,7 +93,7 @@ describe('EmployeesController', () => {
         'minh@example.com',
         'secret123',
         DEPARTMENT_ID,
-        'Pharmacist',
+        EmployeePosition.PHARMACIST,
         headers,
       ),
     );

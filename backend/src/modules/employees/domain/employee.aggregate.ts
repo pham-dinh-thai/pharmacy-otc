@@ -1,13 +1,12 @@
 import { UnprocessableEntityException } from '@nestjs/common';
 import { Id } from '../../../shared/value-objects/id.value-object';
 import { EmployeeStatus } from './enums/employee-status.enum';
-
-const MAX_POSITION_LENGTH = 255;
+import { EmployeePosition } from './enums/employee-position.enum';
 
 export type CreateEmployeeProps = {
   userId: string;
   departmentId: string;
-  position?: string | null;
+  position?: EmployeePosition | null;
   status?: EmployeeStatus;
 };
 
@@ -15,7 +14,7 @@ export type FromPersistentEmployeeProps = {
   id: string;
   userId: string;
   departmentId: string;
-  position: string | null;
+  position: EmployeePosition | null;
   status: EmployeeStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -26,7 +25,7 @@ export class Employee {
     private readonly id: Id,
     private readonly userId: string,
     private departmentId: string,
-    private position: string | null,
+    private position: EmployeePosition | null,
     private status: EmployeeStatus,
     private readonly createdAt: Date,
     private updatedAt: Date,
@@ -60,7 +59,7 @@ export class Employee {
 
   public changeAssignment(
     departmentId: string,
-    position?: string | null,
+    position?: EmployeePosition | null,
   ): void {
     const nextDepartmentId = Employee.normalizeId(
       departmentId,
@@ -98,7 +97,7 @@ export class Employee {
     return this.departmentId;
   }
 
-  public getPosition(): string | null {
+  public getPosition(): EmployeePosition | null {
     return this.position;
   }
 
@@ -128,23 +127,17 @@ export class Employee {
     return value;
   }
 
-  private static normalizePosition(raw?: string | null): string | null {
+  private static normalizePosition(
+    raw?: EmployeePosition | null,
+  ): EmployeePosition | null {
     if (raw === undefined || raw === null) {
       return null;
     }
 
-    const position = raw.trim();
-
-    if (!position) {
-      return null;
+    if (!Object.values(EmployeePosition).includes(raw)) {
+      throw new UnprocessableEntityException('Invalid employee position');
     }
 
-    if (position.length > MAX_POSITION_LENGTH) {
-      throw new UnprocessableEntityException(
-        `Position must have at most ${MAX_POSITION_LENGTH} characters`,
-      );
-    }
-
-    return position;
+    return raw;
   }
 }

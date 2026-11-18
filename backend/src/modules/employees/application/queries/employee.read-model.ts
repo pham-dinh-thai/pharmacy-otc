@@ -1,4 +1,5 @@
 import { type EmployeeStatus } from '../../domain/enums/employee-status.enum';
+import { type EmployeePosition } from '../../domain/enums/employee-position.enum';
 
 export class EmployeeReadModel {
   public constructor(
@@ -9,7 +10,7 @@ export class EmployeeReadModel {
     public readonly email: string,
     public readonly departmentId: string,
     public readonly departmentName: string,
-    public readonly position: string | null,
+    public readonly position: EmployeePosition | null,
     public readonly status: EmployeeStatus,
     public readonly isActive: boolean,
     public readonly createdAt: Date,
