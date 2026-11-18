@@ -5,3 +5,10 @@ export type Department = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type DepartmentPage = {
+  items: Department[];
+  total: number;
+  page: number;
+  limit: number;
+};

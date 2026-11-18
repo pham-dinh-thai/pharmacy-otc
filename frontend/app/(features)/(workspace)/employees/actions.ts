@@ -16,12 +16,30 @@ function employeePath(id: string): string {
   return `${LIST_PATH}/${id}`;
 }
 
+function withQuery(path: string, query: Record<string, string>): string {
+  const url = new URL(path, 'http://localhost');
+
+  Object.entries(query).forEach(([key, value]) => {
+    url.searchParams.set(key, value);
+  });
+
+  return `${url.pathname}${url.search}`;
+}
+
 function returnPath(value: FormDataEntryValue | null): string {
   const path = String(value ?? '');
 
-  return path === LIST_PATH || path.startsWith(`${LIST_PATH}/`)
-    ? path
-    : LIST_PATH;
+  if (path === LIST_PATH || path.startsWith(`${LIST_PATH}/`)) return path;
+  if (path.startsWith(`${LIST_PATH}?`)) return path;
+
+  return LIST_PATH;
+}
+
+/** Khi quay về danh sách thì giữ lại page/limit. */
+function listReturnPath(value: FormDataEntryValue | null): string {
+  const url = new URL(returnPath(value), 'http://localhost');
+
+  return url.pathname === LIST_PATH ? `${url.pathname}${url.search}` : LIST_PATH;
 }
 
 function trimmed(value: FormDataEntryValue | null): string {
@@ -43,11 +61,11 @@ async function requirePermission(
   const user = await fetchCurrentUser();
 
   if (!user) {
-    redirect(`/login?next=${fallback}`);
+    redirect(`/login?next=${encodeURIComponent(fallback)}`);
   }
 
   if (!user.isSuperAdmin && !hasPermission(user, permission)) {
-    redirect(`${fallback}?error=forbidden`);
+    redirect(withQuery(fallback, { error: 'forbidden' }));
   }
 }
 
@@ -90,7 +108,7 @@ export async function createEmployee(formData: FormData) {
     redirect(`${CREATE_PATH}?error=server`);
   }
 
-  if (res.status === 401) redirect(`/login?next=${CREATE_PATH}`);
+  if (res.status === 401) redirect(`/login?next=${encodeURIComponent(CREATE_PATH)}`);
   if (res.status === 403) redirect(`${CREATE_PATH}?error=forbidden`);
   if (res.status === 404) redirect(`${CREATE_PATH}?error=department`);
   if (res.status === 409) redirect(`${CREATE_PATH}?error=conflict`);
@@ -116,14 +134,14 @@ export async function updateEmployee(formData: FormData) {
   const positionRaw = formData.get('position');
   const position = positionRaw === null ? undefined : trimmed(positionRaw) || null;
 
-  if (!id || !departmentId) redirect(`${back}?error=missing`);
+  if (!id || !departmentId) redirect(withQuery(back, { error: 'missing' }));
 
   if (
     position !== undefined &&
     position !== null &&
     !isEmployeePosition(position)
   ) {
-    redirect(`${back}?error=invalid`);
+    redirect(withQuery(back, { error: 'invalid' }));
   }
 
   let res: Response;
@@ -134,21 +152,21 @@ export async function updateEmployee(formData: FormData) {
       body: JSON.stringify({ departmentId, position }),
     });
   } catch {
-    redirect(`${back}?error=server`);
+    redirect(withQuery(back, { error: 'server' }));
   }
 
-  if (res.status === 401) redirect(`/login?next=${back}`);
-  if (res.status === 403) redirect(`${back}?error=forbidden`);
+  if (res.status === 401) redirect(`/login?next=${encodeURIComponent(back)}`);
+  if (res.status === 403) redirect(withQuery(back, { error: 'forbidden' }));
   if (res.status === 404) redirect(`${LIST_PATH}?error=missing`);
-  if (res.status === 409) redirect(`${back}?error=conflict`);
+  if (res.status === 409) redirect(withQuery(back, { error: 'conflict' }));
   if (res.status === 400 || res.status === 422) {
-    redirect(`${back}?error=invalid`);
+    redirect(withQuery(back, { error: 'invalid' }));
   }
-  if (!res.ok) redirect(`${back}?error=server`);
+  if (!res.ok) redirect(withQuery(back, { error: 'server' }));
 
   revalidatePath(LIST_PATH);
   revalidatePath(employeePath(id));
-  redirect(`${back}?updated=saved`);
+  redirect(withQuery(back, { updated: 'saved' }));
 }
 
 /**
@@ -164,7 +182,7 @@ export async function changeEmployeeStatus(formData: FormData) {
 
   if (!id) redirect(`${LIST_PATH}?error=missing`);
   if (!MANAGEABLE_EMPLOYEE_STATUSES.includes(status as never)) {
-    redirect(`${back}?error=invalid`);
+    redirect(withQuery(back, { error: 'invalid' }));
   }
 
   let res: Response;
@@ -175,20 +193,20 @@ export async function changeEmployeeStatus(formData: FormData) {
       body: JSON.stringify({ status }),
     });
   } catch {
-    redirect(`${back}?error=server`);
+    redirect(withQuery(back, { error: 'server' }));
   }
 
-  if (res.status === 401) redirect(`/login?next=${back}`);
-  if (res.status === 403) redirect(`${back}?error=forbidden`);
+  if (res.status === 401) redirect(`/login?next=${encodeURIComponent(back)}`);
+  if (res.status === 403) redirect(withQuery(back, { error: 'forbidden' }));
   if (res.status === 404) redirect(`${LIST_PATH}?error=missing`);
   if (res.status === 400 || res.status === 422) {
-    redirect(`${back}?error=invalid`);
+    redirect(withQuery(back, { error: 'invalid' }));
   }
-  if (!res.ok) redirect(`${back}?error=server`);
+  if (!res.ok) redirect(withQuery(back, { error: 'server' }));
 
   revalidatePath(LIST_PATH);
   revalidatePath(employeePath(id));
-  redirect(`${back}?updated=status`);
+  redirect(withQuery(back, { updated: 'status' }));
 }
 
 /** Nghỉ việc = cập nhật status RESIGNED, không xoá bản ghi nhân viên. */
@@ -204,16 +222,16 @@ export async function resignEmployee(formData: FormData) {
   try {
     res = await authFetch(`/employees/${id}`, { method: 'DELETE' });
   } catch {
-    redirect(`${back}?error=server`);
+    redirect(withQuery(back, { error: 'server' }));
   }
 
-  if (res.status === 401) redirect(`/login?next=${back}`);
-  if (res.status === 403) redirect(`${back}?error=forbidden`);
+  if (res.status === 401) redirect(`/login?next=${encodeURIComponent(back)}`);
+  if (res.status === 403) redirect(withQuery(back, { error: 'forbidden' }));
   if (res.status === 404) redirect(`${LIST_PATH}?error=missing`);
   if (res.status === 409) redirect(`${LIST_PATH}?error=alreadyResigned`);
-  if (!res.ok) redirect(`${back}?error=server`);
+  if (!res.ok) redirect(withQuery(back, { error: 'server' }));
 
   revalidatePath(LIST_PATH);
   revalidatePath(employeePath(id));
-  redirect(`${LIST_PATH}?updated=resigned`);
+  redirect(withQuery(listReturnPath(formData.get('returnTo')), { updated: 'resigned' }));
 }

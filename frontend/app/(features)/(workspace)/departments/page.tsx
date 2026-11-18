@@ -2,10 +2,13 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { WorkspacePage } from '@/components/layout/WorkspaceShell';
+import { PageSizeForm } from '@/components/pagination/PageSizeForm';
+import { PaginationNav } from '@/components/pagination/PaginationNav';
 import { FormMessage } from '@/components/roles/FormMessage';
 import { fetchCurrentUser, hasPermission } from '@/lib/account';
 import { authFetch } from '@/lib/auth';
-import type { Department } from '@/lib/departments';
+import type { DepartmentPage } from '@/lib/departments';
+import { listPageHref, parseLimit, parsePage } from '@/lib/pagination';
 import { disableDepartment, restoreDepartment } from './actions';
 
 const TH_CLASS =
@@ -28,6 +31,12 @@ const UPDATED_MESSAGES: Record<string, string> = {
   restored: 'Đã khôi phục phòng ban.',
 };
 
+function first(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) return value[0] ?? '';
+
+  return value ?? '';
+}
+
 function formatDate(value: string): string {
   return new Date(value).toLocaleString('vi-VN', {
     dateStyle: 'short',
@@ -38,7 +47,12 @@ function formatDate(value: string): string {
 async function DepartmentsList({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; updated?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    updated?: string;
+    page?: string | string[];
+    limit?: string | string[];
+  }>;
 }) {
   const user = await fetchCurrentUser();
 
@@ -47,13 +61,23 @@ async function DepartmentsList({
     redirect('/dashboard');
   }
 
-  const [res, query] = await Promise.all([authFetch('/departments'), searchParams]);
+  const query = await searchParams;
+  const page = parsePage(first(query.page));
+  const limit = parseLimit(first(query.limit));
+  const listHref = listPageHref('/departments', page, limit);
+  const res = await authFetch(`/departments?page=${page}&limit=${limit}`);
 
-  if (res.status === 401) redirect('/login?next=/departments');
+  if (res.status === 401) redirect(`/login?next=${encodeURIComponent(listHref)}`);
   if (res.status === 403) redirect('/dashboard');
   if (!res.ok) throw new Error(`Failed to fetch departments: ${res.status}`);
 
-  const departments: Department[] = await res.json();
+  const result = (await res.json()) as DepartmentPage;
+  const departments = result.items;
+  const totalPages = Math.max(1, Math.ceil(result.total / result.limit));
+
+  if (result.page > totalPages) {
+    redirect(listPageHref('/departments', totalPages, limit));
+  }
   const activeDepartments = departments.filter(
     (department) => department.deletedAt === null,
   );
@@ -87,20 +111,21 @@ async function DepartmentsList({
 
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">
         <p className="text-[13px] text-muted">
-          {activeDepartments.length} phòng ban đang hoạt động
-          {disabledDepartments.length > 0
-            ? ` · ${disabledDepartments.length} đã vô hiệu hoá`
-            : ''}
+          {result.total} phòng ban · Trang {result.page}/{totalPages}
         </p>
 
-        {canCreate && (
-          <Link
-            href="/departments/new"
-            className="bg-accent px-4 py-2.5 text-[13px] font-semibold text-paper transition-colors hover:bg-ink"
-          >
-            Thêm phòng ban
-          </Link>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          <PageSizeForm action="/departments" limit={limit} />
+
+          {canCreate && (
+            <Link
+              href="/departments/new"
+              className="bg-accent px-4 py-2.5 text-[13px] font-semibold text-paper transition-colors hover:bg-ink"
+            >
+              Thêm phòng ban
+            </Link>
+          )}
+        </div>
       </div>
 
       {activeDepartments.length > 0 ? (
@@ -154,7 +179,7 @@ async function DepartmentsList({
                             <input
                               type="hidden"
                               name="returnTo"
-                              value="/departments"
+                              value={listHref}
                             />
                             <button
                               type="submit"
@@ -236,7 +261,7 @@ async function DepartmentsList({
                           <input
                             type="hidden"
                             name="returnTo"
-                            value="/departments"
+                            value={listHref}
                           />
                           <button
                             type="submit"
@@ -255,6 +280,14 @@ async function DepartmentsList({
           </div>
         </section>
       )}
+
+      <PaginationNav
+        path="/departments"
+        page={result.page}
+        limit={limit}
+        totalPages={totalPages}
+        label="Phân trang phòng ban"
+      />
     </WorkspacePage>
   );
 }
@@ -262,7 +295,12 @@ async function DepartmentsList({
 export default function DepartmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; updated?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    updated?: string;
+    page?: string | string[];
+    limit?: string | string[];
+  }>;
 }) {
   return (
     <Suspense fallback={<div className="min-h-[50vh]" />}>

@@ -2,14 +2,17 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { WorkspacePage } from '@/components/layout/WorkspaceShell';
+import { PageSizeForm } from '@/components/pagination/PageSizeForm';
+import { PaginationNav } from '@/components/pagination/PaginationNav';
 import { FormMessage } from '@/components/roles/FormMessage';
 import { fetchCurrentUser, hasPermission } from '@/lib/account';
 import { authFetch } from '@/lib/auth';
 import {
   EMPLOYEE_STATUS_LABELS,
-  type Employee,
+  type EmployeePage,
   type EmployeeStatus,
 } from '@/lib/employees';
+import { listPageHref, parseLimit, parsePage } from '@/lib/pagination';
 import { resignEmployee } from './actions';
 
 const TH_CLASS =
@@ -38,6 +41,12 @@ const STATUS_CLASS: Record<EmployeeStatus, string> = {
   resigned: 'border-rule text-muted',
 };
 
+function first(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) return value[0] ?? '';
+
+  return value ?? '';
+}
+
 function formatDate(value: string): string {
   return new Date(value).toLocaleString('vi-VN', {
     dateStyle: 'short',
@@ -58,7 +67,12 @@ function StatusBadge({ status }: { status: EmployeeStatus }) {
 async function EmployeesList({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; updated?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    updated?: string;
+    page?: string | string[];
+    limit?: string | string[];
+  }>;
 }) {
   const user = await fetchCurrentUser();
 
@@ -67,21 +81,23 @@ async function EmployeesList({
     redirect('/dashboard');
   }
 
-  const [res, query] = await Promise.all([
-    authFetch('/employees'),
-    searchParams,
-  ]);
+  const query = await searchParams;
+  const page = parsePage(first(query.page));
+  const limit = parseLimit(first(query.limit));
+  const listHref = listPageHref('/employees', page, limit);
+  const res = await authFetch(`/employees?page=${page}&limit=${limit}`);
 
-  if (res.status === 401) redirect('/login?next=/employees');
+  if (res.status === 401) redirect(`/login?next=${encodeURIComponent(listHref)}`);
   if (res.status === 403) redirect('/dashboard');
   if (!res.ok) throw new Error(`Failed to fetch employees: ${res.status}`);
 
-  const employees: Employee[] = await res.json();
-  const activeCount = employees.filter(
-    (employee) => employee.status !== 'resigned',
-  ).length;
-  const resignedCount = employees.length - activeCount;
+  const result = (await res.json()) as EmployeePage;
+  const employees = result.items;
+  const totalPages = Math.max(1, Math.ceil(result.total / result.limit));
 
+  if (result.page > totalPages) {
+    redirect(listPageHref('/employees', totalPages, limit));
+  }
   const canCreate =
     user.isSuperAdmin || hasPermission(user, 'employees:create');
   const canUpdate =
@@ -108,18 +124,21 @@ async function EmployeesList({
 
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">
         <p className="text-[13px] text-muted">
-          {activeCount} nhân viên đang làm việc
-          {resignedCount > 0 ? ` · ${resignedCount} đã nghỉ việc` : ''}
+          {result.total} nhân viên · Trang {result.page}/{totalPages}
         </p>
 
-        {canCreate && (
-          <Link
-            href="/employees/new"
-            className="bg-accent px-4 py-2.5 text-[13px] font-semibold text-paper transition-colors hover:bg-ink"
-          >
-            Thêm nhân viên
-          </Link>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          <PageSizeForm action="/employees" limit={limit} />
+
+          {canCreate && (
+            <Link
+              href="/employees/new"
+              className="bg-accent px-4 py-2.5 text-[13px] font-semibold text-paper transition-colors hover:bg-ink"
+            >
+              Thêm nhân viên
+            </Link>
+          )}
+        </div>
       </div>
 
       {employees.length > 0 ? (
@@ -187,7 +206,7 @@ async function EmployeesList({
                             <input
                               type="hidden"
                               name="returnTo"
-                              value="/employees"
+                              value={listHref}
                             />
                             <button
                               type="submit"
@@ -211,6 +230,14 @@ async function EmployeesList({
           Chưa có nhân viên nào trong danh sách.
         </p>
       )}
+
+      <PaginationNav
+        path="/employees"
+        page={result.page}
+        limit={limit}
+        totalPages={totalPages}
+        label="Phân trang nhân viên"
+      />
     </WorkspacePage>
   );
 }
@@ -218,7 +245,12 @@ async function EmployeesList({
 export default function EmployeesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; updated?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    updated?: string;
+    page?: string | string[];
+    limit?: string | string[];
+  }>;
 }) {
   return (
     <Suspense fallback={<div className="min-h-[50vh]" />}>

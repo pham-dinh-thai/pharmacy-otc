@@ -29,6 +29,13 @@ export type Employee = {
   updatedAt: string;
 };
 
+export type EmployeePage = {
+  items: Employee[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
 export type EmployeeDepartmentOption = {
   id: string;
   name: string;
