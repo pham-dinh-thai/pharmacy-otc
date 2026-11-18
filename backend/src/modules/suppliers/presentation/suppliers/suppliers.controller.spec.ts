@@ -65,6 +65,7 @@ describe('SuppliersController', () => {
           '0312345678',
           new Date('2026-01-01T00:00:00Z'),
           new Date('2026-01-01T00:00:00Z'),
+          null,
         ),
       ];
       queryExecute.mockResolvedValue(response);

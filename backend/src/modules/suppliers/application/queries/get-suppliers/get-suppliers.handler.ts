@@ -37,6 +37,7 @@ export class GetSuppliersHandler implements IQueryHandler<
           supplier.getTaxCode(),
           supplier.getCreatedAt(),
           supplier.getUpdatedAt(),
+          supplier.getDeletedAt(),
         ),
     );
   }

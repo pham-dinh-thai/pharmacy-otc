@@ -9,5 +9,6 @@ export class SupplierListItemReadModel {
     public readonly taxCode: string | null,
     public readonly createdAt: Date,
     public readonly updatedAt: Date,
+    public readonly deletedAt: Date | null,
   ) {}
 }

@@ -21,6 +21,7 @@ const createSupplier = (
   code: string,
   name: string,
   createdAt: Date,
+  deletedAt: Date | null = null,
 ): Supplier =>
   Supplier.fromPersistent({
     id,
@@ -32,6 +33,7 @@ const createSupplier = (
     taxCode: '0312345678',
     createdAt,
     updatedAt: createdAt,
+    deletedAt,
   });
 
 const setup = (suppliers: Supplier[]) => {
@@ -80,9 +82,26 @@ describe('GetSuppliersHandler', () => {
       taxCode: '0312345678',
       createdAt: new Date('2026-02-01T00:00:00Z'),
       updatedAt: new Date('2026-02-01T00:00:00Z'),
+      deletedAt: null,
     });
     expect(result[1].id).toBe(SECOND_ID);
     expect(result[1].code).toBe('SUP-0001');
+  });
+
+  it('includes deletedAt for soft-deleted list items', async () => {
+    const deletedAt = new Date('2026-02-02T00:00:00Z');
+    const deleted = createSupplier(
+      SECOND_ID,
+      'SUP-0001',
+      'Công ty XYZ',
+      new Date('2026-01-01T00:00:00Z'),
+      deletedAt,
+    );
+    const { handler } = setup([deleted]);
+
+    const result = await handler.execute(new GetSuppliersQuery(true));
+
+    expect(result[0].deletedAt).toEqual(deletedAt);
   });
 
   it('forwards deleted and search filters to the repository', async () => {
