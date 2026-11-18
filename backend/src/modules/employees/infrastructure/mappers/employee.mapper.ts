@@ -1,5 +1,6 @@
 import { Employee } from '../../domain/employee.aggregate';
 import { MikroEmployee } from '../entities/mikro-employee.entity';
+import { type EmployeePosition } from '../../domain/enums/employee-position.enum';
 
 export class EmployeeMapper {
   public static toDomain(mikroEmployee: MikroEmployee): Employee {
@@ -7,7 +8,7 @@ export class EmployeeMapper {
       id: mikroEmployee.id,
       userId: mikroEmployee.userId,
       departmentId: mikroEmployee.departmentId,
-      position: mikroEmployee.position,
+      position: mikroEmployee.position as EmployeePosition | null,
       status: mikroEmployee.status,
       createdAt: mikroEmployee.createdAt,
       updatedAt: mikroEmployee.updatedAt,

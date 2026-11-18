@@ -1,5 +1,6 @@
 import { Command } from '@nestjs/cqrs';
 import { type ActorHeaders } from '../../../../../shared/types/actor-headers';
+import { type EmployeePosition } from '../../../domain/enums/employee-position.enum';
 
 export class CreateEmployeeCommand extends Command<{ id: string }> {
   public constructor(
@@ -8,7 +9,7 @@ export class CreateEmployeeCommand extends Command<{ id: string }> {
     public readonly email: string,
     public readonly password: string,
     public readonly departmentId: string,
-    public readonly position: string | null,
+    public readonly position: EmployeePosition | null,
     public readonly headers: ActorHeaders,
   ) {
     super();

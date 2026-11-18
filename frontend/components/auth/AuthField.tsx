@@ -1,3 +1,5 @@
+import { PasswordField } from './PasswordField';
+
 export function AuthField({
   label,
   name,
@@ -23,16 +25,26 @@ export function AuthField({
       >
         {label}
       </label>
-      <input
-        id={name}
-        name={name}
-        type={type}
-        autoComplete={autoComplete}
-        placeholder={placeholder}
-        required={required}
-        minLength={minLength}
-        className="w-full border border-rule bg-paper px-3 py-2.5 text-[14px] placeholder:text-muted/60 focus:border-ink"
-      />
+      {type === 'password' ? (
+        <PasswordField
+          name={name}
+          autoComplete={autoComplete}
+          placeholder={placeholder}
+          required={required}
+          minLength={minLength}
+        />
+      ) : (
+        <input
+          id={name}
+          name={name}
+          type={type}
+          autoComplete={autoComplete}
+          placeholder={placeholder}
+          required={required}
+          minLength={minLength}
+          className="w-full border border-rule bg-paper px-3 py-2.5 text-[14px] placeholder:text-muted/60 focus:border-ink"
+        />
+      )}
     </div>
   );
 }
