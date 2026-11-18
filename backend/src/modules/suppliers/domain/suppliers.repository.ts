@@ -3,10 +3,17 @@ import { Supplier } from './supplier.aggregate';
 export type FindSuppliersFilters = {
   search?: string;
   deleted?: boolean;
+  limit?: number;
+  offset?: number;
+};
+
+export type SupplierPage = {
+  items: Supplier[];
+  total: number;
 };
 
 export interface ISuppliersRepository {
-  findAll(filters?: FindSuppliersFilters): Promise<Supplier[]>;
+  findPage(filters?: FindSuppliersFilters): Promise<SupplierPage>;
 
   /** Detail lookups exclude soft-deleted suppliers. */
   findById(id: string): Promise<Supplier | null>;

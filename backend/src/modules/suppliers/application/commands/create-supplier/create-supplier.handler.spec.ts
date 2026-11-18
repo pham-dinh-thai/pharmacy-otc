@@ -1,6 +1,10 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { InvalidSupplierPhoneException } from '../../../domain/exceptions/supplier.exceptions';
-import { ISuppliersRepository } from '../../../domain/suppliers.repository';
+import {
+  ISuppliersRepository,
+  type FindSuppliersFilters,
+  type SupplierPage,
+} from '../../../domain/suppliers.repository';
 import { Supplier } from '../../../domain/supplier.aggregate';
 import { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import { IOutboxRepository } from '../../../../../shared/modules/outbox/domain/outbox.repository';
@@ -9,7 +13,7 @@ import { CreateSupplierHandler } from './create-supplier.handler';
 import { SUPPLIER_CREATED_EVENT } from '../../../domain/events/supplier-created.event';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
-type FindAll = () => Promise<Supplier[]>;
+type FindPage = (filters?: FindSuppliersFilters) => Promise<SupplierPage>;
 type FindById = (id: string) => Promise<Supplier | null>;
 type FindByIdIncludingDeleted = (id: string) => Promise<Supplier | null>;
 type NextSequence = () => Promise<number>;
@@ -45,7 +49,7 @@ const setup = (sequence = 7) => {
     .mockResolvedValue(undefined);
 
   const repository: ISuppliersRepository = {
-    findAll: jest.fn<FindAll>(),
+    findPage: jest.fn<FindPage>(),
     findById,
     findByIdIncludingDeleted: jest.fn<FindByIdIncludingDeleted>(),
     nextSequence,

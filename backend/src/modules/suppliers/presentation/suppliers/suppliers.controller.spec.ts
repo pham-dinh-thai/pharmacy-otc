@@ -11,6 +11,7 @@ import { UpdateSupplierResponse } from '../../application/commands/update-suppli
 import { DeleteSupplierCommand } from '../../application/commands/delete-supplier/delete-supplier.command';
 import { RestoreSupplierCommand } from '../../application/commands/restore-supplier/restore-supplier.command';
 import { SupplierListItemReadModel } from '../../application/queries/get-suppliers/supplier-list-item.read-model';
+import { SupplierListPageReadModel } from '../../application/queries/get-suppliers/supplier-list-page.read-model';
 import { SupplierDetailReadModel } from '../../application/queries/get-supplier/supplier-detail.read-model';
 import { GetSupplierQuery } from '../../application/queries/get-supplier/get-supplier.query';
 import { GetSuppliersQuery } from '../../application/queries/get-suppliers/get-suppliers.query';
@@ -54,20 +55,25 @@ describe('SuppliersController', () => {
 
   describe('findAll', () => {
     it('dispatches GetSuppliersQuery with the default filters and returns the list', async () => {
-      const response = [
-        new SupplierListItemReadModel(
-          SUPPLIER_ID,
-          'SUP-0001',
-          'Công ty TNHH ABC',
-          '0901234567',
-          'contact@abc.vn',
-          '12 Nguyễn Huệ',
-          '0312345678',
-          new Date('2026-01-01T00:00:00Z'),
-          new Date('2026-01-01T00:00:00Z'),
-          null,
-        ),
-      ];
+      const response = new SupplierListPageReadModel(
+        [
+          new SupplierListItemReadModel(
+            SUPPLIER_ID,
+            'SUP-0001',
+            'Công ty TNHH ABC',
+            '0901234567',
+            'contact@abc.vn',
+            '12 Nguyễn Huệ',
+            '0312345678',
+            new Date('2026-01-01T00:00:00Z'),
+            new Date('2026-01-01T00:00:00Z'),
+            null,
+          ),
+        ],
+        1,
+        1,
+        20,
+      );
       queryExecute.mockResolvedValue(response);
 
       const request = new ListSuppliersRequest();
@@ -78,16 +84,18 @@ describe('SuppliersController', () => {
       expect(result).toBe(response);
     });
 
-    it('forwards deleted and search query parameters', async () => {
+    it('forwards deleted, search and pagination query parameters', async () => {
       queryExecute.mockResolvedValue([]);
       const request = new ListSuppliersRequest();
       request.deleted = true;
       request.search = 'abc';
+      request.page = 3;
+      request.limit = 10;
 
       await suppliersController.findAll(request);
 
       expect(queryExecute).toHaveBeenCalledWith(
-        new GetSuppliersQuery(true, 'abc'),
+        new GetSuppliersQuery(true, 'abc', 3, 10),
       );
     });
   });

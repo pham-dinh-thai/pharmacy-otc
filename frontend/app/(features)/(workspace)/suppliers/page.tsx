@@ -15,6 +15,7 @@ import {
   supplierStateLabel,
   type Supplier,
   type SupplierDeletedFilter,
+  type SupplierPage,
 } from '@/lib/suppliers';
 import { deleteSupplier, restoreSupplier } from './actions';
 import { SupplierFilters } from './supplier-filters';
@@ -44,6 +45,8 @@ type ListQuery = {
   updated?: string | string[];
   search?: string | string[];
   deleted?: string | string[];
+  page?: string | string[];
+  limit?: string | string[];
 };
 
 function first(value: string | string[] | undefined): string {
@@ -86,10 +89,17 @@ async function SuppliersList({
   )
     ? deletedValue
     : 'false';
-  const listHref = supplierListHref(deletedFilter, search);
+  const requestedPage = Number(first(query.page));
+  const page =
+    Number.isSafeInteger(requestedPage) && requestedPage > 0
+      ? requestedPage
+      : 1;
+  const rawLimit = Number(first(query.limit));
+  const limit = [10, 20, 50].includes(rawLimit) ? rawLimit : 20;
+  const listHref = supplierListHref(deletedFilter, search, page, limit);
   const detailHref = (id: string) =>
     `/suppliers/${id}?returnTo=${encodeURIComponent(listHref)}`;
-  const filterQuery = supplierQuery(deletedFilter, search);
+  const filterQuery = supplierQuery(deletedFilter, search, page, limit);
 
   let res: Response;
   try {
@@ -107,7 +117,13 @@ async function SuppliersList({
   }
   if (!res.ok) throw new Error(`Failed to fetch suppliers: ${res.status}`);
 
-  const suppliers = (await res.json()) as Supplier[];
+  const result = (await res.json()) as SupplierPage;
+  const suppliers = result.items;
+  const totalPages = Math.max(1, Math.ceil(result.total / result.limit));
+
+  if (result.page > totalPages) {
+    redirect(supplierListHref(deletedFilter, search, totalPages, limit));
+  }
 
   const canCreate =
     user.isSuperAdmin || hasPermission(user, 'suppliers:create');
@@ -133,10 +149,12 @@ async function SuppliersList({
       <FormMessage message={errorMessage} />
       <FormMessage message={updatedMessage} tone="success" />
 
-      <SupplierFilters search={search} deleted={deletedFilter} />
+      <SupplierFilters search={search} deleted={deletedFilter} limit={limit} />
 
       <div className="mt-6 flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">
-        <p className="text-[13px] text-muted">{suppliers.length} nhà cung cấp</p>
+        <p className="text-[13px] text-muted">
+          {result.total} nhà cung cấp · Trang {result.page}/{totalPages}
+        </p>
 
         {canCreate && (
           <Link
@@ -255,6 +273,49 @@ async function SuppliersList({
         <p className="mt-6 text-[13px] leading-6 text-muted">
           Không có nhà cung cấp nào phù hợp với bộ lọc.
         </p>
+      )}
+
+      {totalPages > 1 && (
+        <nav
+          aria-label="Phân trang nhà cung cấp"
+          className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-4"
+        >
+          {result.page > 1 ? (
+            <Link
+              href={supplierListHref(
+                deletedFilter,
+                search,
+                result.page - 1,
+                limit,
+              )}
+              className="text-[13px] font-medium text-accent hover:underline"
+            >
+              ← Trang trước
+            </Link>
+          ) : (
+            <span className="text-[13px] text-muted/50">← Trang trước</span>
+          )}
+
+          <span className="text-[13px] text-muted">
+            Trang {result.page} / {totalPages}
+          </span>
+
+          {result.page < totalPages ? (
+            <Link
+              href={supplierListHref(
+                deletedFilter,
+                search,
+                result.page + 1,
+                limit,
+              )}
+              className="text-[13px] font-medium text-accent hover:underline"
+            >
+              Trang sau →
+            </Link>
+          ) : (
+            <span className="text-[13px] text-muted/50">Trang sau →</span>
+          )}
+        </nav>
       )}
     </WorkspacePage>
   );
