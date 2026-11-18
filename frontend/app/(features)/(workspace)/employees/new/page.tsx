@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { WorkspacePage } from '@/components/layout/WorkspaceShell';
 import { FormMessage } from '@/components/roles/FormMessage';
+import { PasswordField } from '@/components/auth/PasswordField';
 import { fetchCurrentUser, hasPermission } from '@/lib/account';
 import { authFetch } from '@/lib/auth';
 import type { EmployeeDepartmentOption } from '@/lib/employees';
@@ -134,15 +135,12 @@ async function NewEmployeeForm({
             >
               Mật khẩu
             </label>
-            <input
-              id="password"
+            <PasswordField
               name="password"
-              type="password"
               required
               minLength={8}
               maxLength={128}
               autoComplete="new-password"
-              className={INPUT_CLASS}
             />
             <p className="mt-1.5 text-[12px] text-muted">
               Tối thiểu 8 ký tự.
