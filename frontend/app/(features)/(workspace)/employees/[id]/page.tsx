@@ -6,6 +6,7 @@ import { FormMessage } from '@/components/roles/FormMessage';
 import { fetchCurrentUser, hasPermission } from '@/lib/account';
 import { authFetch } from '@/lib/auth';
 import {
+  EMPLOYEE_POSITIONS,
   EMPLOYEE_STATUS_LABELS,
   MANAGEABLE_EMPLOYEE_STATUSES,
   type Employee,
@@ -200,15 +201,19 @@ async function EmployeeDetail({
                 >
                   Chức danh
                 </label>
-                <input
+                <select
                   id="position"
                   name="position"
-                  maxLength={255}
-                  autoComplete="organization-title"
                   defaultValue={employee.position ?? ''}
-                  placeholder="Chức danh (nếu có)"
                   className={INPUT_CLASS}
-                />
+                >
+                  <option value="">Chưa xác định</option>
+                  {EMPLOYEE_POSITIONS.map((position) => (
+                    <option key={position} value={position}>
+                      {position}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

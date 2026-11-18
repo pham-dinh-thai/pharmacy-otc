@@ -1,5 +1,19 @@
 export type EmployeeStatus = 'working' | 'pregnant' | 'resigned';
 
+export const EMPLOYEE_POSITIONS = [
+  'Nhân viên',
+  'Trưởng phòng',
+  'Quản lý',
+  'Dược sĩ',
+  'Thực tập sinh',
+] as const;
+
+export type EmployeePosition = (typeof EMPLOYEE_POSITIONS)[number];
+
+export function isEmployeePosition(value: string): value is EmployeePosition {
+  return (EMPLOYEE_POSITIONS as readonly string[]).includes(value);
+}
+
 export type Employee = {
   id: string;
   userId: string;
@@ -8,7 +22,7 @@ export type Employee = {
   email: string;
   departmentId: string;
   departmentName: string;
-  position: string | null;
+  position: EmployeePosition | null;
   status: EmployeeStatus;
   isActive: boolean;
   createdAt: string;

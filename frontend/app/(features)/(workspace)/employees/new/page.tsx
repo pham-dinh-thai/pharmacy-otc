@@ -6,7 +6,10 @@ import { FormMessage } from '@/components/roles/FormMessage';
 import { PasswordField } from '@/components/auth/PasswordField';
 import { fetchCurrentUser, hasPermission } from '@/lib/account';
 import { authFetch } from '@/lib/auth';
-import type { EmployeeDepartmentOption } from '@/lib/employees';
+import {
+  EMPLOYEE_POSITIONS,
+  type EmployeeDepartmentOption,
+} from '@/lib/employees';
 import { createEmployee } from '../actions';
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -180,14 +183,19 @@ async function NewEmployeeForm({
               >
                 Chức danh
               </label>
-              <input
+              <select
                 id="position"
                 name="position"
-                maxLength={255}
-                autoComplete="organization-title"
-                placeholder="Chức danh (nếu có)"
+                defaultValue=""
                 className={INPUT_CLASS}
-              />
+              >
+                <option value="">Chưa xác định</option>
+                {EMPLOYEE_POSITIONS.map((position) => (
+                  <option key={position} value={position}>
+                    {position}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

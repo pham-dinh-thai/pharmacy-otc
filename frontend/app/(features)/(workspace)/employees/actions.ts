@@ -4,7 +4,10 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { fetchCurrentUser, hasPermission } from '@/lib/account';
 import { authFetch } from '@/lib/auth';
-import { MANAGEABLE_EMPLOYEE_STATUSES } from '@/lib/employees';
+import {
+  isEmployeePosition,
+  MANAGEABLE_EMPLOYEE_STATUSES,
+} from '@/lib/employees';
 
 const LIST_PATH = '/employees';
 const CREATE_PATH = `${LIST_PATH}/new`;
@@ -65,6 +68,10 @@ export async function createEmployee(formData: FormData) {
     redirect(`${CREATE_PATH}?error=missing`);
   }
 
+  if (position !== null && !isEmployeePosition(position)) {
+    redirect(`${CREATE_PATH}?error=invalid`);
+  }
+
   let res: Response;
   try {
     res = await authFetch('/employees', {
@@ -110,6 +117,14 @@ export async function updateEmployee(formData: FormData) {
   const position = positionRaw === null ? undefined : trimmed(positionRaw) || null;
 
   if (!id || !departmentId) redirect(`${back}?error=missing`);
+
+  if (
+    position !== undefined &&
+    position !== null &&
+    !isEmployeePosition(position)
+  ) {
+    redirect(`${back}?error=invalid`);
+  }
 
   let res: Response;
   try {
