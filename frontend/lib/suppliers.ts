@@ -14,6 +14,13 @@ export type Supplier = {
   deletedAt?: string | null;
 };
 
+export type SupplierPage = {
+  items: Supplier[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
 export const SUPPLIER_DELETED_FILTERS: readonly {
   value: SupplierDeletedFilter;
   label: string;
@@ -51,16 +58,20 @@ export function formatSupplierDate(value: string | null | undefined): string {
   });
 }
 
-/** Tạo query string cho GET /suppliers; luôn gửi deleted, bỏ search rỗng. */
+/** Tạo query string cho GET /suppliers; luôn gửi deleted, bỏ search rỗng và page=1. */
 export function supplierQuery(
   deleted: SupplierDeletedFilter = 'false',
   search = '',
+  page = 1,
+  limit = 20,
 ): string {
   const params = new URLSearchParams();
   const keyword = search.trim();
 
   params.set('deleted', deleted);
   if (keyword) params.set('search', keyword);
+  if (page > 1) params.set('page', String(page));
+  if (limit !== 20) params.set('limit', String(limit));
 
   const query = params.toString();
 
@@ -70,6 +81,8 @@ export function supplierQuery(
 export function supplierListHref(
   deleted: SupplierDeletedFilter = 'false',
   search = '',
+  page = 1,
+  limit = 20,
 ): string {
-  return `/suppliers${supplierQuery(deleted, search)}`;
+  return `/suppliers${supplierQuery(deleted, search, page, limit)}`;
 }

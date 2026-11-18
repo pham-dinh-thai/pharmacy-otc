@@ -12,9 +12,11 @@ const INPUT_CLASS =
 export function SupplierFilters({
   search,
   deleted,
+  limit,
 }: {
   search: string;
   deleted: SupplierDeletedFilter;
+  limit: number;
 }) {
   return (
     <form
@@ -59,6 +61,26 @@ export function SupplierFilters({
               {option.label}
             </option>
           ))}
+        </select>
+      </div>
+
+      <div className="w-full sm:w-[150px]">
+        <label
+          htmlFor="supplier-limit"
+          className="mb-1.5 block text-[13px] font-medium text-muted"
+        >
+          Mỗi trang
+        </label>
+        <select
+          id="supplier-limit"
+          name="limit"
+          value={limit}
+          onChange={(event) => event.currentTarget.form?.requestSubmit()}
+          className={INPUT_CLASS}
+        >
+          <option value={10}>10</option>
+          <option value={20}>20</option>
+          <option value={50}>50</option>
         </select>
       </div>
 
