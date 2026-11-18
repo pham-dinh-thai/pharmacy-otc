@@ -199,7 +199,7 @@ export async function deleteSupplier(formData: FormData) {
   redirectForStatus(res, back);
 
   revalidateSupplier(id);
-  redirect(withQuery(listReturnPath(formData.get('returnTo')), { updated: 'deleted' }));
+  redirect(withQuery(LIST_PATH, { deleted: 'true', updated: 'deleted' }));
 }
 
 /** Khôi phục nhà cung cấp đã xoá mềm. */
@@ -223,5 +223,5 @@ export async function restoreSupplier(formData: FormData) {
   redirectForStatus(res, back);
 
   revalidateSupplier(id);
-  redirect(withQuery(listReturnPath(formData.get('returnTo')), { updated: 'restored' }));
+  redirect(withQuery(LIST_PATH, { deleted: 'false', updated: 'restored' }));
 }
