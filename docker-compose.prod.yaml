@@ -1,0 +1,22 @@
+services:
+  backend:
+    image: pharmacy-otc-backend-prod
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  frontend:
+    image: pharmacy-otc-frontend-prod
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:3001:3001"
+    environment:
+      BACKEND_URL: http://nginx/api
