@@ -18,6 +18,8 @@ import { MikroOutBoxEvent } from './src/shared/modules/outbox/infrastructure/mik
 import { MikroExpense } from './src/modules/expenses/infrastructure/entities/mikro-expense.entity';
 import { MikroEmployee } from './src/modules/employees/infrastructure/entities/mikro-employee.entity';
 import { MikroDepartment } from './src/modules/departments/infrastructure/entities/mikro-department.entity';
+import { MikroCategory } from './src/modules/categories/infrastructure/entities/mikro-category.entity';
+import { MikroProductCategory } from './src/modules/categories/infrastructure/entities/mikro-product-category.entity';
 
 dotenv.config({ path: path.resolve('../.env') });
 
@@ -46,6 +48,8 @@ export default defineConfig({
     MikroExpense,
     MikroDepartment,
     MikroEmployee,
+    MikroCategory,
+    MikroProductCategory,
   ],
   entitiesTs: [
     MikroProduct,
@@ -65,6 +69,8 @@ export default defineConfig({
     MikroExpense,
     MikroDepartment,
     MikroEmployee,
+    MikroCategory,
+    MikroProductCategory,
   ],
 
   debug: process.env.NODE_ENV !== 'production',

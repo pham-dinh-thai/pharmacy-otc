@@ -20,6 +20,7 @@ import { UnitOfWorkModule } from './shared/modules/unit-of-work/unit-of-work.mod
 import { ExpensesModule } from './modules/expenses/expenses.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
+import { CategoriesModule } from './modules/categories/categories.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { DepartmentsModule } from './modules/departments/departments.module';
     ExpensesModule,
     EmployeesModule,
     DepartmentsModule,
+    CategoriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
