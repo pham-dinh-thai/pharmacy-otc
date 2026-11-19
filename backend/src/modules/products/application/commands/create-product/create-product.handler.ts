@@ -8,8 +8,14 @@ import {
   CATEGORIES_REPOSITORY,
   type ICategoriesRepository,
 } from '../../../../categories/domain/categories.repository';
-import { ProductCategoryNotFoundException } from '../../../domain/exceptions/product.exceptions';
-import { Product } from '../../../domain/product.aggregate';
+import {
+  ProductCategoryNotFoundException,
+  ProductSkuAlreadyExistsException,
+} from '../../../domain/exceptions/product.exceptions';
+import {
+  normalizeProductSku,
+  Product,
+} from '../../../domain/product.aggregate';
 import {
   type IUnitOfWork,
   UNIT_OF_WORK,
@@ -49,11 +55,18 @@ export class CreateProductHandler implements ICommandHandler<CreateProductComman
         throw new ProductCategoryNotFoundException();
       }
 
+      const sku = normalizeProductSku(command.details.sku);
+
+      if (sku && (await this.productsRepository.existsBySku(sku))) {
+        throw new ProductSkuAlreadyExistsException(sku);
+      }
+
       const product = Product.create({
         name: command.name,
         unitPrice: command.unitPrice,
         quantity: command.quantity,
         categoryIds,
+        ...command.details,
       });
 
       await this.productsRepository.create(product);
@@ -67,6 +80,12 @@ export class CreateProductHandler implements ICommandHandler<CreateProductComman
             name: product.getName(),
             unitPrice: product.getUnitPrice(),
             quantity: product.getQuantity(),
+            sku: product.getSku(),
+            unit: product.getUnit(),
+            description: product.getDescription(),
+            imageUrl: product.getImageUrl(),
+            expiryDate: product.getExpiryDate(),
+            warning: product.getWarning(),
             categoryIds: [...product.getCategoryIds()],
           },
         }),

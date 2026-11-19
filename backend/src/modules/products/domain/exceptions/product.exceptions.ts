@@ -23,3 +23,18 @@ export class ProductCategoryNotFoundException extends DomainException {
     super('One or more categories do not exist', 'PRODUCT_CATEGORY_NOT_FOUND');
   }
 }
+
+export class ProductSkuAlreadyExistsException extends DomainException {
+  public constructor(sku: string) {
+    super(`Product SKU already exists: ${sku}`, 'PRODUCT_SKU_ALREADY_EXISTS');
+  }
+}
+
+export class InvalidProductExpiryDateException extends DomainException {
+  public constructor() {
+    super(
+      'Expiry date must be a valid YYYY-MM-DD date',
+      'INVALID_PRODUCT_EXPIRY_DATE',
+    );
+  }
+}

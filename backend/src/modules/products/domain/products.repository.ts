@@ -28,6 +28,8 @@ export interface IProductsRepository {
 
   existsById(id: string): Promise<boolean>;
 
+  existsBySku(sku: string, excludeId?: string): Promise<boolean>;
+
   create(product: Product): Promise<void>;
 
   update(product: Product): Promise<void>;

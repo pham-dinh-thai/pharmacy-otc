@@ -11,7 +11,9 @@ import {
 import {
   ProductCategoryNotFoundException,
   ProductNotFoundException,
+  ProductSkuAlreadyExistsException,
 } from '../../../domain/exceptions/product.exceptions';
+import { normalizeProductSku } from '../../../domain/product.aggregate';
 import {
   type IUnitOfWork,
   UNIT_OF_WORK,
@@ -55,10 +57,25 @@ export class UpdateProductHandler implements ICommandHandler<UpdateProductComman
         throw new ProductCategoryNotFoundException();
       }
 
+      const sku = normalizeProductSku(command.details.sku);
+
+      if (
+        sku &&
+        (await this.productsRepository.existsBySku(sku, product.getId()))
+      ) {
+        throw new ProductSkuAlreadyExistsException(sku);
+      }
+
       const before = {
         name: product.getName(),
         unitPrice: product.getUnitPrice(),
         quantity: product.getQuantity(),
+        sku: product.getSku(),
+        unit: product.getUnit(),
+        description: product.getDescription(),
+        imageUrl: product.getImageUrl(),
+        expiryDate: product.getExpiryDate(),
+        warning: product.getWarning(),
         categoryIds: [...product.getCategoryIds()],
       };
 
@@ -67,6 +84,7 @@ export class UpdateProductHandler implements ICommandHandler<UpdateProductComman
         unitPrice: command.unitPrice,
         quantity: command.quantity,
         categoryIds,
+        ...command.details,
       });
 
       await this.productsRepository.update(product);
@@ -81,6 +99,12 @@ export class UpdateProductHandler implements ICommandHandler<UpdateProductComman
             name: product.getName(),
             unitPrice: product.getUnitPrice(),
             quantity: product.getQuantity(),
+            sku: product.getSku(),
+            unit: product.getUnit(),
+            description: product.getDescription(),
+            imageUrl: product.getImageUrl(),
+            expiryDate: product.getExpiryDate(),
+            warning: product.getWarning(),
             categoryIds: [...product.getCategoryIds()],
           },
         }),

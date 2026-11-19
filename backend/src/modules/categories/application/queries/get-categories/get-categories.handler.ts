@@ -37,6 +37,8 @@ export class GetCategoriesHandler implements IQueryHandler<
             category.getName(),
             category.getSlug(),
             category.getDescription(),
+            category.getCreatedAt(),
+            category.getUpdatedAt(),
             category.getDeletedAt(),
           ),
       ),

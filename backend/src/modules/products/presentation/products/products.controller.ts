@@ -79,6 +79,14 @@ export class ProductsController {
         request.quantity,
         request.categoryIds ?? [],
         headers,
+        {
+          sku: request.sku,
+          unit: request.unit,
+          description: request.description,
+          imageUrl: request.imageUrl,
+          expiryDate: request.expiryDate,
+          warning: request.warning,
+        },
       ),
     );
 
@@ -102,6 +110,14 @@ export class ProductsController {
         request.quantity,
         request.categoryIds ?? [],
         headers,
+        {
+          sku: request.sku,
+          unit: request.unit,
+          description: request.description,
+          imageUrl: request.imageUrl,
+          expiryDate: request.expiryDate,
+          warning: request.warning,
+        },
       ),
     );
 

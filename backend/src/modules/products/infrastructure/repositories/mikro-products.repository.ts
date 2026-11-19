@@ -102,6 +102,19 @@ export class MikroProductsRepository implements IProductsRepository {
     return mikroProduct !== null;
   }
 
+  public async existsBySku(sku: string, excludeId?: string): Promise<boolean> {
+    const found = await this.entityManager.findOne(
+      MikroProduct,
+      {
+        sku,
+        ...(excludeId ? { id: { $ne: excludeId } } : {}),
+      },
+      { fields: ['id'] },
+    );
+
+    return found !== null;
+  }
+
   public async create(product: Product): Promise<void> {
     await this.persistProduct(new MikroProduct(), product, true);
   }

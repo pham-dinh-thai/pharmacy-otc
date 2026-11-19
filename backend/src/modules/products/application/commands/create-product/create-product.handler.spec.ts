@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { InvalidAmountException } from '../../../../../shared/domain/exceptions/value-object.exceptions';
 import { Product } from '../../../domain/product.aggregate';
-import { ProductCategoryNotFoundException } from '../../../domain/exceptions/product.exceptions';
+import {
+  ProductCategoryNotFoundException,
+  ProductSkuAlreadyExistsException,
+} from '../../../domain/exceptions/product.exceptions';
 import { CreateProductCommand } from './create-product.command';
 import { CreateProductHandler } from './create-product.handler';
 import { type IOutboxRepository } from '../../../../../shared/modules/outbox/domain/outbox.repository';
@@ -22,6 +25,7 @@ const headers = {
 describe('CreateProductHandler', () => {
   let create: jest.Mock<(product: Product) => Promise<void>>;
   let findActiveByIds: jest.Mock<(ids: string[]) => Promise<string[]>>;
+  let existsBySku: jest.Mock<(sku: string) => Promise<boolean>>;
   let outboxCreate: jest.Mock<IOutboxRepository['create']>;
   let unitOfWork: IUnitOfWork;
   let handler: CreateProductHandler;
@@ -34,6 +38,10 @@ describe('CreateProductHandler', () => {
     findActiveByIds = jest
       .fn<(ids: string[]) => Promise<string[]>>()
       .mockResolvedValue([CATEGORY_ID]);
+
+    existsBySku = jest
+      .fn<(sku: string) => Promise<boolean>>()
+      .mockResolvedValue(false);
 
     outboxCreate = jest
       .fn<IOutboxRepository['create']>()
@@ -51,6 +59,8 @@ describe('CreateProductHandler', () => {
         findByIdIncludingDeleted: jest.fn(),
         findCategoryIds: jest.fn(),
         existsById: jest.fn(),
+        existsBySku,
+        findActiveByIds: jest.fn(),
         update: jest.fn(),
       } as unknown as never,
       { findActiveByIds } as unknown as never,
@@ -87,11 +97,34 @@ describe('CreateProductHandler', () => {
             name: 'Coffee',
             unitPrice: '12500',
             quantity: 3,
+            sku: null,
+            unit: null,
+            description: null,
+            imageUrl: null,
+            expiryDate: null,
+            warning: null,
             categoryIds: [CATEGORY_ID],
           },
         },
       },
     });
+  });
+
+  it('rejects a duplicate SKU before persisting the product', async () => {
+    findActiveByIds.mockResolvedValue([]);
+    existsBySku.mockResolvedValue(true);
+
+    await expect(
+      handler.execute(
+        new CreateProductCommand('Coffee', '12500', 3, [], headers, {
+          sku: ' otc-001 ',
+        }),
+      ),
+    ).rejects.toThrow(ProductSkuAlreadyExistsException);
+
+    expect(existsBySku).toHaveBeenCalledWith('OTC-001');
+    expect(create).not.toHaveBeenCalled();
+    expect(outboxCreate).not.toHaveBeenCalled();
   });
 
   it('rejects a product that references a missing or deleted category', async () => {

@@ -1,5 +1,6 @@
 import { Command } from '@nestjs/cqrs';
 import { type ActorHeaders } from '../../../../../shared/types/actor-headers';
+import type { ProductCommandDetails } from '../create-product/create-product.command';
 
 export class UpdateProductCommand extends Command<{ id: string }> {
   public constructor(
@@ -9,6 +10,7 @@ export class UpdateProductCommand extends Command<{ id: string }> {
     public readonly quantity: number,
     public readonly categoryIds: string[],
     public readonly headers: ActorHeaders,
+    public readonly details: ProductCommandDetails = {},
   ) {
     super();
   }

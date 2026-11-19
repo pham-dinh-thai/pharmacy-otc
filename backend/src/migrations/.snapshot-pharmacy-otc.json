@@ -293,6 +293,7 @@
             "roles",
             "orders",
             "products",
+            "categories",
             "suppliers",
             "goods_receipts",
             "inventories",
@@ -529,8 +530,8 @@
         },
         {
           "name": "audit_logs_entity_type_check",
-          "expression": "\"entity_type\" in ('accounts', 'users', 'customers', 'roles', 'orders', 'products', 'suppliers', 'goods_receipts', 'inventories', 'expenses', 'employees', 'departments')",
-          "definition": "check (\"entity_type\" in ('accounts', 'users', 'customers', 'roles', 'orders', 'products', 'suppliers', 'goods_receipts', 'inventories', 'expenses', 'employees', 'departments'))",
+          "expression": "\"entity_type\" in ('accounts', 'users', 'customers', 'roles', 'orders', 'products', 'categories', 'suppliers', 'goods_receipts', 'inventories', 'expenses', 'employees', 'departments')",
+          "definition": "check (\"entity_type\" in ('accounts', 'users', 'customers', 'roles', 'orders', 'products', 'categories', 'suppliers', 'goods_receipts', 'inventories', 'expenses', 'employees', 'departments'))",
           "columnName": "entity_type"
         },
         {
@@ -803,7 +804,7 @@
           "length": 6,
           "precision": null,
           "scale": null,
-          "default": "null",
+          "default": null,
           "comment": null,
           "collation": null,
           "enumItems": [],
@@ -2651,6 +2652,57 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamptz(6)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 6,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "datetime"
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "expiry_date": {
+          "name": "expiry_date",
+          "type": "date",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "date"
+        },
         "id": {
           "name": "id",
           "type": "uuid",
@@ -2667,6 +2719,23 @@
           "collation": null,
           "enumItems": [],
           "mappedType": "uuid"
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "varchar(2048)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 2048,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "string"
         },
         "name": {
           "name": "name",
@@ -2702,6 +2771,40 @@
           "enumItems": [],
           "mappedType": "integer"
         },
+        "sku": {
+          "name": "sku",
+          "type": "varchar(100)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": true,
+          "length": 100,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "string"
+        },
+        "unit": {
+          "name": "unit",
+          "type": "varchar(50)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": 50,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "collation": null,
+          "enumItems": [],
+          "mappedType": "string"
+        },
         "unit_price": {
           "name": "unit_price",
           "type": "bigint",
@@ -2736,22 +2839,22 @@
           "enumItems": [],
           "mappedType": "datetime"
         },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamptz(6)",
+        "warning": {
+          "name": "warning",
+          "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
           "unique": false,
-          "length": 6,
+          "length": null,
           "precision": null,
           "scale": null,
-          "default": "null",
+          "default": null,
           "comment": null,
           "collation": null,
           "enumItems": [],
-          "mappedType": "datetime"
+          "mappedType": "text"
         }
       },
       "indexes": [
@@ -2763,6 +2866,16 @@
           "constraint": true,
           "keyName": "products_pkey",
           "primary": true,
+          "unique": true
+        },
+        {
+          "columnNames": [
+            "sku"
+          ],
+          "composite": false,
+          "constraint": true,
+          "keyName": "products_sku_unique",
+          "primary": false,
           "unique": true
         }
       ],
