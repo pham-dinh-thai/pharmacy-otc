@@ -90,12 +90,16 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
 | FR-CUST-01 | Tự tạo hồ sơ khách khi đăng ký | ✅ |
-| FR-CUST-02 | Hồ sơ: họ tên, SĐT, ngày sinh, giới tính | ⬜ |
-| FR-CUST-03 | Sổ địa chỉ giao hàng (nhiều địa chỉ, mặc định) | ⬜ |
+| FR-CUST-02 | Hồ sơ: họ tên, SĐT, ngày sinh, giới tính | ✅ |
+| FR-CUST-03 | Sổ địa chỉ giao hàng (nhiều địa chỉ, mặc định) | 🟡 mô hình và quản trị xong; khách tự quản lý chưa |
 | FR-CUST-04 | Khách tự xem/sửa hồ sơ | ⬜ |
-| FR-CUST-05 | Quản trị xem/tìm khách hàng | ⬜ |
+| FR-CUST-05 | Quản trị xem/tìm khách hàng | ✅ |
 | FR-CUST-06 | Guest checkout | ⬜ |
 | FR-CUST-07 | Ghi audit thay đổi hồ sơ | ⬜ |
+
+**Phạm vi đã làm:** đăng ký thu họ tên, email, giới tính, ngày sinh, ít nhất một số điện thoại và một địa chỉ. Quản trị xem danh sách/tìm kiếm theo tên, email hoặc số điện thoại, tạo kèm account (mật khẩu do quản trị đặt, bắt đổi lần đầu), sửa toàn bộ hồ sơ, xoá mềm và khôi phục. Mọi thao tác quản trị cần quyền `customers:read/create/update/delete` (Super Admin được bỏ qua). Danh sách dùng `deleted=all|false|true`, mặc định `all` để vẫn thấy bản ghi đã xoá và nút khôi phục; phân trang 10/20/50.
+
+`customers` liên kết 1-1 với `users` (tên và email lấy từ `users`, không nhân bản), 1-N với `customer_phones` và `customer_addresses`; cờ chính `isPrimary`/`isDefault` được chuẩn hoá về đúng một bản ghi mỗi loại. Khách tự xem/sửa hồ sơ và lịch sử audit ở giao diện người dùng chưa triển khai.
 
 ## 7. Products
 

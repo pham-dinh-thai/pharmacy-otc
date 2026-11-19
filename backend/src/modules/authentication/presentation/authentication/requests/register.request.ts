@@ -1,20 +1,24 @@
 import { Transform } from 'class-transformer';
 import { IsEmail, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { CustomerProfileRequest } from './customer-profile.request';
 
-export class RegisterRequest {
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+const trim = ({ value }: { value: unknown }): unknown =>
+  typeof value === 'string' ? value.trim() : value;
+
+export class RegisterRequest extends CustomerProfileRequest {
+  @Transform(trim)
   @IsNotEmpty()
   @IsString()
   @MaxLength(255)
   firstName!: string;
 
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(trim)
   @IsNotEmpty()
   @IsString()
   @MaxLength(255)
   lastName!: string;
 
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @Transform(trim)
   @IsNotEmpty()
   @IsEmail()
   @MaxLength(255)

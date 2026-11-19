@@ -16,6 +16,7 @@ import {
 import { RegisterRequest } from './requests/register.request';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { RegisterCommand } from '../../application/commands/register/register.command';
+import type { CustomerProfileInput } from '../../../customers/domain/customer.aggregate';
 import { LoginRequest } from './requests/login.request';
 import { LoginCommand } from '../../application/commands/login/login.command';
 import { RefreshTokenCommand } from '../../application/commands/refresh-token/refresh-token.command';
@@ -89,6 +90,7 @@ export class AuthenticationController {
         request.lastName,
         request.email,
         request.password,
+        AuthenticationController.toCustomerProfile(request),
         ip,
         userAgent,
       ),
@@ -219,5 +221,21 @@ export class AuthenticationController {
     } finally {
       this.clearRefreshCookie(res);
     }
+  }
+
+  private static toCustomerProfile(request: {
+    gender?: CustomerProfileInput['gender'];
+    dateOfBirth?: string | null;
+    phones: { phone: string; isPrimary?: boolean }[];
+    addresses: { address: string; isDefault?: boolean }[];
+  }): CustomerProfileInput {
+    return {
+      gender: request.gender ?? null,
+      dateOfBirth: request.dateOfBirth
+        ? new Date(`${request.dateOfBirth}T00:00:00.000Z`)
+        : null,
+      phones: request.phones,
+      addresses: request.addresses,
+    };
   }
 }
