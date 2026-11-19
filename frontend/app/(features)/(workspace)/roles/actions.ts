@@ -10,12 +10,23 @@ function rolePath(id: string): string {
   return `${LIST_PATH}/${id}`;
 }
 
+function withQuery(path: string, query: Record<string, string>): string {
+  const url = new URL(path, 'http://localhost');
+
+  Object.entries(query).forEach(([key, value]) => {
+    url.searchParams.set(key, value);
+  });
+
+  return `${url.pathname}${url.search}`;
+}
+
 function returnPath(value: FormDataEntryValue | null): string {
   const path = String(value ?? '');
 
-  return path === LIST_PATH || path.startsWith(`${LIST_PATH}/`)
-    ? path
-    : LIST_PATH;
+  if (path === LIST_PATH || path.startsWith(`${LIST_PATH}/`)) return path;
+  if (path.startsWith(`${LIST_PATH}?`)) return path;
+
+  return LIST_PATH;
 }
 
 async function readJson<T>(res: Response): Promise<T | null> {
@@ -82,21 +93,21 @@ export async function grantPermission(formData: FormData) {
       body: JSON.stringify({ permission }),
     });
   } catch {
-    redirect(`${back}?error=server`);
+    redirect(withQuery(back, { error: 'server' }));
   }
 
-  if (res.status === 401) redirect(`/login?next=${back}`);
-  if (res.status === 403) redirect(`${back}?error=forbidden`);
+  if (res.status === 401) redirect(`/login?next=${encodeURIComponent(back)}`);
+  if (res.status === 403) redirect(withQuery(back, { error: 'forbidden' }));
   if (res.status === 404) redirect(`${LIST_PATH}?error=missing`);
-  if (res.status === 409) redirect(`${back}?error=granted`);
+  if (res.status === 409) redirect(withQuery(back, { error: 'granted' }));
   if (res.status === 400 || res.status === 422) {
-    redirect(`${back}?error=invalid`);
+    redirect(withQuery(back, { error: 'invalid' }));
   }
-  if (!res.ok) redirect(`${back}?error=server`);
+  if (!res.ok) redirect(withQuery(back, { error: 'server' }));
 
   revalidatePath(LIST_PATH);
   revalidatePath(back);
-  redirect(`${back}?updated=granted`);
+  redirect(withQuery(back, { updated: 'granted' }));
 }
 
 /** Xoá quyền khỏi vai trò. */
@@ -114,18 +125,21 @@ export async function revokePermission(formData: FormData) {
       { method: 'DELETE' },
     );
   } catch {
-    redirect(`${back}?error=server`);
+    redirect(withQuery(back, { error: 'server' }));
   }
 
-  if (res.status === 401) redirect(`/login?next=${back}`);
-  if (res.status === 403) redirect(`${back}?error=forbidden`);
+  if (res.status === 401) redirect(`/login?next=${encodeURIComponent(back)}`);
+  if (res.status === 403) redirect(withQuery(back, { error: 'forbidden' }));
   if (res.status === 404) redirect(`${LIST_PATH}?error=missing`);
-  if (res.status === 409) redirect(`${back}?error=notGranted`);
-  if (!res.ok) redirect(`${back}?error=server`);
+  if (res.status === 409) redirect(withQuery(back, { error: 'notGranted' }));
+  if (res.status === 400 || res.status === 422) {
+    redirect(withQuery(back, { error: 'invalid' }));
+  }
+  if (!res.ok) redirect(withQuery(back, { error: 'server' }));
 
   revalidatePath(LIST_PATH);
   revalidatePath(back);
-  redirect(`${back}?updated=removed`);
+  redirect(withQuery(back, { updated: 'removed' }));
 }
 
 /** Vô hiệu hoá vai trò (xoá mềm): vai trò ngừng cấp quyền nhưng vẫn khôi phục được. */
@@ -139,18 +153,18 @@ export async function disableRole(formData: FormData) {
   try {
     res = await authFetch(`/roles/${roleId}`, { method: 'DELETE' });
   } catch {
-    redirect(`${back}?error=server`);
+    redirect(withQuery(back, { error: 'server' }));
   }
 
-  if (res.status === 401) redirect(`/login?next=${back}`);
-  if (res.status === 403) redirect(`${back}?error=forbidden`);
+  if (res.status === 401) redirect(`/login?next=${encodeURIComponent(back)}`);
+  if (res.status === 403) redirect(withQuery(back, { error: 'forbidden' }));
   if (res.status === 404) redirect(`${LIST_PATH}?error=missing`);
-  if (res.status === 409) redirect(`${back}?error=cannotDisable`);
-  if (!res.ok) redirect(`${back}?error=server`);
+  if (res.status === 409) redirect(withQuery(back, { error: 'cannotDisable' }));
+  if (!res.ok) redirect(withQuery(back, { error: 'server' }));
 
   revalidatePath(LIST_PATH);
   revalidatePath(rolePath(roleId));
-  redirect(`${LIST_PATH}?updated=disabled`);
+  redirect(withQuery(back, { updated: 'disabled' }));
 }
 
 /** Khôi phục vai trò đã bị vô hiệu hoá. */
@@ -164,16 +178,16 @@ export async function restoreRole(formData: FormData) {
   try {
     res = await authFetch(`/roles/${roleId}/restore`, { method: 'PATCH' });
   } catch {
-    redirect(`${back}?error=server`);
+    redirect(withQuery(back, { error: 'server' }));
   }
 
-  if (res.status === 401) redirect(`/login?next=${back}`);
-  if (res.status === 403) redirect(`${back}?error=forbidden`);
+  if (res.status === 401) redirect(`/login?next=${encodeURIComponent(back)}`);
+  if (res.status === 403) redirect(withQuery(back, { error: 'forbidden' }));
   if (res.status === 404) redirect(`${LIST_PATH}?error=missing`);
-  if (res.status === 409) redirect(`${back}?error=notDisabled`);
-  if (!res.ok) redirect(`${back}?error=server`);
+  if (res.status === 409) redirect(withQuery(back, { error: 'notDisabled' }));
+  if (!res.ok) redirect(withQuery(back, { error: 'server' }));
 
   revalidatePath(LIST_PATH);
   revalidatePath(rolePath(roleId));
-  redirect(`${back}?updated=restored`);
+  redirect(withQuery(back, { updated: 'restored' }));
 }

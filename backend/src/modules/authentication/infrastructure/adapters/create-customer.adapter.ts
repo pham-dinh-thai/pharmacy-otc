@@ -13,8 +13,10 @@ export class CreateCustomerAdapter implements ICreateCustomerPort {
   public async execute(
     request: CreateCustomerRequest,
   ): Promise<{ id: string }> {
+    const { userId, ...profile } = request;
+
     return await this.commandBus.execute(
-      new CreateCustomerCommand(request.userId),
+      new CreateCustomerCommand(userId, profile),
     );
   }
 }

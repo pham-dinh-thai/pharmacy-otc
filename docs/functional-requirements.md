@@ -57,6 +57,7 @@
 | FR-RBAC-05 | Đặt/bỏ cờ Super Admin | ✅ |
 | FR-RBAC-06 | Chặn endpoint theo permission | ✅ |
 | FR-RBAC-07 | Seed role mặc định (quản trị, kho, kế toán…) | ⬜ |
+| FR-RBAC-08 | Phân trang và lọc danh sách role (tên, Super Admin, trạng thái xoá mềm), chọn 10/20/50 bản ghi mỗi trang | ✅ |
 
 **Quy tắc**
 
@@ -76,6 +77,10 @@
 | FR-USER-05 | Danh sách/chi tiết người dùng | ⬜ (có permission `users:read`) |
 | FR-USER-06 | Vô hiệu hoá/xoá người dùng | ⬜ |
 | FR-USER-07 | Cấp tài khoản/mật khẩu ban đầu hoặc lời mời | ⬜ |
+| FR-HR-01 | Phân trang và lọc danh sách phòng ban (tên, trạng thái xoá mềm), chọn 10/20/50 bản ghi mỗi trang | ✅ |
+| FR-HR-02 | Phân trang và lọc danh sách nhân viên (tên/email, phòng ban, chức danh, trạng thái), chọn 10/20/50 bản ghi mỗi trang | ✅ |
+
+**Lọc danh sách HR:** `deleted=all|false|true` với mặc định `all` để vẫn thấy bản ghi đã vô hiệu hoá và nút khôi phục. Nhân viên nhận thêm `departmentId`, `position`, `status`; role nhận thêm `isSuperAdmin=all|true|false`. Mọi filter được giữ cùng `page`/`limit` trên link phân trang và `returnTo` sau thao tác.
 
 **Ghi chú:** người dùng do quản trị tạo hiện **chưa có account/mật khẩu**, nên
 chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
@@ -85,12 +90,16 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
 | FR-CUST-01 | Tự tạo hồ sơ khách khi đăng ký | ✅ |
-| FR-CUST-02 | Hồ sơ: họ tên, SĐT, ngày sinh, giới tính | ⬜ |
-| FR-CUST-03 | Sổ địa chỉ giao hàng (nhiều địa chỉ, mặc định) | ⬜ |
+| FR-CUST-02 | Hồ sơ: họ tên, SĐT, ngày sinh, giới tính | ✅ |
+| FR-CUST-03 | Sổ địa chỉ giao hàng (nhiều địa chỉ, mặc định) | 🟡 mô hình và quản trị xong; khách tự quản lý chưa |
 | FR-CUST-04 | Khách tự xem/sửa hồ sơ | ⬜ |
-| FR-CUST-05 | Quản trị xem/tìm khách hàng | ⬜ |
+| FR-CUST-05 | Quản trị xem/tìm khách hàng | ✅ |
 | FR-CUST-06 | Guest checkout | ⬜ |
 | FR-CUST-07 | Ghi audit thay đổi hồ sơ | ⬜ |
+
+**Phạm vi đã làm:** đăng ký thu họ tên, email, giới tính, ngày sinh, ít nhất một số điện thoại và một địa chỉ. Quản trị xem danh sách/tìm kiếm theo tên, email hoặc số điện thoại, tạo kèm account (mật khẩu do quản trị đặt, bắt đổi lần đầu), sửa toàn bộ hồ sơ, xoá mềm và khôi phục. Mọi thao tác quản trị cần quyền `customers:read/create/update/delete` (Super Admin được bỏ qua). Danh sách dùng `deleted=all|false|true`, mặc định `all` để vẫn thấy bản ghi đã xoá và nút khôi phục; phân trang 10/20/50.
+
+`customers` liên kết 1-1 với `users` (tên và email lấy từ `users`, không nhân bản), 1-N với `customer_phones` và `customer_addresses`; cờ chính `isPrimary`/`isDefault` được chuẩn hoá về đúng một bản ghi mỗi loại. Khách tự xem/sửa hồ sơ và lịch sử audit ở giao diện người dùng chưa triển khai.
 
 ## 7. Products
 

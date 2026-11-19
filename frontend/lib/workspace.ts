@@ -33,6 +33,15 @@ export function workspaceNav(user: CurrentUser): WorkspaceNavGroup[] {
               },
             ]
           : []),
+        ...(user.isSuperAdmin || hasPermission(user, 'customers:read')
+          ? [
+              {
+                label: 'Khách hàng',
+                href: '/customers',
+                hint: 'Hồ sơ khách hàng, số điện thoại và địa chỉ giao hàng.',
+              },
+            ]
+          : []),
         ...(user.isSuperAdmin || hasPermission(user, 'departments:read')
           ? [
               {

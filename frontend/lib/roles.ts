@@ -7,3 +7,10 @@ export type Role = {
   updatedAt: string;
   deletedAt: string | null;
 };
+
+export type RolePage = {
+  items: Role[];
+  total: number;
+  page: number;
+  limit: number;
+};

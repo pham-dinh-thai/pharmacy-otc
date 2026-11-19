@@ -1,5 +1,4 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { CreateCustomerCommand } from './create-customer.command';
 import { Inject } from '@nestjs/common';
 import { CustomerAlreadyExistsException } from '../../../domain/exceptions/customer.exceptions';
 import {
@@ -11,6 +10,7 @@ import {
   type ICustomersRepository,
 } from '../../../domain/customers.repository';
 import { Customer } from '../../../domain/customer.aggregate';
+import { CreateCustomerCommand } from './create-customer.command';
 
 @CommandHandler(CreateCustomerCommand)
 export class CreateCustomerHandler implements ICommandHandler<CreateCustomerCommand> {
@@ -26,7 +26,10 @@ export class CreateCustomerHandler implements ICommandHandler<CreateCustomerComm
     command: CreateCustomerCommand,
   ): Promise<{ id: string }> {
     return this.unitOfWork.run(async () => {
-      const customer = Customer.create(command.userId);
+      const customer = Customer.create({
+        userId: command.userId,
+        ...command.profile,
+      });
 
       if (
         await this.customersRepository.existsByIdAndUserId(
@@ -37,9 +40,9 @@ export class CreateCustomerHandler implements ICommandHandler<CreateCustomerComm
         throw new CustomerAlreadyExistsException();
       }
 
-      this.customersRepository.create(customer);
+      const result = await this.customersRepository.create(customer);
 
-      return { id: customer.getId() };
+      return { id: result.getId() };
     });
   }
 }

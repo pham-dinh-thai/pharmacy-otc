@@ -1,4 +1,6 @@
-export type CreateCustomerRequest = {
+import type { CustomerProfileInput } from '../../../../../customers/domain/customer.aggregate';
+
+export type CreateCustomerRequest = CustomerProfileInput & {
   userId: string;
 };
 

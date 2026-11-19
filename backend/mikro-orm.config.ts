@@ -10,6 +10,8 @@ import { MikroGoodsReceiptLine } from './src/modules/goods-receipts/infrastructu
 import { MikroUser } from './src/modules/users/infrastructure/entities/mikro-user.entity';
 import { MikroAccount } from './src/modules/authentication/infrastructure/entities/mikro-account.entity';
 import { MikroCustomer } from './src/modules/customers/infrastructure/entities/mikro-customer.entity';
+import { MikroCustomerPhone } from './src/modules/customers/infrastructure/entities/mikro-customer-phone.entity';
+import { MikroCustomerAddress } from './src/modules/customers/infrastructure/entities/mikro-customer-address.entity';
 import { MikroRole } from './src/modules/authorization/infrastructure/entities/mikro-role.entity';
 import { MikroAuditLog } from './src/modules/audit-logs/infrastructure/entities/mikro-audit-log.entity';
 import { MikroOutBoxEvent } from './src/shared/modules/outbox/infrastructure/mikro-outbox-event.entity';
@@ -36,6 +38,8 @@ export default defineConfig({
     MikroUser,
     MikroAccount,
     MikroCustomer,
+    MikroCustomerPhone,
+    MikroCustomerAddress,
     MikroRole,
     MikroAuditLog,
     MikroOutBoxEvent,
@@ -53,6 +57,8 @@ export default defineConfig({
     MikroUser,
     MikroAccount,
     MikroCustomer,
+    MikroCustomerPhone,
+    MikroCustomerAddress,
     MikroRole,
     MikroAuditLog,
     MikroOutBoxEvent,

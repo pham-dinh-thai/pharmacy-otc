@@ -60,6 +60,18 @@ export class User {
     this.updatedAt = new Date();
   }
 
+  public updateProfile(input: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  }): void {
+    this.firstName = input.firstName;
+    this.lastName = input.lastName;
+    this.email = input.email;
+
+    this.updatedAt = new Date();
+  }
+
   public assignRole(roleId: string): void {
     const normalized = User.normalizeRoleId(roleId);
 

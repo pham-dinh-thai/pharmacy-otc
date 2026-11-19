@@ -5,10 +5,16 @@ import {
 } from '@nestjs/common';
 import {
   EntityManager,
+  type FilterQuery,
   UniqueConstraintViolationException,
 } from '@mikro-orm/core';
-import { type IDepartmentsRepository } from '../../domain/departments.repository';
+import {
+  type DepartmentPage,
+  type FindDepartmentsOptions,
+  type IDepartmentsRepository,
+} from '../../domain/departments.repository';
 import { Department } from '../../domain/department.aggregate';
+import { likePattern } from '../../../../shared/utils/list-filters';
 import { DepartmentMapper } from '../mappers/department.mapper';
 import { MikroDepartment } from '../entities/mikro-department.entity';
 
@@ -16,14 +22,35 @@ import { MikroDepartment } from '../entities/mikro-department.entity';
 export class MikroDepartmentsRepository implements IDepartmentsRepository {
   public constructor(private readonly entityManager: EntityManager) {}
 
-  public async findAll(): Promise<Department[]> {
-    const mikroDepartments = await this.entityManager.findAll(MikroDepartment, {
-      orderBy: { createdAt: 'desc' },
-    });
+  public async findPage(
+    options: FindDepartmentsOptions,
+  ): Promise<DepartmentPage> {
+    const pattern = likePattern(options.search);
+    const where: FilterQuery<MikroDepartment> = {
+      ...(options.deleted === true
+        ? { deletedAt: { $ne: null } }
+        : options.deleted === false
+          ? { deletedAt: null }
+          : {}),
+      ...(pattern ? { name: { $ilike: pattern } } : {}),
+    };
 
-    return mikroDepartments.map((mikroDepartment) =>
-      DepartmentMapper.toDomain(mikroDepartment),
+    const [mikroDepartments, total] = await this.entityManager.findAndCount(
+      MikroDepartment,
+      where,
+      {
+        orderBy: { createdAt: 'desc' },
+        limit: options.limit,
+        offset: options.offset,
+      },
     );
+
+    return {
+      items: mikroDepartments.map((mikroDepartment) =>
+        DepartmentMapper.toDomain(mikroDepartment),
+      ),
+      total,
+    };
   }
 
   public async findActive(): Promise<Department[]> {

@@ -31,6 +31,10 @@ import { DEPARTMENT_DISABLED_EVENT } from '../../../departments/domain/events/de
 import { DEPARTMENT_RESTORED_EVENT } from '../../../departments/domain/events/department-restored.event';
 import { EMPLOYEE_CREATED_EVENT } from '../../../employees/domain/events/employee-created.event';
 import { EMPLOYEE_UPDATED_EVENT } from '../../../employees/domain/events/employee-updated.event';
+import { CUSTOMER_CREATED_EVENT } from '../../../customers/domain/events/customer-created.event';
+import { CUSTOMER_UPDATED_EVENT } from '../../../customers/domain/events/customer-updated.event';
+import { CUSTOMER_DELETED_EVENT } from '../../../customers/domain/events/customer-deleted.event';
+import { CUSTOMER_RESTORED_EVENT } from '../../../customers/domain/events/customer-restored.event';
 
 /**
  * Verbs stored in `audit_logs.action`. The outbox event type identifies the
@@ -97,6 +101,10 @@ export const AUDITED_EVENT_ACTIONS = {
   [DEPARTMENT_RESTORED_EVENT]: 'activate',
   [EMPLOYEE_CREATED_EVENT]: 'create',
   [EMPLOYEE_UPDATED_EVENT]: 'update',
+  [CUSTOMER_CREATED_EVENT]: 'create',
+  [CUSTOMER_UPDATED_EVENT]: 'update',
+  [CUSTOMER_DELETED_EVENT]: 'delete',
+  [CUSTOMER_RESTORED_EVENT]: 'restore',
 } as const satisfies Record<string, AuditAction>;
 
 export type AuditedEventType = keyof typeof AUDITED_EVENT_ACTIONS;

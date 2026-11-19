@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -20,8 +21,9 @@ import { RestoreRoleCommand } from '../../application/commands/restore-role/rest
 import { GetRoleQuery } from '../../application/queries/get-role/get-role.query';
 import { RoleReadModel } from '../../application/queries/get-role/role.read-model';
 import { ListRolesQuery } from '../../application/queries/list-roles/list-roles.query';
-import { RoleListItemReadModel } from '../../application/queries/list-roles/role-list-item.read-model';
+import { RolePageReadModel } from '../../application/queries/list-roles/role-page.read-model';
 import { CreateRoleRequest } from './requests/create-role.request';
+import { ListRolesRequest } from './requests/list-roles.request';
 import { RenameRoleRequest } from './requests/rename-role.request';
 import { GrantPermissionRequest } from './requests/grant-permission.request';
 import { SetRoleSuperAdminRequest } from './requests/set-role-super-admin.request';
@@ -40,8 +42,18 @@ export class RolesController {
   ) {}
 
   @Get()
-  public findAll(): Promise<RoleListItemReadModel[]> {
-    return this.queryBus.execute(new ListRolesQuery());
+  public findAll(
+    @Query() request: ListRolesRequest,
+  ): Promise<RolePageReadModel> {
+    return this.queryBus.execute(
+      new ListRolesQuery({
+        page: request.page,
+        limit: request.limit,
+        search: request.search,
+        deleted: request.deleted,
+        isSuperAdmin: request.isSuperAdmin,
+      }),
+    );
   }
 
   @Get(':id')

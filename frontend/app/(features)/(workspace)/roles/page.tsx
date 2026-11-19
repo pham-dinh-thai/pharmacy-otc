@@ -2,11 +2,21 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { WorkspacePage } from '@/components/layout/WorkspaceShell';
+import { ListFilterForm } from '@/components/pagination/ListFilterForm';
+import { PageSizeForm } from '@/components/pagination/PageSizeForm';
+import { PaginationNav } from '@/components/pagination/PaginationNav';
 import { FormMessage } from '@/components/roles/FormMessage';
 import { PermissionChips } from '@/components/roles/PermissionChips';
 import { authFetch } from '@/lib/auth';
 import { fetchCurrentUser } from '@/lib/account';
-import type { Role } from '@/lib/roles';
+import {
+  compactListFilters,
+  first,
+  listApiQuery,
+  parseTriState,
+} from '@/lib/list-filters';
+import { listPageHref, parseLimit, parsePage } from '@/lib/pagination';
+import type { RolePage } from '@/lib/roles';
 import { disableRole, restoreRole } from './actions';
 
 const TH_CLASS =
@@ -37,19 +47,41 @@ function formatDate(value: string): string {
 async function RolesList({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; updated?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    updated?: string;
+    search?: string | string[];
+    deleted?: string | string[];
+    isSuperAdmin?: string | string[];
+    page?: string | string[];
+    limit?: string | string[];
+  }>;
 }) {
   const user = await fetchCurrentUser();
 
   if (!user) redirect('/login?next=/roles');
   if (!user.isSuperAdmin) redirect('/dashboard');
 
-  const [res, query] = await Promise.all([authFetch('/roles'), searchParams]);
+  const query = await searchParams;
+  const page = parsePage(first(query.page));
+  const limit = parseLimit(first(query.limit));
+  const search = first(query.search).trim();
+  const deleted = parseTriState(first(query.deleted));
+  const isSuperAdmin = parseTriState(first(query.isSuperAdmin));
+  const filters = compactListFilters({ search, deleted, isSuperAdmin });
+  const listHref = listPageHref('/roles', page, limit, filters);
+  const res = await authFetch(`/roles?${listApiQuery(filters, page, limit)}`);
 
-  if (res.status === 401) redirect('/login?next=/roles');
+  if (res.status === 401) redirect(`/login?next=${encodeURIComponent(listHref)}`);
   if (!res.ok) throw new Error(`Failed to fetch roles: ${res.status}`);
 
-  const roles: Role[] = await res.json();
+  const result = (await res.json()) as RolePage;
+  const roles = result.items;
+  const totalPages = Math.max(1, Math.ceil(result.total / result.limit));
+
+  if (result.page > totalPages) {
+    redirect(listPageHref('/roles', totalPages, limit, filters));
+  }
   const activeRoles = roles.filter((role) => role.deletedAt === null);
   const disabledRoles = roles.filter((role) => role.deletedAt !== null);
   const canCreate = user.isSuperAdmin;
@@ -73,22 +105,51 @@ async function RolesList({
       <FormMessage message={errorMessage} />
       <FormMessage message={updatedMessage} tone="success" />
 
+      <ListFilterForm
+        action="/roles"
+        limit={limit}
+        search={search}
+        searchPlaceholder="Tên vai trò"
+        selects={[
+          {
+            name: 'deleted',
+            label: 'Trạng thái',
+            options: [
+              { value: 'all', label: 'Tất cả' },
+              { value: 'false', label: 'Đang hoạt động' },
+              { value: 'true', label: 'Đã vô hiệu hoá' },
+            ],
+          },
+          {
+            name: 'isSuperAdmin',
+            label: 'Loại vai trò',
+            options: [
+              { value: 'all', label: 'Tất cả' },
+              { value: 'true', label: 'Super Admin' },
+              { value: 'false', label: 'Vai trò thường' },
+            ],
+          },
+        ]}
+        values={{ deleted, isSuperAdmin }}
+      />
+
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">
         <p className="text-[13px] text-muted">
-          {activeRoles.length} vai trò đang hoạt động
-          {disabledRoles.length > 0
-            ? ` · ${disabledRoles.length} đã vô hiệu hoá`
-            : ''}
+          {result.total} vai trò · Trang {result.page}/{totalPages}
         </p>
 
-        {canCreate && (
-          <Link
-            href="/roles/new"
-            className="bg-accent px-4 py-2.5 text-[13px] font-semibold text-paper transition-colors hover:bg-ink"
-          >
-            Thêm vai trò
-          </Link>
-        )}
+        <div className="flex flex-wrap items-center gap-3">
+          <PageSizeForm action="/roles" limit={limit} filters={filters} />
+
+          {canCreate && (
+            <Link
+              href="/roles/new"
+              className="bg-accent px-4 py-2.5 text-[13px] font-semibold text-paper transition-colors hover:bg-ink"
+            >
+              Thêm vai trò
+            </Link>
+          )}
+        </div>
       </div>
 
       {activeRoles.length > 0 ? (
@@ -109,18 +170,20 @@ async function RolesList({
               {activeRoles.map((role) => (
                 <tr key={role.id}>
                   <td className={TD_CLASS}>
-                    <Link
-                      href={`/roles/${role.id}`}
-                      className="font-semibold hover:text-accent"
-                    >
-                      {role.name}
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={`/roles/${role.id}`}
+                        className="whitespace-nowrap font-semibold hover:text-accent"
+                      >
+                        {role.name}
+                      </Link>
 
-                    {role.isSuperAdmin && (
-                      <span className="ml-2 border border-accent px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">
-                        Super Admin
-                      </span>
-                    )}
+                      {role.isSuperAdmin && (
+                        <span className="whitespace-nowrap border border-accent px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">
+                          Super Admin
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   <td className={TD_CLASS}>
@@ -159,7 +222,7 @@ async function RolesList({
                           <input
                             type="hidden"
                             name="returnTo"
-                            value="/roles"
+                            value={listHref}
                           />
                           <button
                             type="submit"
@@ -216,18 +279,20 @@ async function RolesList({
                 {disabledRoles.map((role) => (
                   <tr key={role.id}>
                     <td className={TD_CLASS}>
-                      <Link
-                        href={`/roles/${role.id}`}
-                        className="font-semibold text-muted hover:text-accent"
-                      >
-                        {role.name}
-                      </Link>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                          href={`/roles/${role.id}`}
+                          className="whitespace-nowrap font-semibold text-muted hover:text-accent"
+                        >
+                          {role.name}
+                        </Link>
 
-                      {role.isSuperAdmin && (
-                        <span className="ml-2 border border-rule px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
-                          Super Admin
-                        </span>
-                      )}
+                        {role.isSuperAdmin && (
+                          <span className="whitespace-nowrap border border-rule px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
+                            Super Admin
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     <td className={`${TD_CLASS} text-muted`}>
@@ -247,7 +312,7 @@ async function RolesList({
                           <input
                             type="hidden"
                             name="returnTo"
-                            value="/roles"
+                            value={listHref}
                           />
                           <button
                             type="submit"
@@ -266,6 +331,15 @@ async function RolesList({
           </div>
         </section>
       )}
+
+      <PaginationNav
+        path="/roles"
+        page={result.page}
+        limit={limit}
+        totalPages={totalPages}
+        label="Phân trang vai trò"
+        filters={filters}
+      />
     </WorkspacePage>
   );
 }
@@ -273,7 +347,15 @@ async function RolesList({
 export default function RolesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; updated?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    updated?: string;
+    search?: string | string[];
+    deleted?: string | string[];
+    isSuperAdmin?: string | string[];
+    page?: string | string[];
+    limit?: string | string[];
+  }>;
 }) {
   return (
     <Suspense fallback={<div className="min-h-[50vh]" />}>
