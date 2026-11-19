@@ -113,6 +113,18 @@ export class MikroCategoriesRepository implements ICategoriesRepository {
     return rows.map((row) => row.productId);
   }
 
+  public async findActiveByIds(ids: string[]): Promise<string[]> {
+    if (ids.length === 0) return [];
+
+    const rows = await this.entityManager.find(
+      MikroCategory,
+      { id: { $in: ids }, deletedAt: null },
+      { fields: ['id'] },
+    );
+
+    return rows.map((row) => row.id);
+  }
+
   public create(category: Category): Promise<Category> {
     return this.persistCategory(new MikroCategory(), category, true);
   }

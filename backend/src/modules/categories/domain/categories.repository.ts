@@ -32,6 +32,9 @@ export interface ICategoriesRepository {
   /** Id sản phẩm thuộc danh mục, dùng để đồng bộ bảng trung gian. */
   findProductIds(categoryId: string): Promise<string[]>;
 
+  /** Danh mục còn hoạt động, dùng để validate khi gắn vào sản phẩm. */
+  findActiveByIds(ids: string[]): Promise<string[]>;
+
   create(category: Category): Promise<Category>;
 
   update(category: Category): Promise<Category>;

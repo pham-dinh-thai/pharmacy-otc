@@ -18,6 +18,14 @@ export class MikroProduct {
   quantity!: number;
 
   @Property({
+    fieldName: 'deleted_at',
+    type: 'timestamptz',
+    nullable: true,
+    default: null,
+  })
+  deletedAt!: Date | null;
+
+  @Property({
     type: 'timestamptz',
     fieldName: 'created_at',
     onCreate: () => new Date(),

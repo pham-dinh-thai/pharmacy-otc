@@ -1,10 +1,29 @@
-import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsString, Matches } from 'class-validator';
+import { Transform, type TransformFnParams } from 'class-transformer';
+import {
+  IsArray,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+} from 'class-validator';
+
+const trim = ({ value }: { value: unknown }): unknown =>
+  typeof value === 'string' ? value.trim() : value;
+
+const trimCategoryIds = ({ value }: TransformFnParams): unknown => {
+  if (!Array.isArray(value)) return value;
+
+  const ids: unknown[] = value;
+
+  return ids
+    .map((id) => (typeof id === 'string' ? id.trim() : id))
+    .filter((id) => id !== '');
+};
 
 export class CreateProductRequest {
-  @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
+  @Transform(trim)
   @IsString()
   @IsNotEmpty()
   name!: string;
@@ -16,4 +35,10 @@ export class CreateProductRequest {
   @IsInt()
   @IsNotEmpty()
   quantity!: number;
+
+  @Transform(trimCategoryIds)
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  categoryIds?: string[];
 }

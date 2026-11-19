@@ -1,10 +1,14 @@
+import { Inject } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { CreateProductCommand } from './create-product.command';
 import {
   type IProductsRepository,
   PRODUCTS_REPOSITORY,
 } from '../../../domain/products.repository';
-import { Inject } from '@nestjs/common';
+import {
+  CATEGORIES_REPOSITORY,
+  type ICategoriesRepository,
+} from '../../../../categories/domain/categories.repository';
+import { ProductCategoryNotFoundException } from '../../../domain/exceptions/product.exceptions';
 import { Product } from '../../../domain/product.aggregate';
 import {
   type IUnitOfWork,
@@ -17,12 +21,16 @@ import {
 import { PRODUCT_CREATED_EVENT } from '../../../domain/events/product-created.event';
 import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
+import { CreateProductCommand } from './create-product.command';
 
 @CommandHandler(CreateProductCommand)
 export class CreateProductHandler implements ICommandHandler<CreateProductCommand> {
   public constructor(
     @Inject(PRODUCTS_REPOSITORY)
     private readonly productsRepository: IProductsRepository,
+
+    @Inject(CATEGORIES_REPOSITORY)
+    private readonly categoriesRepository: ICategoriesRepository,
 
     @Inject(OUTBOX_REPOSITORY)
     private readonly outboxRepository: IOutboxRepository,
@@ -33,10 +41,19 @@ export class CreateProductHandler implements ICommandHandler<CreateProductComman
 
   public async execute(command: CreateProductCommand): Promise<{ id: string }> {
     return this.unitOfWork.run(async () => {
+      const categoryIds = [...new Set(command.categoryIds)];
+      const activeCategories =
+        await this.categoriesRepository.findActiveByIds(categoryIds);
+
+      if (activeCategories.length !== categoryIds.length) {
+        throw new ProductCategoryNotFoundException();
+      }
+
       const product = Product.create({
         name: command.name,
         unitPrice: command.unitPrice,
         quantity: command.quantity,
+        categoryIds,
       });
 
       await this.productsRepository.create(product);
@@ -50,6 +67,7 @@ export class CreateProductHandler implements ICommandHandler<CreateProductComman
             name: product.getName(),
             unitPrice: product.getUnitPrice(),
             quantity: product.getQuantity(),
+            categoryIds: [...product.getCategoryIds()],
           },
         }),
       });
