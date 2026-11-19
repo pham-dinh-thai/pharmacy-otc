@@ -1,10 +1,38 @@
-import { Transform } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsString, Matches } from 'class-validator';
+import { Transform, type TransformFnParams } from 'class-transformer';
+import {
+  IsArray,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  MaxLength,
+} from 'class-validator';
+
+const trim = ({ value }: { value: unknown }): unknown =>
+  typeof value === 'string' ? value.trim() : value;
+
+const trimOrNull = ({ value }: TransformFnParams): unknown => {
+  if (typeof value !== 'string') return value;
+
+  const trimmed = value.trim();
+
+  return trimmed || null;
+};
+
+const trimCategoryIds = ({ value }: TransformFnParams): unknown => {
+  if (!Array.isArray(value)) return value;
+
+  const ids: unknown[] = value;
+
+  return ids
+    .map((id) => (typeof id === 'string' ? id.trim() : id))
+    .filter((id) => id !== '');
+};
 
 export class CreateProductRequest {
-  @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
+  @Transform(trim)
   @IsString()
   @IsNotEmpty()
   name!: string;
@@ -16,4 +44,47 @@ export class CreateProductRequest {
   @IsInt()
   @IsNotEmpty()
   quantity!: number;
+
+  @Transform(trimOrNull)
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  sku?: string | null;
+
+  @Transform(trimOrNull)
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  unit?: string | null;
+
+  @Transform(trimOrNull)
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  description?: string | null;
+
+  @Transform(trimOrNull)
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  imageUrl?: string | null;
+
+  @Transform(trimOrNull)
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'expiryDate must be YYYY-MM-DD',
+  })
+  expiryDate?: string | null;
+
+  @Transform(trimOrNull)
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  warning?: string | null;
+
+  @Transform(trimCategoryIds)
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  categoryIds?: string[];
 }

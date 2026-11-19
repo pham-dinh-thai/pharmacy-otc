@@ -16,7 +16,8 @@
 | Authorization (RBAC) | ✅ | Role, permission, super admin |
 | Users | 🟡 | Tạo, đổi email, gán/bỏ role; thiếu list/detail, vô hiệu hoá |
 | Customers | 🟡 | Tự tạo khi đăng ký; thiếu hồ sơ/địa chỉ/API |
-| Products | 🟡 | Tạo/list cơ bản; thiếu SKU, category, đơn vị, mô tả, ảnh, sửa/xoá |
+| Products | ✅ | Tạo/sửa/xoá mềm/khôi phục; SKU, đơn vị, mô tả, ảnh, hạn dùng, cảnh báo; N-N với danh mục |
+| Categories | ✅ | Tạo/sửa/xoá mềm/khôi phục, slug tự sinh, liên kết N-N với sản phẩm |
 | Suppliers | ✅ | Tạo/list/sửa/xoá/khôi phục |
 | Goods receipts | 🟡 | Tạo/xác nhận/huỷ; thiếu list/detail |
 | Inventories | 🟡 | Xuất/kiểm kê theo lô; thiếu API đọc tồn/lô |
@@ -107,17 +108,33 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 |---|---|---|
 | FR-PROD-01 | Tạo sản phẩm: tên, giá bán, số lượng | ✅ |
 | FR-PROD-02 | Danh sách sản phẩm | ✅ |
-| FR-PROD-03 | Thêm `sku` unique | ⬜ |
-| FR-PROD-04 | Thêm `category` (OTC/TPCN/mỹ phẩm/thiết bị) | 🟡 enum đã tạo, chưa gắn entity/API |
-| FR-PROD-05 | Thêm `unit` (viên, hộp, chai, tuýp…) | ⬜ |
-| FR-PROD-06 | Thêm mô tả, ảnh, thông tin hạn dùng/cảnh báo | ⬜ |
-| FR-PROD-07 | Sửa/xoá/ngừng bán sản phẩm | ⬜ |
-| FR-PROD-08 | Tìm kiếm/lọc theo category, khoảng giá, còn hàng | ⬜ |
-| FR-PROD-09 | Phân trang | ⬜ |
+| FR-PROD-03 | Thêm `sku` unique | ✅ chuẩn hoá chữ hoa, trùng trả `409`, cả API và UI |
+| FR-PROD-04 | Thêm `category` (OTC/TPCN/mỹ phẩm/thiết bị) | 🟡 N-N qua `product_categories`, API đọc và form chọn nhiều danh mục; chưa seed nhóm cố định |
+| FR-PROD-05 | Thêm `unit` (viên, hộp, chai, tuýp…) | ✅ |
+| FR-PROD-06 | Thêm mô tả, ảnh, thông tin hạn dùng/cảnh báo | ✅ `description`, `imageUrl`, `expiryDate` (`YYYY-MM-DD`), `warning` |
+| FR-PROD-07 | Sửa/xoá/ngừng bán sản phẩm | ✅ sửa, xoá mềm và khôi phục |
+| FR-PROD-08 | Tìm kiếm/lọc theo category, khoảng giá, còn hàng | 🟡 API hỗ trợ cả khoảng giá; UI có tìm kiếm, danh mục và tồn kho, chưa có ô lọc khoảng giá |
+| FR-PROD-09 | Phân trang | ✅ 10/20/50 |
 | FR-PROD-10 | Danh mục công khai cho khách chưa đăng nhập | ⬜ |
 | FR-PROD-11 | Không cho giá/số lượng âm | ✅ |
 
-## 8. Suppliers
+**Phạm vi đã làm:** quản trị sản phẩm tại `/products` gồm danh sách có lọc/tìm kiếm/phân trang, chi tiết, tạo, sửa, xoá mềm và khôi phục. Form tạo/sửa nhận `sku`, `unit`, `description`, `imageUrl`, `expiryDate`, `warning` (đều optional) và cho phép chọn nhiều danh mục đang hoạt động. SKU được chuẩn hoá chữ hoa, kiểm tra trùng ở tầng ứng dụng (`409`) và có ràng buộc unique trong DB. Mỗi sản phẩm liên kết N-N với danh mục qua `product_categories`. Thao tác cần `products:read/create/update/delete` (Super Admin được bỏ qua), còn việc tải danh mục cần `categories:read`. Storefront vẫn dùng dữ liệu mẫu.
+
+## 8. Categories
+
+| Mã | Yêu cầu | Trạng thái |
+|---|---|---|
+| FR-CAT-01 | Tạo danh mục: tên, slug, mô tả | ✅ slug tự sinh từ tên khi bỏ trống |
+| FR-CAT-02 | Danh sách, tìm kiếm, lọc trạng thái xoá, phân trang | ✅ 10/20/50 |
+| FR-CAT-03 | Chi tiết danh mục, kể cả bản ghi đã xoá | ✅ |
+| FR-CAT-04 | Sửa tên/slug/mô tả; chặn trùng tên hoặc slug | ✅ |
+| FR-CAT-05 | Xoá mềm và khôi phục | ✅ chung permission `categories:delete` |
+| FR-CAT-06 | Liên kết N-N với sản phẩm | ✅ danh sách id sản phẩm hiển thị read-only ở chi tiết; liên kết được chỉnh từ form sản phẩm |
+| FR-CAT-07 | Ghi audit cho tạo/sửa/xoá/khôi phục | ✅ qua outbox, `entityType = categories` |
+
+**Phạm vi đã làm:** trang `/categories` có danh sách, lọc, phân trang, tạo, sửa, xoá mềm, khôi phục và chi tiết. Mọi endpoint cần `categories:read/create/update/delete` (Super Admin được bỏ qua). Quan hệ với sản phẩm là N-N qua `product_categories`; để tránh phụ thuộc vòng giữa hai module, form danh mục không sửa trực tiếp danh sách sản phẩm mà hiển thị liên kết hiện có.
+
+## 9. Suppliers
 
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
@@ -130,7 +147,7 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 | FR-SUP-07 | Xem chi tiết nhà cung cấp (kể cả đã xoá) | ✅ |
 | FR-SUP-08 | Phân trang danh sách, chọn 10/20/50 bản ghi mỗi trang | ✅ |
 
-## 9. Goods receipts (phiếu nhập)
+## 10. Goods receipts (phiếu nhập)
 
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
@@ -145,7 +162,7 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 | FR-GR-09 | Sửa phiếu `pending` | ⬜ |
 | FR-GR-10 | Ghi audit tạo/xác nhận/huỷ | ✅ |
 
-## 10. Inventories (tồn kho theo lô)
+## 11. Inventories (tồn kho theo lô)
 
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
@@ -167,7 +184,7 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 - Xuất kho hiện yêu cầu truyền đúng `batchId`; hệ thống chưa tự chọn lô FEFO.
 - Không có endpoint đọc tồn kho trong code hiện tại.
 
-## 11. Orders
+## 12. Orders
 
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
@@ -180,7 +197,7 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 | FR-ORD-07 | Quản trị xử lý đơn | ⬜ |
 | FR-ORD-08 | Ghi audit | ⬜ |
 
-## 12. Expenses
+## 13. Expenses
 
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
@@ -195,7 +212,7 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 **Nhóm chi phí:** thuê mặt bằng, điện nước, lương, vận chuyển, marketing, văn
 phòng phẩm, khác.
 
-## 13. Audit logs
+## 14. Audit logs
 
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
@@ -206,7 +223,7 @@ phòng phẩm, khác.
 | FR-AUD-05 | Không cho sửa/xoá audit | ✅ (chỉ có API đọc) |
 | FR-AUD-06 | Retry khi consumer lỗi, dừng sau N lần | ✅ |
 
-## 14. Reports
+## 15. Reports
 
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
@@ -215,7 +232,7 @@ phòng phẩm, khác.
 | FR-RPT-03 | Báo cáo hàng cận hạn/hết hạn | ⬜ |
 | FR-RPT-04 | Xuất CSV/Excel | ⬜ |
 
-## 15. Quy tắc nghiệp vụ xuyên suốt
+## 16. Quy tắc nghiệp vụ xuyên suốt
 
 | Mã | Quy tắc |
 |---|---|
@@ -231,11 +248,11 @@ phòng phẩm, khác.
 | BR-10 | Không bán thuốc kê đơn (ràng buộc danh mục) |
 | BR-11 | Không hiển thị/bán lô đã hết hạn (mục tiêu giai đoạn sau) |
 
-## 16. Ưu tiên tiếp theo
+## 17. Ưu tiên tiếp theo
 
-1. Mở rộng `products`: `sku`, `category`, `unit`, `description`, `imageUrl` +
-   migration + test.
-2. Hồ sơ `customers` + địa chỉ.
-3. `orders` + giỏ hàng + trừ tồn theo lô.
-4. API đọc tồn kho/lô, cảnh báo cận hạn.
-5. Hoàn thiện chi phí (duyệt/chi/huỷ/list).
+1. Lọc khoảng giá trên UI `/products` (API đã hỗ trợ `minPrice`/`maxPrice`).
+2. Storefront công khai dùng API thay dữ liệu mẫu (FR-PROD-10).
+3. Seed nhóm danh mục cố định OTC/TPCN/mỹ phẩm/thiết bị (FR-PROD-04).
+4. `orders` + giỏ hàng + trừ tồn theo lô.
+5. API đọc tồn kho/lô, cảnh báo cận hạn.
+6. Hoàn thiện chi phí (duyệt/chi/huỷ/list).

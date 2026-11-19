@@ -1,61 +1,194 @@
 import { Injectable } from '@nestjs/common';
-import { IProductsRepository } from '../../domain/products.repository';
-import { Product } from '../../domain/product.aggregate';
+import { type FilterQuery } from '@mikro-orm/core';
 import { EntityManager } from '@mikro-orm/postgresql';
+import {
+  type FindProductsFilters,
+  IProductsRepository,
+  type ProductPage,
+} from '../../domain/products.repository';
+import { Product } from '../../domain/product.aggregate';
+import { likePattern } from '../../../../shared/utils/list-filters';
 import { MikroProduct } from '../entities/mikro-product.entity';
+import { MikroProductCategory } from '../../../categories/infrastructure/entities/mikro-product-category.entity';
+import { ProductMapper } from '../mappers/product.mapper';
 
 @Injectable()
 export class MikroProductsRepository implements IProductsRepository {
   public constructor(private readonly entityManager: EntityManager) {}
 
-  public async findAll(): Promise<Product[]> {
-    const mikroProducts = await this.entityManager.findAll(MikroProduct);
+  public async findPage(filters?: FindProductsFilters): Promise<ProductPage> {
+    const deleted = filters?.deleted ?? false;
+    const pattern = likePattern(filters?.search);
 
-    return mikroProducts.map((mikroProduct) =>
-      Product.fromPersistent({
-        id: mikroProduct.id,
-        name: mikroProduct.name,
-        unitPrice: mikroProduct.unitPrice.toString(),
-        quantity: mikroProduct.quantity,
-        createdAt: mikroProduct.createdAt,
-        updatedAt: mikroProduct.updatedAt,
-      }),
+    const where: FilterQuery<MikroProduct> = {
+      ...(deleted === true
+        ? { deletedAt: { $ne: null } }
+        : deleted === false
+          ? { deletedAt: null }
+          : {}),
+      ...(pattern ? { name: { $ilike: pattern } } : {}),
+      ...(filters?.inStock === true
+        ? { quantity: { $gt: 0 } }
+        : filters?.inStock === false
+          ? { quantity: 0 }
+          : {}),
+      ...(filters?.minPrice !== undefined || filters?.maxPrice !== undefined
+        ? {
+            unitPrice: {
+              ...(filters.minPrice !== undefined
+                ? { $gte: BigInt(filters.minPrice) }
+                : {}),
+              ...(filters.maxPrice !== undefined
+                ? { $lte: BigInt(filters.maxPrice) }
+                : {}),
+            },
+          }
+        : {}),
+    };
+
+    let linkedProductIds: string[] | undefined;
+
+    if (filters?.categoryId) {
+      linkedProductIds = await this.findProductIdsByCategory(
+        filters.categoryId,
+      );
+      if (linkedProductIds.length === 0) return { items: [], total: 0 };
+      where.id = { $in: linkedProductIds };
+    }
+
+    const [mikroProducts, total] = await this.entityManager.findAndCount(
+      MikroProduct,
+      where,
+      {
+        orderBy: { createdAt: 'desc' },
+        ...(filters?.limit !== undefined ? { limit: filters.limit } : {}),
+        ...(filters?.offset !== undefined ? { offset: filters.offset } : {}),
+      },
     );
+
+    const items = await Promise.all(
+      mikroProducts.map(async (mikroProduct) =>
+        ProductMapper.toDomain(
+          mikroProduct,
+          await this.findCategoryIds(mikroProduct.id),
+        ),
+      ),
+    );
+
+    return { items, total };
   }
 
   public async findById(id: string): Promise<Product | null> {
-    const mikroProduct = await this.entityManager.findOne(MikroProduct, { id });
+    return this.findByIdWithCondition(id, true);
+  }
 
-    return mikroProduct
-      ? Product.fromPersistent({
-          id: mikroProduct.id,
-          name: mikroProduct.name,
-          unitPrice: mikroProduct.unitPrice.toString(),
-          quantity: mikroProduct.quantity,
-          createdAt: mikroProduct.createdAt,
-          updatedAt: mikroProduct.updatedAt,
-        })
-      : null;
+  public async findByIdIncludingDeleted(id: string): Promise<Product | null> {
+    return this.findByIdWithCondition(id, false);
+  }
+
+  public async findCategoryIds(productId: string): Promise<string[]> {
+    const rows = await this.entityManager.find(
+      MikroProductCategory,
+      { productId },
+      { fields: ['categoryId'] },
+    );
+
+    return rows.map((row) => row.categoryId);
   }
 
   public async existsById(id: string): Promise<boolean> {
     const mikroProduct = await this.entityManager.findOne(MikroProduct, { id });
 
-    return !!mikroProduct;
+    return mikroProduct !== null;
+  }
+
+  public async existsBySku(sku: string, excludeId?: string): Promise<boolean> {
+    const found = await this.entityManager.findOne(
+      MikroProduct,
+      {
+        sku,
+        ...(excludeId ? { id: { $ne: excludeId } } : {}),
+      },
+      { fields: ['id'] },
+    );
+
+    return found !== null;
   }
 
   public async create(product: Product): Promise<void> {
-    const mikroProduct = this.entityManager.create(MikroProduct, {
-      id: product.getId(),
-      name: product.getName(),
-      unitPrice: BigInt(product.getUnitPrice()),
-      quantity: product.getQuantity(),
-      createdAt: product.getCreatedAt(),
-      updatedAt: product.getUpdatedAt(),
+    await this.persistProduct(new MikroProduct(), product, true);
+  }
+
+  public async update(product: Product): Promise<void> {
+    const mikroProduct = this.entityManager.getReference(
+      MikroProduct,
+      product.getId(),
+    );
+
+    await this.persistProduct(mikroProduct, product, false);
+  }
+
+  private async findByIdWithCondition(
+    id: string,
+    onlyActive: boolean,
+  ): Promise<Product | null> {
+    const mikroProduct = await this.entityManager.findOne(MikroProduct, {
+      id,
+      ...(onlyActive ? { deletedAt: null } : {}),
     });
 
-    this.entityManager.persist(mikroProduct);
+    if (!mikroProduct) return null;
+
+    return ProductMapper.toDomain(
+      mikroProduct,
+      await this.findCategoryIds(mikroProduct.id),
+    );
+  }
+
+  private async findProductIdsByCategory(
+    categoryId: string,
+  ): Promise<string[]> {
+    const rows = await this.entityManager.find(
+      MikroProductCategory,
+      { categoryId },
+      { fields: ['productId'] },
+    );
+
+    return rows.map((row) => row.productId);
+  }
+
+  private async persistProduct(
+    mikroProduct: MikroProduct,
+    product: Product,
+    insert: boolean,
+  ): Promise<void> {
+    ProductMapper.assign(mikroProduct, product);
+
+    if (insert) {
+      this.entityManager.persist(mikroProduct);
+    }
 
     await this.entityManager.flush();
+    await this.syncCategoryIds(product);
+  }
+
+  /** Thay thế toàn bộ liên kết danh mục của sản phẩm. */
+  private async syncCategoryIds(product: Product): Promise<void> {
+    const productId = product.getId();
+    const categoryIds = product.getCategoryIds();
+
+    await this.entityManager.nativeDelete(MikroProductCategory, { productId });
+
+    if (categoryIds.length > 0) {
+      const links = categoryIds.map((categoryId) => {
+        const link = new MikroProductCategory();
+        link.productId = productId;
+        link.categoryId = categoryId;
+
+        return link;
+      });
+
+      await this.entityManager.insertMany(MikroProductCategory, links);
+    }
   }
 }

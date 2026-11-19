@@ -5,6 +5,7 @@ export const PERMISSIONS = {
   roles: ['create', 'read', 'update', 'delete'],
   orders: ['read', 'process', 'cancel', 'refund'],
   products: ['read', 'create', 'update', 'delete'],
+  categories: ['create', 'read', 'update', 'delete'],
   suppliers: ['read', 'create', 'update', 'delete'],
   goods_receipts: ['read', 'create', 'confirm', 'cancel'],
   inventories: ['read', 'issue', 'reconcile'],

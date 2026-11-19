@@ -12,6 +12,13 @@ import { USER_EMAIL_CHANGED_EVENT } from '../../../users/domain/events/user-emai
 import { USER_ROLE_ASSIGNED_EVENT } from '../../../users/domain/events/user-role-assigned.event';
 import { USER_ROLE_REMOVED_EVENT } from '../../../users/domain/events/user-role-removed.event';
 import { PRODUCT_CREATED_EVENT } from '../../../products/domain/events/product-created.event';
+import { PRODUCT_UPDATED_EVENT } from '../../../products/domain/events/product-updated.event';
+import { PRODUCT_DELETED_EVENT } from '../../../products/domain/events/product-deleted.event';
+import { PRODUCT_RESTORED_EVENT } from '../../../products/domain/events/product-restored.event';
+import { CATEGORY_CREATED_EVENT } from '../../../categories/domain/events/category-created.event';
+import { CATEGORY_UPDATED_EVENT } from '../../../categories/domain/events/category-updated.event';
+import { CATEGORY_DELETED_EVENT } from '../../../categories/domain/events/category-deleted.event';
+import { CATEGORY_RESTORED_EVENT } from '../../../categories/domain/events/category-restored.event';
 import { SUPPLIER_CREATED_EVENT } from '../../../suppliers/domain/events/supplier-created.event';
 import { SUPPLIER_UPDATED_EVENT } from '../../../suppliers/domain/events/supplier-updated.event';
 import { SUPPLIER_DELETED_EVENT } from '../../../suppliers/domain/events/supplier-deleted.event';
@@ -82,6 +89,13 @@ export const AUDITED_EVENT_ACTIONS = {
   [USER_ROLE_ASSIGNED_EVENT]: 'assign_role',
   [USER_ROLE_REMOVED_EVENT]: 'remove_role',
   [PRODUCT_CREATED_EVENT]: 'create',
+  [PRODUCT_UPDATED_EVENT]: 'update',
+  [PRODUCT_DELETED_EVENT]: 'delete',
+  [PRODUCT_RESTORED_EVENT]: 'restore',
+  [CATEGORY_CREATED_EVENT]: 'create',
+  [CATEGORY_UPDATED_EVENT]: 'update',
+  [CATEGORY_DELETED_EVENT]: 'delete',
+  [CATEGORY_RESTORED_EVENT]: 'restore',
   [SUPPLIER_CREATED_EVENT]: 'create',
   [SUPPLIER_UPDATED_EVENT]: 'update',
   [SUPPLIER_DELETED_EVENT]: 'delete',
