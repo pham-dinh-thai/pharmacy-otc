@@ -2,12 +2,16 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { AuthField } from '@/components/auth/AuthField';
+import { CUSTOMER_GENDERS } from '@/lib/customers';
 import { handleRegister } from './actions';
 
 const ERROR_MESSAGES: Record<string, string> = {
   missing: 'Nhập đầy đủ họ, tên và email rồi gửi lại.',
   short: 'Mật khẩu cần ít nhất 8 ký tự.',
   mismatch: 'Mật khẩu nhập lại không khớp.',
+  profile:
+    'Cần chọn giới tính, ngày sinh và nhập ít nhất một số điện thoại cùng một địa chỉ giao hàng.',
+  invalid: 'Thông tin hồ sơ không hợp lệ. Kiểm tra lại rồi gửi lại.',
   exists: 'Email này đã được đăng ký. Đăng nhập hoặc dùng email khác.',
   server: 'Không đăng ký được. Kiểm tra kết nối rồi thử lại.',
 };
@@ -70,6 +74,75 @@ export default function RegisterPage({
           placeholder="ban@example.com"
           required
         />
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label
+              htmlFor="gender"
+              className="mb-1.5 block text-[13px] font-medium text-muted"
+            >
+              Giới tính
+            </label>
+            <select
+              id="gender"
+              name="gender"
+              required
+              defaultValue=""
+              className="w-full border border-rule bg-paper px-3 py-2.5 text-[14px] focus:border-ink"
+            >
+              <option value="">Chọn giới tính</option>
+              {CUSTOMER_GENDERS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label
+              htmlFor="dateOfBirth"
+              className="mb-1.5 block text-[13px] font-medium text-muted"
+            >
+              Ngày sinh
+            </label>
+            <input
+              id="dateOfBirth"
+              name="dateOfBirth"
+              type="date"
+              required
+              className="w-full border border-rule bg-paper px-3 py-2.5 text-[14px] focus:border-ink"
+            />
+          </div>
+        </div>
+
+        <AuthField
+          label="Số điện thoại"
+          name="phone"
+          type="text"
+          autoComplete="tel"
+          placeholder="Số điện thoại liên hệ"
+          required
+        />
+
+        <div>
+          <label
+            htmlFor="address"
+            className="mb-1.5 block text-[13px] font-medium text-muted"
+          >
+            Địa chỉ giao hàng
+          </label>
+          <input
+            id="address"
+            name="address"
+            type="text"
+            autoComplete="street-address"
+            required
+            maxLength={500}
+            placeholder="Địa chỉ giao hàng"
+            className="w-full border border-rule bg-paper px-3 py-2.5 text-[14px] placeholder:text-muted/60 focus:border-ink"
+          />
+        </div>
 
         <AuthField
           label="Mật khẩu"
