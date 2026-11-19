@@ -239,10 +239,38 @@ Hồ sơ khách hàng tối giản, tạo cùng lúc với đăng ký.
 | `name` | varchar | |
 | `unit_price` | bigint | VND |
 | `quantity` | int | Trường cũ; **không phải nguồn sự thật** |
+| `sku` | varchar(100) null, unique | Chuẩn hoá chữ hoa; trùng trả `409` |
+| `unit` | varchar(50) null | Đơn vị tính |
+| `description` | text null | Mô tả |
+| `image_url` | varchar(2048) null | Đường dẫn ảnh |
+| `expiry_date` | date null | Hạn dùng `YYYY-MM-DD` |
+| `warning` | text null | Cảnh báo sử dụng |
+| `deleted_at` | timestamptz null | Xoá mềm |
 | `created_at`, `updated_at` | timestamptz | |
 
-**Cần bổ sung:** `sku`, `category`, `unit`, `description`, `image_url`,
-`is_active`.
+**Chưa có:** `is_active`; nhóm cố định OTC/TPCN/mỹ phẩm/thiết bị chưa seed —
+dùng quan hệ N-N với `categories` thay thế.
+
+### `categories`
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `id` | uuid PK | |
+| `name` | varchar(255) unique | |
+| `slug` | varchar(255) unique | Tự sinh từ tên nếu client bỏ trống |
+| `description` | varchar(255) null | |
+| `deleted_at` | timestamptz null | Xoá mềm |
+| `created_at`, `updated_at` | timestamptz | |
+
+### `product_categories`
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `category_id` | uuid, FK → `categories.id` | `ON DELETE CASCADE` |
+| `product_id` | uuid, FK → `products.id` | `ON DELETE CASCADE` |
+
+Khoá chính là cặp `(category_id, product_id)`; đây là nguồn sự thật của quan hệ
+N-N giữa sản phẩm và danh mục.
 
 ### `suppliers`
 
@@ -410,8 +438,8 @@ Ràng buộc DB đáng chú ý:
 | `PaymentMethod` | `cash`, `bank_transfer`, `card`, `other` |
 | `ActorType` | `user`, `system` |
 | `AuditStatus` | `success`, `failed`, `timeout` |
-| `EntityType` | `accounts`, `users`, `customers`, `roles`, `orders`, `products`, `suppliers`, `goods_receipts`, `inventories`, `expenses` |
-| `ProductCategory` | `otc_medicine`, `supplement`, `cosmetics`, `medical_device` (chưa gắn DB) |
+| `EntityType` | `accounts`, `users`, `customers`, `roles`, `orders`, `products`, `categories`, `suppliers`, `goods_receipts`, `inventories`, `expenses` |
+| `ProductCategory` | `otc_medicine`, `supplement`, `cosmetics`, `medical_device` (enum thiết kế, chưa seed vào DB) |
 
 ## 7. Dự kiến bổ sung
 
@@ -426,7 +454,8 @@ erDiagram
 
 | Bảng/field dự kiến | Mục đích |
 |---|---|
-| `products.sku`, `category`, `unit`, `description`, `image_url`, `is_active` | Danh mục nhà thuốc |
+| `products.sku`, `unit`, `description`, `image_url`, `expiry_date`, `warning`, `is_active` | Thông tin bổ sung của sản phẩm (`is_active` chưa có) |
+| `categories`, `product_categories` | Phân loại sản phẩm N-N (đã triển khai) |
 | `customers.full_name`, `phone`, `date_of_birth`, `gender` | Hồ sơ khách |
 | `customer_addresses` | Nhiều địa chỉ, địa chỉ mặc định |
 | `orders`, `order_lines` | Đơn hàng, snapshot giá/tên sản phẩm |
@@ -443,5 +472,5 @@ erDiagram
    côi.
 4. `batches.status` chưa được cập nhật tự động khi hết hàng/hết hạn; cần job
    hoặc kiểm tra khi xuất.
-5. `ProductCategory` đã có enum nhưng chưa có cột DB.
+5. Nhóm danh mục cố định (`otc_medicine`, `supplement`, `cosmetics`, `medical_device`) chưa được seed; hiện dùng bản ghi `categories` do quản trị tạo.
 6. Chưa có bảng đơn hàng/khách nhận hàng, nên chưa thể triển khai giao hàng.

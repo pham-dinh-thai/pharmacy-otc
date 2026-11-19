@@ -35,6 +35,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   missing: 'Thiếu thông tin sản phẩm.',
   forbidden: 'Bạn không có quyền thay đổi sản phẩm.',
   invalid: 'Dữ liệu sản phẩm không hợp lệ. Kiểm tra lại các trường đã nhập.',
+  exists: 'Mã SKU đã tồn tại. Đổi mã rồi thử lại.',
   notfound: 'Không tìm thấy sản phẩm.',
   server: 'Không lưu được thay đổi. Kiểm tra kết nối rồi thử lại.',
 };
@@ -213,10 +214,11 @@ async function ProductsList({
 
       {result.items.length > 0 ? (
         <div className="mt-6 overflow-x-auto">
-          <table className="w-full min-w-[960px] border-collapse text-[13px]">
+          <table className="w-full min-w-[1080px] border-collapse text-[13px]">
             <thead>
               <tr>
                 <th className={TH_CLASS}>Sản phẩm</th>
+                <th className={TH_CLASS}>SKU</th>
                 <th className={TH_CLASS}>Đơn giá</th>
                 <th className={`${TH_CLASS} text-right`}>Tồn</th>
                 <th className={TH_CLASS}>Danh mục</th>
@@ -241,6 +243,14 @@ async function ProductsList({
                       >
                         {product.name}
                       </Link>
+                      {product.unit && (
+                        <p className="mt-1 text-[12px] text-muted">
+                          {product.unit}
+                        </p>
+                      )}
+                    </td>
+                    <td className={`${TD_CLASS} break-all text-muted`}>
+                      {product.sku ?? '—'}
                     </td>
                     <td className={`${TD_CLASS} whitespace-nowrap tabular-nums`}>
                       {formatVND(Number(product.unitPrice))}

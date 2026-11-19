@@ -11,6 +11,7 @@ import { EMPTY_PRODUCT_FORM, ProductForm } from '../product-form';
 const ERROR_MESSAGES: Record<string, string> = {
   missing: 'Nhập đầy đủ tên sản phẩm, đơn giá và số lượng tồn.',
   invalid: 'Dữ liệu sản phẩm không hợp lệ. Kiểm tra lại các trường đã nhập.',
+  exists: 'Mã SKU đã tồn tại. Đổi mã rồi thử lại.',
   forbidden: 'Bạn không có quyền tạo sản phẩm.',
   notfound: 'Không tìm thấy danh mục đã chọn.',
   server: 'Không tạo được sản phẩm. Kiểm tra kết nối rồi thử lại.',

@@ -7,15 +7,27 @@ const INPUT_CLASS =
 
 export type ProductFormValues = {
   name: string;
+  sku: string;
+  unit: string;
   unitPrice: string;
   quantity: string;
+  description: string;
+  imageUrl: string;
+  expiryDate: string;
+  warning: string;
   categoryIds: string[];
 };
 
 export const EMPTY_PRODUCT_FORM: ProductFormValues = {
   name: '',
+  sku: '',
+  unit: '',
   unitPrice: '',
   quantity: '0',
+  description: '',
+  imageUrl: '',
+  expiryDate: '',
+  warning: '',
   categoryIds: [],
 };
 
@@ -62,6 +74,22 @@ export function ProductForm({
       </div>
 
       <div>
+        <label htmlFor="sku" className={LABEL_CLASS}>
+          SKU
+        </label>
+        <input
+          id="sku"
+          name="sku"
+          type="text"
+          maxLength={100}
+          defaultValue={values.sku}
+          disabled={locked}
+          placeholder="Mã hàng hoá, không bắt buộc"
+          className={INPUT_CLASS}
+        />
+      </div>
+
+      <div>
         <label htmlFor="unitPrice" className={LABEL_CLASS}>
           Đơn giá (VND)
         </label>
@@ -80,6 +108,22 @@ export function ProductForm({
       </div>
 
       <div>
+        <label htmlFor="unit" className={LABEL_CLASS}>
+          Đơn vị tính
+        </label>
+        <input
+          id="unit"
+          name="unit"
+          type="text"
+          maxLength={50}
+          defaultValue={values.unit}
+          disabled={locked}
+          placeholder="Ví dụ: hộp, viên, chai"
+          className={INPUT_CLASS}
+        />
+      </div>
+
+      <div>
         <label htmlFor="quantity" className={LABEL_CLASS}>
           Số lượng tồn
         </label>
@@ -93,6 +137,68 @@ export function ProductForm({
           defaultValue={values.quantity}
           disabled={locked}
           className={INPUT_CLASS}
+        />
+      </div>
+
+      <div>
+        <label htmlFor="expiryDate" className={LABEL_CLASS}>
+          Hạn dùng
+        </label>
+        <input
+          id="expiryDate"
+          name="expiryDate"
+          type="date"
+          defaultValue={values.expiryDate}
+          disabled={locked}
+          className={INPUT_CLASS}
+        />
+      </div>
+
+      <div className="md:col-span-2">
+        <label htmlFor="description" className={LABEL_CLASS}>
+          Mô tả
+        </label>
+        <textarea
+          id="description"
+          name="description"
+          rows={3}
+          maxLength={1000}
+          defaultValue={values.description}
+          disabled={locked}
+          placeholder="Thông tin ngắn về sản phẩm"
+          className={`${INPUT_CLASS} resize-y`}
+        />
+      </div>
+
+      <div className="md:col-span-2">
+        <label htmlFor="imageUrl" className={LABEL_CLASS}>
+          Đường dẫn ảnh
+        </label>
+        <input
+          id="imageUrl"
+          name="imageUrl"
+          type="text"
+          maxLength={2048}
+          defaultValue={values.imageUrl}
+          disabled={locked}
+          placeholder="https://…"
+          className={INPUT_CLASS}
+        />
+      </div>
+
+      <div className="md:col-span-2">
+        <label htmlFor="warning" className={LABEL_CLASS}>
+          Cảnh báo sử dụng
+        </label>
+        <textarea
+          id="warning"
+          name="warning"
+          rows={2}
+          maxLength={1000}
+          defaultValue={values.warning}
+          disabled={locked}
+          placeholder="Ví dụ: đọc kỹ hướng dẫn trước khi dùng"
+          className={`${INPUT_CLASS} resize-y`}
         />
       </div>
 

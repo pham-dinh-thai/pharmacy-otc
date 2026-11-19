@@ -24,6 +24,15 @@ export function workspaceNav(user: CurrentUser): WorkspaceNavGroup[] {
               },
             ]
           : []),
+        ...(user.isSuperAdmin || hasPermission(user, 'categories:read')
+          ? [
+              {
+                label: 'Danh mục',
+                href: '/categories',
+                hint: 'Nhóm sản phẩm và liên kết N-N với sản phẩm.',
+              },
+            ]
+          : []),
         ...(user.isSuperAdmin || hasPermission(user, 'suppliers:read')
           ? [
               {

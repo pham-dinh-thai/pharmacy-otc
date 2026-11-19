@@ -6,6 +6,12 @@ export type ProductListItem = {
   name: string;
   unitPrice: string;
   quantity: number;
+  sku: string | null;
+  unit: string | null;
+  description: string | null;
+  imageUrl: string | null;
+  expiryDate: string | null;
+  warning: string | null;
   categoryIds: string[];
   createdAt: string;
   updatedAt: string;

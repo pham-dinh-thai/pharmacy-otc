@@ -20,6 +20,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   missing: 'Thiếu thông tin sản phẩm.',
   forbidden: 'Bạn không có quyền thay đổi sản phẩm.',
   invalid: 'Dữ liệu sản phẩm không hợp lệ. Kiểm tra lại các trường đã nhập.',
+  exists: 'Mã SKU đã tồn tại. Đổi mã rồi thử lại.',
   notfound: 'Không tìm thấy sản phẩm.',
   server: 'Không lưu được thay đổi. Kiểm tra kết nối rồi thử lại.',
 };
@@ -153,8 +154,14 @@ async function ProductDetailPageContent({
           action={updateProduct}
           values={{
             name: product.name,
+            sku: product.sku ?? '',
             unitPrice: product.unitPrice,
+            unit: product.unit ?? '',
             quantity: String(product.quantity),
+            description: product.description ?? '',
+            imageUrl: product.imageUrl ?? '',
+            expiryDate: product.expiryDate ?? '',
+            warning: product.warning ?? '',
             categoryIds: product.categoryIds,
           }}
           categories={categories}
