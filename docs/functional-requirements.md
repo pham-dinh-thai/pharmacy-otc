@@ -108,14 +108,16 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 | FR-PROD-01 | Tạo sản phẩm: tên, giá bán, số lượng | ✅ |
 | FR-PROD-02 | Danh sách sản phẩm | ✅ |
 | FR-PROD-03 | Thêm `sku` unique | ⬜ |
-| FR-PROD-04 | Thêm `category` (OTC/TPCN/mỹ phẩm/thiết bị) | 🟡 enum đã tạo, chưa gắn entity/API |
+| FR-PROD-04 | Thêm `category` (OTC/TPCN/mỹ phẩm/thiết bị) | 🟡 N-N qua `product_categories`, API đọc và form chọn nhiều danh mục; chưa seed nhóm cố định |
 | FR-PROD-05 | Thêm `unit` (viên, hộp, chai, tuýp…) | ⬜ |
 | FR-PROD-06 | Thêm mô tả, ảnh, thông tin hạn dùng/cảnh báo | ⬜ |
-| FR-PROD-07 | Sửa/xoá/ngừng bán sản phẩm | ⬜ |
-| FR-PROD-08 | Tìm kiếm/lọc theo category, khoảng giá, còn hàng | ⬜ |
-| FR-PROD-09 | Phân trang | ⬜ |
+| FR-PROD-07 | Sửa/xoá/ngừng bán sản phẩm | ✅ sửa, xoá mềm và khôi phục |
+| FR-PROD-08 | Tìm kiếm/lọc theo category, khoảng giá, còn hàng | 🟡 API hỗ trợ cả khoảng giá; UI có tìm kiếm, danh mục và tồn kho |
+| FR-PROD-09 | Phân trang | ✅ 10/20/50 |
 | FR-PROD-10 | Danh mục công khai cho khách chưa đăng nhập | ⬜ |
 | FR-PROD-11 | Không cho giá/số lượng âm | ✅ |
+
+**Phạm vi đã làm:** quản trị sản phẩm tại `/products` gồm danh sách có lọc/tìm kiếm/phân trang, chi tiết, tạo, sửa, xoá mềm và khôi phục. Mỗi sản phẩm liên kết N-N với danh mục qua `product_categories`; form cho phép chọn nhiều danh mục đang hoạt động. Thao tác cần `products:read/create/update/delete` (Super Admin được bỏ qua), còn việc tải danh mục cần `categories:read`. API `GET /api/categories` mới chỉ là endpoint đọc; chưa có CRUD danh mục và storefront vẫn dùng dữ liệu mẫu.
 
 ## 8. Suppliers
 
