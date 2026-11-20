@@ -151,7 +151,7 @@ async function ProductsList({
     <WorkspacePage
       eyebrow="Không gian làm việc"
       title="Sản phẩm"
-      intro="Danh sách sản phẩm, đơn giá, tồn kho và danh mục liên kết."
+      intro="Danh sách sản phẩm, đơn giá, tồn thực tế từ kho và danh mục liên kết."
     >
       <FormMessage message={errorMessage} />
       <FormMessage message={updatedMessage} tone="success" />
@@ -256,7 +256,7 @@ async function ProductsList({
                       {formatVND(Number(product.unitPrice))}
                     </td>
                     <td className={`${TD_CLASS} text-right tabular-nums`}>
-                      {product.quantity}
+                      {product.stockQuantity}
                     </td>
                     <td className={TD_CLASS}>{categoryLabel(product.categoryIds)}</td>
                     <td className={TD_CLASS}>

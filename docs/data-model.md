@@ -238,7 +238,6 @@ Hồ sơ khách hàng tối giản, tạo cùng lúc với đăng ký.
 | `id` | uuid PK, default `gen_random_uuid()` | |
 | `name` | varchar | |
 | `unit_price` | bigint | VND |
-| `quantity` | int | Trường cũ; **không phải nguồn sự thật** |
 | `sku` | varchar(100) null, unique | Chuẩn hoá chữ hoa; trùng trả `409` |
 | `unit` | varchar(50) null | Đơn vị tính |
 | `description` | text null | Mô tả |
@@ -402,6 +401,8 @@ group by b.product_id
 
 Dùng cho màn hình tồn kho tổng hợp, đọc qua `GET /api/inventories`. Chi tiết
 lô đọc qua `GET /api/inventories/batches` và `GET /api/inventories/batches/:id`.
+`GET /api/products` cũng lấy `stockQuantity` và lọc `inStock` từ view này; bảng
+`products` không còn cột `quantity`.
 
 ## 5. Quan hệ và ràng buộc chính
 
@@ -466,12 +467,10 @@ erDiagram
 
 ## 8. Điểm chưa nhất quán cần xử lý
 
-1. `products.quantity` trùng khái niệm với tổng `batches.quantity`; nên bỏ hoặc
-   chỉ coi là cache.
-2. `customers.user_id` là `varchar`, `users.id` là `uuid`; nên đồng bộ kiểu.
-3. `goods_receipt_lines` không có FK tới `goods_receipts`; nên thêm để tránh mồ
+1. `customers.user_id` là `varchar`, `users.id` là `uuid`; nên đồng bộ kiểu.
+2. `goods_receipt_lines` không có FK tới `goods_receipts`; nên thêm để tránh mồ
    côi.
-4. `batches.status` chưa được cập nhật tự động khi hết hàng/hết hạn; cần job
+3. `batches.status` chưa được cập nhật tự động khi hết hàng/hết hạn; cần job
    hoặc kiểm tra khi xuất.
-5. Nhóm danh mục cố định (`otc_medicine`, `supplement`, `cosmetics`, `medical_device`) chưa được seed; hiện dùng bản ghi `categories` do quản trị tạo.
-6. Chưa có bảng đơn hàng/khách nhận hàng, nên chưa thể triển khai giao hàng.
+4. Nhóm danh mục cố định (`otc_medicine`, `supplement`, `cosmetics`, `medical_device`) chưa được seed; hiện dùng bản ghi `categories` do quản trị tạo.
+5. Chưa có bảng đơn hàng/khách nhận hàng, nên chưa thể triển khai giao hàng.

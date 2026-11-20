@@ -10,7 +10,6 @@ export type ProductFormValues = {
   sku: string;
   unit: string;
   unitPrice: string;
-  quantity: string;
   description: string;
   imageUrl: string;
   expiryDate: string;
@@ -23,7 +22,6 @@ export const EMPTY_PRODUCT_FORM: ProductFormValues = {
   sku: '',
   unit: '',
   unitPrice: '',
-  quantity: '0',
   description: '',
   imageUrl: '',
   expiryDate: '',
@@ -119,23 +117,6 @@ export function ProductForm({
           defaultValue={values.unit}
           disabled={locked}
           placeholder="Ví dụ: hộp, viên, chai"
-          className={INPUT_CLASS}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="quantity" className={LABEL_CLASS}>
-          Số lượng tồn
-        </label>
-        <input
-          id="quantity"
-          name="quantity"
-          type="number"
-          min={0}
-          step={1}
-          required
-          defaultValue={values.quantity}
-          disabled={locked}
           className={INPUT_CLASS}
         />
       </div>

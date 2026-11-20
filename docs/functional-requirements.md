@@ -179,10 +179,11 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 
 **Quy tắc**
 
-- Tồn kho thật lấy từ `batches`; `products.quantity` là trường cũ, không phải
-  nguồn sự thật.
+- Tồn kho lấy từ `batches`/view `inventories`; `products` không còn cột
+  `quantity`. Danh sách sản phẩm hiển thị `stockQuantity` và lọc `inStock` từ
+  tồn thực tế.
 - Xuất kho hiện yêu cầu truyền đúng `batchId`; hệ thống chưa tự chọn lô FEFO.
-- Không có endpoint đọc tồn kho trong code hiện tại.
+- Lô hết hạn/hết số lượng vẫn nằm trong view cho đến khi được kiểm kê hoặc xuất.
 
 ## 12. Orders
 

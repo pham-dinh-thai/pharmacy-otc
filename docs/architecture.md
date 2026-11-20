@@ -288,8 +288,7 @@ backend/src/
 | `orders` rỗng | Chưa có luồng mua hàng end-to-end |
 | `customers` thiếu hồ sơ/địa chỉ | Không giao hàng được |
 | `products` thiếu SKU/category/unit | Khó quản lý và lọc |
-| Không có API đọc tồn kho/lô | Không xem được tồn qua HTTP |
+| Lô hết hạn/hết số lượng chưa tự chuyển trạng thái | Cần job hoặc kiểm tra khi xuất |
 | Chưa có API duyệt/chi phí | Nghiệp vụ chi phí chưa hoàn chỉnh |
 | Outbox relay chạy trong API process | Không phù hợp khi scale ngang |
 | Không có rate limit/health check | Thiếu lớp bảo vệ vận hành |
-| `products.quantity` trùng lặp với `batches` | Nguy cơ lệch số liệu |

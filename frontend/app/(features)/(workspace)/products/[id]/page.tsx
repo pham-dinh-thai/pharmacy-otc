@@ -157,7 +157,6 @@ async function ProductDetailPageContent({
             sku: product.sku ?? '',
             unitPrice: product.unitPrice,
             unit: product.unit ?? '',
-            quantity: String(product.quantity),
             description: product.description ?? '',
             imageUrl: product.imageUrl ?? '',
             expiryDate: product.expiryDate ?? '',

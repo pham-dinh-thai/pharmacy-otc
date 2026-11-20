@@ -64,7 +64,6 @@ function productPayload(formData: FormData) {
     sku: trimmed(formData.get('sku')).toUpperCase(),
     unitPrice: trimmed(formData.get('unitPrice')),
     unit: trimmed(formData.get('unit')),
-    quantity: Number(trimmed(formData.get('quantity'))),
     description: trimmed(formData.get('description')),
     imageUrl: trimmed(formData.get('imageUrl')),
     expiryDate: trimmed(formData.get('expiryDate')),
@@ -88,8 +87,6 @@ function validatePayload(payload: Payload): 'missing' | 'invalid' | 'ok' {
     payload.imageUrl.length > 2048 ||
     payload.warning.length > 1000 ||
     !/^\d+$/.test(payload.unitPrice) ||
-    !Number.isSafeInteger(payload.quantity) ||
-    payload.quantity < 0 ||
     (payload.expiryDate !== '' && !isValidExpiryDate(payload.expiryDate))
   ) {
     return 'invalid';
