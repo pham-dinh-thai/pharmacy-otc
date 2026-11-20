@@ -11,7 +11,6 @@ export type ProductListItem = {
   unit: string | null;
   description: string | null;
   imageUrl: string | null;
-  expiryDate: string | null;
   warning: string | null;
   categoryIds: string[];
   createdAt: string;

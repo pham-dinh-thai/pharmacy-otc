@@ -12,7 +12,6 @@ export type ProductFormValues = {
   unitPrice: string;
   description: string;
   imageUrl: string;
-  expiryDate: string;
   warning: string;
   categoryIds: string[];
 };
@@ -24,7 +23,6 @@ export const EMPTY_PRODUCT_FORM: ProductFormValues = {
   unitPrice: '',
   description: '',
   imageUrl: '',
-  expiryDate: '',
   warning: '',
   categoryIds: [],
 };
@@ -117,20 +115,6 @@ export function ProductForm({
           defaultValue={values.unit}
           disabled={locked}
           placeholder="Ví dụ: hộp, viên, chai"
-          className={INPUT_CLASS}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="expiryDate" className={LABEL_CLASS}>
-          Hạn dùng
-        </label>
-        <input
-          id="expiryDate"
-          name="expiryDate"
-          type="date"
-          defaultValue={values.expiryDate}
-          disabled={locked}
           className={INPUT_CLASS}
         />
       </div>

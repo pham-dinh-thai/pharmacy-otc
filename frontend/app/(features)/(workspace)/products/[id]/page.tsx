@@ -159,7 +159,6 @@ async function ProductDetailPageContent({
             unit: product.unit ?? '',
             description: product.description ?? '',
             imageUrl: product.imageUrl ?? '',
-            expiryDate: product.expiryDate ?? '',
             warning: product.warning ?? '',
             categoryIds: product.categoryIds,
           }}

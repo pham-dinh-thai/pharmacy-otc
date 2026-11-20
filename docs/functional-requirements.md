@@ -16,7 +16,7 @@
 | Authorization (RBAC) | ✅ | Role, permission, super admin |
 | Users | 🟡 | Tạo, đổi email, gán/bỏ role; thiếu list/detail, vô hiệu hoá |
 | Customers | 🟡 | Tự tạo khi đăng ký; thiếu hồ sơ/địa chỉ/API |
-| Products | ✅ | Tạo/sửa/xoá mềm/khôi phục; SKU, đơn vị, mô tả, ảnh, hạn dùng, cảnh báo; N-N với danh mục |
+| Products | ✅ | Tạo/sửa/xoá mềm/khôi phục; SKU, đơn vị, mô tả, ảnh, cảnh báo; N-N với danh mục. Hạn dùng nằm ở lô/phiếu nhập |
 | Categories | ✅ | Tạo/sửa/xoá mềm/khôi phục, slug tự sinh, liên kết N-N với sản phẩm |
 | Suppliers | ✅ | Tạo/list/sửa/xoá/khôi phục |
 | Goods receipts | ✅ | Tạo/list/detail/xác nhận/huỷ; UI phiếu nhập đầy đủ |
@@ -106,19 +106,19 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
-| FR-PROD-01 | Tạo sản phẩm: tên, giá bán, số lượng | ✅ |
+| FR-PROD-01 | Tạo sản phẩm: tên, giá bán | ✅ |
 | FR-PROD-02 | Danh sách sản phẩm | ✅ |
 | FR-PROD-03 | Thêm `sku` unique | ✅ chuẩn hoá chữ hoa, trùng trả `409`, cả API và UI |
 | FR-PROD-04 | Thêm `category` (OTC/TPCN/mỹ phẩm/thiết bị) | 🟡 N-N qua `product_categories`, API đọc và form chọn nhiều danh mục; chưa seed nhóm cố định |
 | FR-PROD-05 | Thêm `unit` (viên, hộp, chai, tuýp…) | ✅ |
-| FR-PROD-06 | Thêm mô tả, ảnh, thông tin hạn dùng/cảnh báo | ✅ `description`, `imageUrl`, `expiryDate` (`YYYY-MM-DD`), `warning` |
+| FR-PROD-06 | Thêm mô tả, ảnh, cảnh báo | ✅ `description`, `imageUrl`, `warning` |
 | FR-PROD-07 | Sửa/xoá/ngừng bán sản phẩm | ✅ sửa, xoá mềm và khôi phục |
 | FR-PROD-08 | Tìm kiếm/lọc theo category, khoảng giá, còn hàng | 🟡 API hỗ trợ cả khoảng giá; UI có tìm kiếm, danh mục và tồn kho, chưa có ô lọc khoảng giá |
 | FR-PROD-09 | Phân trang | ✅ 10/20/50 |
 | FR-PROD-10 | Danh mục công khai cho khách chưa đăng nhập | ⬜ |
-| FR-PROD-11 | Không cho giá/số lượng âm | ✅ |
+| FR-PROD-11 | Không cho giá âm | ✅ |
 
-**Phạm vi đã làm:** quản trị sản phẩm tại `/products` gồm danh sách có lọc/tìm kiếm/phân trang, chi tiết, tạo, sửa, xoá mềm và khôi phục. Form tạo/sửa nhận `sku`, `unit`, `description`, `imageUrl`, `expiryDate`, `warning` (đều optional) và cho phép chọn nhiều danh mục đang hoạt động. SKU được chuẩn hoá chữ hoa, kiểm tra trùng ở tầng ứng dụng (`409`) và có ràng buộc unique trong DB. Mỗi sản phẩm liên kết N-N với danh mục qua `product_categories`. Thao tác cần `products:read/create/update/delete` (Super Admin được bỏ qua), còn việc tải danh mục cần `categories:read`. Storefront vẫn dùng dữ liệu mẫu.
+**Phạm vi đã làm:** quản trị sản phẩm tại `/products` gồm danh sách có lọc/tìm kiếm/phân trang, chi tiết, tạo, sửa, xoá mềm và khôi phục. Form tạo/sửa nhận `sku`, `unit`, `description`, `imageUrl`, `warning` (đều optional) và cho phép chọn nhiều danh mục đang hoạt động. Hạn dùng chỉ nhập trên từng dòng phiếu nhập và được theo dõi theo lô. SKU được chuẩn hoá chữ hoa, kiểm tra trùng ở tầng ứng dụng (`409`) và có ràng buộc unique trong DB. Mỗi sản phẩm liên kết N-N với danh mục qua `product_categories`. Thao tác cần `products:read/create/update/delete` (Super Admin được bỏ qua), còn việc tải danh mục cần `categories:read`. Storefront vẫn dùng dữ liệu mẫu.
 
 ## 8. Categories
 

@@ -242,7 +242,6 @@ Hồ sơ khách hàng tối giản, tạo cùng lúc với đăng ký.
 | `unit` | varchar(50) null | Đơn vị tính |
 | `description` | text null | Mô tả |
 | `image_url` | varchar(2048) null | Đường dẫn ảnh |
-| `expiry_date` | date null | Hạn dùng `YYYY-MM-DD` |
 | `warning` | text null | Cảnh báo sử dụng |
 | `deleted_at` | timestamptz null | Xoá mềm |
 | `created_at`, `updated_at` | timestamptz | |
@@ -456,7 +455,7 @@ erDiagram
 
 | Bảng/field dự kiến | Mục đích |
 |---|---|
-| `products.sku`, `unit`, `description`, `image_url`, `expiry_date`, `warning`, `is_active` | Thông tin bổ sung của sản phẩm (`is_active` chưa có) |
+| `products.sku`, `unit`, `description`, `image_url`, `warning`, `is_active` | Thông tin bổ sung của sản phẩm (`is_active` chưa có); hạn dùng nằm ở `goods_receipt_lines`/`batches` |
 | `categories`, `product_categories` | Phân loại sản phẩm N-N (đã triển khai) |
 | `customers.full_name`, `phone`, `date_of_birth`, `gender` | Hồ sơ khách |
 | `customer_addresses` | Nhiều địa chỉ, địa chỉ mặc định |

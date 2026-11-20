@@ -38,17 +38,6 @@ function trimmed(value: FormDataEntryValue | null): string {
   return String(value ?? '').trim();
 }
 
-function isValidExpiryDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-
-  const parsed = new Date(`${value}T00:00:00.000Z`);
-
-  return (
-    !Number.isNaN(parsed.getTime()) &&
-    parsed.toISOString().slice(0, 10) === value
-  );
-}
-
 function productPayload(formData: FormData) {
   const categoryIds = [
     ...new Set(
@@ -66,7 +55,6 @@ function productPayload(formData: FormData) {
     unit: trimmed(formData.get('unit')),
     description: trimmed(formData.get('description')),
     imageUrl: trimmed(formData.get('imageUrl')),
-    expiryDate: trimmed(formData.get('expiryDate')),
     warning: trimmed(formData.get('warning')),
     categoryIds,
   };
@@ -86,8 +74,7 @@ function validatePayload(payload: Payload): 'missing' | 'invalid' | 'ok' {
     payload.description.length > 1000 ||
     payload.imageUrl.length > 2048 ||
     payload.warning.length > 1000 ||
-    !/^\d+$/.test(payload.unitPrice) ||
-    (payload.expiryDate !== '' && !isValidExpiryDate(payload.expiryDate))
+    !/^\d+$/.test(payload.unitPrice)
   ) {
     return 'invalid';
   }
