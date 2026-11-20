@@ -7,7 +7,6 @@ export class ProductDetailReadModel {
     public readonly unit: string | null,
     public readonly description: string | null,
     public readonly imageUrl: string | null,
-    public readonly expiryDate: string | null,
     public readonly warning: string | null,
     public readonly categoryIds: string[],
     public readonly createdAt: Date,

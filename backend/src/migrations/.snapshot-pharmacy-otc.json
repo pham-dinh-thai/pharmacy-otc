@@ -2686,23 +2686,6 @@
           "enumItems": [],
           "mappedType": "text"
         },
-        "expiry_date": {
-          "name": "expiry_date",
-          "type": "date",
-          "unsigned": false,
-          "autoincrement": false,
-          "primary": false,
-          "nullable": true,
-          "unique": false,
-          "length": null,
-          "precision": null,
-          "scale": null,
-          "default": null,
-          "comment": null,
-          "collation": null,
-          "enumItems": [],
-          "mappedType": "date"
-        },
         "id": {
           "name": "id",
           "type": "uuid",

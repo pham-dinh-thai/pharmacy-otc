@@ -73,7 +73,6 @@ export class UpdateProductHandler implements ICommandHandler<UpdateProductComman
         unit: product.getUnit(),
         description: product.getDescription(),
         imageUrl: product.getImageUrl(),
-        expiryDate: product.getExpiryDate(),
         warning: product.getWarning(),
         categoryIds: [...product.getCategoryIds()],
       };
@@ -100,7 +99,6 @@ export class UpdateProductHandler implements ICommandHandler<UpdateProductComman
             unit: product.getUnit(),
             description: product.getDescription(),
             imageUrl: product.getImageUrl(),
-            expiryDate: product.getExpiryDate(),
             warning: product.getWarning(),
             categoryIds: [...product.getCategoryIds()],
           },

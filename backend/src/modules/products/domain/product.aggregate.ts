@@ -1,6 +1,5 @@
 import { Id } from '../../../shared/value-objects/id.value-object';
 import {
-  InvalidProductExpiryDateException,
   ProductAlreadyDeletedException,
   ProductNotDeletedException,
 } from './exceptions/product.exceptions';
@@ -26,7 +25,6 @@ export type ProductInput = {
   unit?: string | null;
   description?: string | null;
   imageUrl?: string | null;
-  expiryDate?: string | null;
   warning?: string | null;
   categoryIds?: string[];
 };
@@ -50,7 +48,6 @@ export class Product {
     private unit: string | null,
     private description: string | null,
     private imageUrl: string | null,
-    private expiryDate: string | null,
     private warning: string | null,
     private categoryIds: string[],
     private deletedAt: Date | null,
@@ -69,7 +66,6 @@ export class Product {
       Product.normalizeText(props.unit, PRODUCT_UNIT_MAX_LENGTH),
       Product.normalizeText(props.description, PRODUCT_DESCRIPTION_MAX_LENGTH),
       Product.normalizeText(props.imageUrl, PRODUCT_IMAGE_URL_MAX_LENGTH),
-      Product.normalizeExpiryDate(props.expiryDate),
       Product.normalizeText(props.warning, PRODUCT_WARNING_MAX_LENGTH),
       Product.normalizeCategoryIds(props.categoryIds),
       null,
@@ -87,7 +83,6 @@ export class Product {
       Product.normalizeText(props.unit, PRODUCT_UNIT_MAX_LENGTH),
       Product.normalizeText(props.description, PRODUCT_DESCRIPTION_MAX_LENGTH),
       Product.normalizeText(props.imageUrl, PRODUCT_IMAGE_URL_MAX_LENGTH),
-      Product.normalizeExpiryDate(props.expiryDate),
       Product.normalizeText(props.warning, PRODUCT_WARNING_MAX_LENGTH),
       Product.normalizeCategoryIds(props.categoryIds),
       props.deletedAt ?? null,
@@ -115,9 +110,6 @@ export class Product {
         props.imageUrl,
         PRODUCT_IMAGE_URL_MAX_LENGTH,
       );
-    }
-    if (props.expiryDate !== undefined) {
-      this.expiryDate = Product.normalizeExpiryDate(props.expiryDate);
     }
     if (props.warning !== undefined) {
       this.warning = Product.normalizeText(
@@ -194,10 +186,6 @@ export class Product {
     return this.imageUrl;
   }
 
-  public getExpiryDate(): string | null {
-    return this.expiryDate;
-  }
-
   public getWarning(): string | null {
     return this.warning;
   }
@@ -243,26 +231,5 @@ export class Product {
     const trimmed = value?.trim();
 
     return trimmed ? trimmed.slice(0, maxLength) : null;
-  }
-
-  private static normalizeExpiryDate(value?: string | null): string | null {
-    const trimmed = value?.trim();
-
-    if (!trimmed) return null;
-
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-      throw new InvalidProductExpiryDateException();
-    }
-
-    const parsed = new Date(`${trimmed}T00:00:00.000Z`);
-
-    if (
-      Number.isNaN(parsed.getTime()) ||
-      parsed.toISOString().slice(0, 10) !== trimmed
-    ) {
-      throw new InvalidProductExpiryDateException();
-    }
-
-    return trimmed;
   }
 }

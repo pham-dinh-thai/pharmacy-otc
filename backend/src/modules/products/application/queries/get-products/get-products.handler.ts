@@ -49,7 +49,6 @@ export class GetProductsHandler implements IQueryHandler<
             product.getUnit(),
             product.getDescription(),
             product.getImageUrl(),
-            product.getExpiryDate(),
             product.getWarning(),
             [...product.getCategoryIds()],
             product.getCreatedAt(),

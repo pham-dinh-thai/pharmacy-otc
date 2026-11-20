@@ -36,13 +36,6 @@ export class MikroProduct {
   })
   imageUrl!: string | null;
 
-  @Property({
-    fieldName: 'expiry_date',
-    type: 'date',
-    nullable: true,
-  })
-  expiryDate!: Date | null;
-
   @Property({ type: 'text', nullable: true })
   warning!: string | null;
 

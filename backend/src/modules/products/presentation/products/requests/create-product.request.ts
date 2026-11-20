@@ -66,13 +66,6 @@ export class CreateProductRequest {
 
   @Transform(trimOrNull)
   @IsOptional()
-  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
-    message: 'expiryDate must be YYYY-MM-DD',
-  })
-  expiryDate?: string | null;
-
-  @Transform(trimOrNull)
-  @IsOptional()
   @IsString()
   @MaxLength(1000)
   warning?: string | null;

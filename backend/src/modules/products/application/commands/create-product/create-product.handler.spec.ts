@@ -99,7 +99,6 @@ describe('CreateProductHandler', () => {
             unit: null,
             description: null,
             imageUrl: null,
-            expiryDate: null,
             warning: null,
             categoryIds: [CATEGORY_ID],
           },

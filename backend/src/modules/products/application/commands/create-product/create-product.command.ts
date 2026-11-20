@@ -6,7 +6,6 @@ export type ProductCommandDetails = {
   unit?: string | null;
   description?: string | null;
   imageUrl?: string | null;
-  expiryDate?: string | null;
   warning?: string | null;
 };
 

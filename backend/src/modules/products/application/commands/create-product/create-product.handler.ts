@@ -82,7 +82,6 @@ export class CreateProductHandler implements ICommandHandler<CreateProductComman
             unit: product.getUnit(),
             description: product.getDescription(),
             imageUrl: product.getImageUrl(),
-            expiryDate: product.getExpiryDate(),
             warning: product.getWarning(),
             categoryIds: [...product.getCategoryIds()],
           },

@@ -29,12 +29,3 @@ export class ProductSkuAlreadyExistsException extends DomainException {
     super(`Product SKU already exists: ${sku}`, 'PRODUCT_SKU_ALREADY_EXISTS');
   }
 }
-
-export class InvalidProductExpiryDateException extends DomainException {
-  public constructor() {
-    super(
-      'Expiry date must be a valid YYYY-MM-DD date',
-      'INVALID_PRODUCT_EXPIRY_DATE',
-    );
-  }
-}
