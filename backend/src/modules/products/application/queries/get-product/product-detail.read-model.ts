@@ -3,7 +3,6 @@ export class ProductDetailReadModel {
     public readonly id: string,
     public readonly name: string,
     public readonly unitPrice: string,
-    public readonly quantity: number,
     public readonly sku: string | null,
     public readonly unit: string | null,
     public readonly description: string | null,

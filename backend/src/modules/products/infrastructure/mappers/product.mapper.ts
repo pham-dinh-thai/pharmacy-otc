@@ -10,7 +10,6 @@ export class ProductMapper {
       id: mikroProduct.id,
       name: mikroProduct.name,
       unitPrice: mikroProduct.unitPrice.toString(),
-      quantity: mikroProduct.quantity,
       sku: mikroProduct.sku,
       unit: mikroProduct.unit,
       description: mikroProduct.description,
@@ -31,7 +30,6 @@ export class ProductMapper {
     mikroProduct.id = product.getId();
     mikroProduct.name = product.getName();
     mikroProduct.unitPrice = BigInt(product.getUnitPrice());
-    mikroProduct.quantity = product.getQuantity();
     mikroProduct.sku = product.getSku();
     mikroProduct.unit = product.getUnit();
     mikroProduct.description = product.getDescription();

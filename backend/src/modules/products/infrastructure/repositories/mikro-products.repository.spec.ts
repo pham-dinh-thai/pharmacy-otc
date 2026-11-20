@@ -3,6 +3,7 @@ import { EntityManager } from '@mikro-orm/postgresql';
 import { MikroProductsRepository } from './mikro-products.repository';
 import { MikroProduct } from '../entities/mikro-product.entity';
 import { MikroProductCategory } from '../../../categories/infrastructure/entities/mikro-product-category.entity';
+import { MikroInventory } from '../../../inventories/infrastructure/entities/mikro-inventory.entity';
 import { Product } from '../../domain/product.aggregate';
 
 const PRODUCT_ID = '4e770b20-0ab6-494a-9bfd-e475e07c7a17';
@@ -15,7 +16,6 @@ const persistentProduct = (deletedAt: Date | null = null): MikroProduct =>
     id: PRODUCT_ID,
     name: 'Thuốc OTC',
     unitPrice: 12500n,
-    quantity: 10,
     deletedAt,
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
@@ -26,7 +26,6 @@ const product = (categoryIds: string[] = []): Product =>
     id: PRODUCT_ID,
     name: 'Thuốc OTC',
     unitPrice: '12500',
-    quantity: 10,
     categoryIds,
     deletedAt: null,
     createdAt: new Date('2026-01-01T00:00:00Z'),
@@ -42,11 +41,16 @@ const setup = () => {
   );
   const find = jest.fn<
     (entity: unknown, where: unknown, options?: unknown) => Promise<any[]>
-  >((entity) =>
-    Promise.resolve(
-      entity === MikroProductCategory ? [{ categoryId: CATEGORY_ID_1 }] : [],
-    ),
-  );
+  >((entity) => {
+    if (entity === MikroProductCategory) {
+      return Promise.resolve([{ categoryId: CATEGORY_ID_1 }]);
+    }
+    if (entity === MikroInventory) {
+      return Promise.resolve([{ productId: PRODUCT_ID, totalQuantity: 10 }]);
+    }
+
+    return Promise.resolve([]);
+  });
   const persist = jest.fn<(entity: unknown) => void>();
   const flush = jest.fn<() => Promise<void>>(() => Promise.resolve());
   const nativeDelete = jest.fn<
@@ -98,20 +102,27 @@ describe('MikroProductsRepository', () => {
       expect(result.items[0].getCategoryIds()).toEqual([CATEGORY_ID_1]);
     });
 
-    it('supports tri-state deleted and inStock filters', async () => {
-      const { repository, findAndCount } = setup();
+    it('filters inStock from inventories instead of products.quantity', async () => {
+      const { repository, findAndCount, find } = setup();
 
-      await repository.findPage({ deleted: 'all', inStock: true });
+      await repository.findPage({ inStock: true });
 
+      expect(find).toHaveBeenCalledWith(
+        MikroInventory,
+        { totalQuantity: { $gt: 0 } },
+        { fields: ['productId'] },
+      );
       expect(findAndCount.mock.calls[0][1]).toMatchObject({
-        quantity: { $gt: 0 },
+        id: { $in: [PRODUCT_ID] },
       });
+      expect(findAndCount.mock.calls[0][1]).not.toHaveProperty('quantity');
 
+      findAndCount.mockClear();
       await repository.findPage({ deleted: true, inStock: false });
 
-      expect(findAndCount.mock.calls[1][1]).toMatchObject({
+      expect(findAndCount.mock.calls[0][1]).toMatchObject({
         deletedAt: { $ne: null },
-        quantity: 0,
+        id: { $nin: [PRODUCT_ID] },
       });
     });
 
@@ -139,6 +150,28 @@ describe('MikroProductsRepository', () => {
       expect(findAndCount.mock.calls[0][1]).toMatchObject({
         id: { $in: [PRODUCT_ID] },
       });
+    });
+  });
+
+  describe('findStockQuantities', () => {
+    it('reads actual stock from the inventories view', async () => {
+      const { repository, find } = setup();
+
+      const result = await repository.findStockQuantities([PRODUCT_ID]);
+
+      expect(find).toHaveBeenCalledWith(
+        MikroInventory,
+        { productId: { $in: [PRODUCT_ID] } },
+        { fields: ['productId', 'totalQuantity'] },
+      );
+      expect(result.get(PRODUCT_ID)).toBe(10);
+    });
+
+    it('does not query inventories for an empty product list', async () => {
+      const { repository, find } = setup();
+
+      expect(await repository.findStockQuantities([])).toEqual(new Map());
+      expect(find).not.toHaveBeenCalled();
     });
   });
 

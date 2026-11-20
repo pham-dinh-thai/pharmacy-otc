@@ -14,9 +14,6 @@ export class MikroProduct {
   })
   unitPrice!: bigint;
 
-  @Property({ type: 'int' })
-  quantity!: number;
-
   @Property({
     type: 'string',
     length: 100,

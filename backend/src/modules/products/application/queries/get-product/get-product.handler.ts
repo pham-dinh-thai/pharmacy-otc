@@ -31,7 +31,6 @@ export class GetProductHandler implements IQueryHandler<
       product.getId(),
       product.getName(),
       product.getUnitPrice(),
-      product.getQuantity(),
       product.getSku(),
       product.getUnit(),
       product.getDescription(),

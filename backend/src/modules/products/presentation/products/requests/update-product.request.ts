@@ -1,7 +1,6 @@
 import { Transform, type TransformFnParams } from 'class-transformer';
 import {
   IsArray,
-  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -40,10 +39,6 @@ export class UpdateProductRequest {
   @Matches(/^\d+$/, { message: 'unitPrice must be an integer in VND' })
   @IsNotEmpty()
   unitPrice!: string;
-
-  @IsInt()
-  @IsNotEmpty()
-  quantity!: number;
 
   @Transform(trimOrNull)
   @IsOptional()

@@ -7,7 +7,6 @@ export class UpdateProductCommand extends Command<{ id: string }> {
     public readonly id: string,
     public readonly name: string,
     public readonly unitPrice: string,
-    public readonly quantity: number,
     public readonly categoryIds: string[],
     public readonly headers: ActorHeaders,
     public readonly details: ProductCommandDetails = {},

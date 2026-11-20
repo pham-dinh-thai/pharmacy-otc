@@ -26,6 +26,9 @@ export interface IProductsRepository {
 
   findCategoryIds(productId: string): Promise<string[]>;
 
+  /** Tồn thực tế theo productId, lấy từ view `inventories`. */
+  findStockQuantities(productIds: string[]): Promise<Map<string, number>>;
+
   existsById(id: string): Promise<boolean>;
 
   existsBySku(sku: string, excludeId?: string): Promise<boolean>;

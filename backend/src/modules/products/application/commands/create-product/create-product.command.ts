@@ -14,7 +14,6 @@ export class CreateProductCommand extends Command<{ id: string }> {
   public constructor(
     public readonly name: string,
     public readonly unitPrice: string,
-    public readonly quantity: number,
     public readonly categoryIds: string[],
     public readonly headers: ActorHeaders,
     public readonly details: ProductCommandDetails = {},

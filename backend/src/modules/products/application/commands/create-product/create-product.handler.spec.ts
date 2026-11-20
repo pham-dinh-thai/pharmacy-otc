@@ -71,7 +71,7 @@ describe('CreateProductHandler', () => {
 
   it('creates a product, links active categories and appends an audit event', async () => {
     const result = await handler.execute(
-      new CreateProductCommand('Coffee', '12500', 3, [CATEGORY_ID], headers),
+      new CreateProductCommand('Coffee', '12500', [CATEGORY_ID], headers),
     );
 
     expect(findActiveByIds).toHaveBeenCalledWith([CATEGORY_ID]);
@@ -83,7 +83,6 @@ describe('CreateProductHandler', () => {
     expect(product.getId()).toBe(result.id);
     expect(product.getName()).toBe('Coffee');
     expect(product.getUnitPrice()).toBe('12500');
-    expect(product.getQuantity()).toBe(3);
     expect(product.getCategoryIds()).toEqual([CATEGORY_ID]);
 
     expect(outboxCreate).toHaveBeenCalledWith({
@@ -96,7 +95,6 @@ describe('CreateProductHandler', () => {
           after: {
             name: 'Coffee',
             unitPrice: '12500',
-            quantity: 3,
             sku: null,
             unit: null,
             description: null,
@@ -116,7 +114,7 @@ describe('CreateProductHandler', () => {
 
     await expect(
       handler.execute(
-        new CreateProductCommand('Coffee', '12500', 3, [], headers, {
+        new CreateProductCommand('Coffee', '12500', [], headers, {
           sku: ' otc-001 ',
         }),
       ),
@@ -132,7 +130,7 @@ describe('CreateProductHandler', () => {
 
     await expect(
       handler.execute(
-        new CreateProductCommand('Coffee', '12500', 3, [CATEGORY_ID], headers),
+        new CreateProductCommand('Coffee', '12500', [CATEGORY_ID], headers),
       ),
     ).rejects.toThrow(ProductCategoryNotFoundException);
 
@@ -144,7 +142,7 @@ describe('CreateProductHandler', () => {
     findActiveByIds.mockResolvedValue([]);
 
     await expect(
-      handler.execute(new CreateProductCommand('Tea', '1.234', 1, [], headers)),
+      handler.execute(new CreateProductCommand('Tea', '1.234', [], headers)),
     ).rejects.toThrow(InvalidAmountException);
 
     expect(create).not.toHaveBeenCalled();

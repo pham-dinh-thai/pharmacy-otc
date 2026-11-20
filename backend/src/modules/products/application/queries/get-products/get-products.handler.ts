@@ -33,6 +33,10 @@ export class GetProductsHandler implements IQueryHandler<
       offset: (page - 1) * limit,
     });
 
+    const stockQuantities = await this.productsRepository.findStockQuantities(
+      result.items.map((product) => product.getId()),
+    );
+
     return new ProductListPageReadModel(
       result.items.map(
         (product) =>
@@ -40,7 +44,7 @@ export class GetProductsHandler implements IQueryHandler<
             product.getId(),
             product.getName(),
             product.getUnitPrice(),
-            product.getQuantity(),
+            stockQuantities.get(product.getId()) ?? 0,
             product.getSku(),
             product.getUnit(),
             product.getDescription(),

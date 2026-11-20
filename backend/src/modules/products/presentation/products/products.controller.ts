@@ -76,7 +76,6 @@ export class ProductsController {
       new CreateProductCommand(
         request.name,
         request.unitPrice,
-        request.quantity,
         request.categoryIds ?? [],
         headers,
         {
@@ -107,7 +106,6 @@ export class ProductsController {
         id,
         request.name,
         request.unitPrice,
-        request.quantity,
         request.categoryIds ?? [],
         headers,
         {
