@@ -19,8 +19,8 @@
 | Products | ✅ | Tạo/sửa/xoá mềm/khôi phục; SKU, đơn vị, mô tả, ảnh, hạn dùng, cảnh báo; N-N với danh mục |
 | Categories | ✅ | Tạo/sửa/xoá mềm/khôi phục, slug tự sinh, liên kết N-N với sản phẩm |
 | Suppliers | ✅ | Tạo/list/sửa/xoá/khôi phục |
-| Goods receipts | 🟡 | Tạo/xác nhận/huỷ; thiếu list/detail |
-| Inventories | 🟡 | Xuất/kiểm kê theo lô; thiếu API đọc tồn/lô |
+| Goods receipts | ✅ | Tạo/list/detail/xác nhận/huỷ; UI phiếu nhập đầy đủ |
+| Inventories | ✅ | Xem tồn tổng hợp, danh sách/chi tiết lô, xuất và kiểm kê theo lô |
 | Orders | ⬜ | Module rỗng |
 | Expenses | 🟡 | Tạo; domain có duyệt/chi/huỷ nhưng chưa có API |
 | Audit logs | ✅ | List/filter + detail |
@@ -158,7 +158,7 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 | FR-GR-05 | Xác nhận phiếu → sinh lô + nhập kho | ✅ |
 | FR-GR-06 | Huỷ phiếu `pending` | ✅ |
 | FR-GR-07 | Chỉ xác nhận/huỷ phiếu `pending` | ✅ |
-| FR-GR-08 | Danh sách/chi tiết phiếu nhập | ⬜ |
+| FR-GR-08 | Danh sách/chi tiết phiếu nhập (lọc mã, trạng thái, NCC; phân trang) | ✅ |
 | FR-GR-09 | Sửa phiếu `pending` | ⬜ |
 | FR-GR-10 | Ghi audit tạo/xác nhận/huỷ | ✅ |
 
@@ -170,8 +170,8 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 | FR-INV-02 | Nhập kho từ phiếu nhập đã xác nhận (consumer outbox) | ✅ |
 | FR-INV-03 | Xuất kho theo `batchId`, không cho âm | ✅ |
 | FR-INV-04 | Kiểm kê/điều chỉnh số lượng theo lô | ✅ |
-| FR-INV-05 | Xem tồn tổng hợp theo sản phẩm (view `inventories`) | 🟡 có view, chưa có API |
-| FR-INV-06 | Xem danh sách lô của sản phẩm | ⬜ |
+| FR-INV-05 | Xem tồn tổng hợp theo sản phẩm qua `GET /inventories` | ✅ |
+| FR-INV-06 | Xem danh sách/chi tiết lô qua `GET /inventories/batches`, `GET /inventories/batches/:id` | ✅ |
 | FR-INV-07 | Gợi ý/chặn xuất theo FEFO | ⬜ |
 | FR-INV-08 | Tự chuyển lô sang `expired`/`out`, chặn bán hàng hết hạn | ⬜ |
 | FR-INV-09 | Cảnh báo tồn thấp/lô cận hạn | ⬜ |

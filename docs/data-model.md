@@ -400,7 +400,8 @@ from batches b
 group by b.product_id
 ```
 
-Dùng cho dashboard/tồn kho tổng hợp. Hiện **chưa có API** đọc view này.
+Dùng cho màn hình tồn kho tổng hợp, đọc qua `GET /api/inventories`. Chi tiết
+lô đọc qua `GET /api/inventories/batches` và `GET /api/inventories/batches/:id`.
 
 ## 5. Quan hệ và ràng buộc chính
 
