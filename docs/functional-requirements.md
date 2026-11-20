@@ -161,6 +161,9 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 | FR-GR-08 | Danh sách/chi tiết phiếu nhập (lọc mã, trạng thái, NCC; phân trang) | ✅ |
 | FR-GR-09 | Sửa phiếu `pending` | ⬜ |
 | FR-GR-10 | Ghi audit tạo/xác nhận/huỷ | ✅ |
+| FR-GR-11 | Chọn sản phẩm trong phiếu nhập bằng ô tìm kiếm theo tên/mã SKU | ✅ |
+
+Form phiếu nhập tìm sản phẩm qua `GET /products?search=...` thay vì bắt cuộn danh sách đầy đủ. Số lượng được gửi dạng số cho API; ô nhập được bố trí thành 2 hàng để dễ đọc.
 
 ## 11. Inventories (tồn kho theo lô)
 

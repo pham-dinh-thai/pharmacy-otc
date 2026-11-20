@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { fetchCurrentUser, hasPermission } from '@/lib/account';
 import { authFetch } from '@/lib/auth';
+import type { ProductOption } from '@/lib/categories';
 
 const LIST_PATH = '/goods-receipts';
 const CREATE_PATH = `${LIST_PATH}/new`;
@@ -85,7 +86,8 @@ function receiptPayload(formData: FormData) {
     lines: productIds.map((productId, index) => ({
       productId,
       lotNumber: lotNumbers[index] ?? '',
-      quantity: quantities[index] ?? '',
+      // API mong số, không phải chuỗi: gửi chuỗi sẽ bị class-validator từ chối.
+      quantity: Number(quantities[index] ?? ''),
       unitCost: unitCosts[index] ?? '',
       expiresAt: expiresAts[index] ?? '',
     })),
@@ -101,7 +103,7 @@ function validatePayload(payload: Payload): 'missing' | 'invalid' | 'ok' {
     if (!line.productId || !line.lotNumber || !line.expiresAt) return 'missing';
 
     if (line.lotNumber.length > 50) return 'invalid';
-    if (!/^\d+$/.test(line.quantity) || Number(line.quantity) < 1) {
+    if (!Number.isSafeInteger(line.quantity) || line.quantity < 1) {
       return 'invalid';
     }
     if (!/^\d+$/.test(line.unitCost) || BigInt(line.unitCost) <= BigInt(0)) {
@@ -184,4 +186,39 @@ export async function cancelGoodsReceipt(formData: FormData) {
 
   revalidateGoodsReceipts(id);
   redirect(withQuery(LIST_PATH, { updated: 'cancelled' }));
+}
+
+/**
+ * Tìm sản phẩm theo từ khoá cho ô chọn trong phiếu nhập. Không redirect vì
+ * được gọi từ client component trong lúc người dùng đang gõ.
+ */
+export async function searchProductOptions(
+  keyword: string,
+): Promise<ProductOption[]> {
+  const search = keyword.trim();
+
+  if (!search) return [];
+
+  const user = await fetchCurrentUser();
+
+  if (
+    !user ||
+    (!user.isSuperAdmin && !hasPermission(user, 'goods_receipts:create'))
+  ) {
+    return [];
+  }
+
+  try {
+    const res = await authFetch(
+      `/products?deleted=false&search=${encodeURIComponent(search)}&limit=100`,
+    );
+
+    if (!res.ok) return [];
+
+    const body = (await res.json()) as { items: ProductOption[] };
+
+    return body.items;
+  } catch {
+    return [];
+  }
 }
