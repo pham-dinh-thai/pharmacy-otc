@@ -17,7 +17,6 @@ const buildRequest = (): CreateProductRequest =>
   Object.assign(new CreateProductRequest(), {
     name: 'product-1',
     unitPrice: '233323',
-    quantity: 100,
   });
 
 describe('ProductsController', () => {
@@ -47,7 +46,6 @@ describe('ProductsController', () => {
     expect(command).toMatchObject({
       name: 'product-1',
       unitPrice: '233323',
-      quantity: 100,
       headers,
     });
 

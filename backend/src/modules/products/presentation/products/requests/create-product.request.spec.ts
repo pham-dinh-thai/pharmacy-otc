@@ -18,7 +18,6 @@ describe('CreateProductRequest', () => {
     const { instance, errors } = await validateRequest({
       name: '  Thuốc OTC  ',
       unitPrice: '12500',
-      quantity: 3,
       categoryIds: [` ${CATEGORY_ID} `, '   '],
     });
 
@@ -31,7 +30,6 @@ describe('CreateProductRequest', () => {
     const { errors } = await validateRequest({
       name: 'Thuốc OTC',
       unitPrice: '12500',
-      quantity: 3,
       categoryIds: ['not-a-uuid'],
     });
 
@@ -43,7 +41,6 @@ describe('CreateProductRequest', () => {
     const { instance, errors } = await validateRequest({
       name: 'Thuốc OTC',
       unitPrice: '12500',
-      quantity: 3,
     });
 
     expect(errors).toHaveLength(0);

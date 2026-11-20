@@ -16,11 +16,11 @@
 | Authorization (RBAC) | ✅ | Role, permission, super admin |
 | Users | 🟡 | Tạo, đổi email, gán/bỏ role; thiếu list/detail, vô hiệu hoá |
 | Customers | 🟡 | Tự tạo khi đăng ký; thiếu hồ sơ/địa chỉ/API |
-| Products | ✅ | Tạo/sửa/xoá mềm/khôi phục; SKU, đơn vị, mô tả, ảnh, hạn dùng, cảnh báo; N-N với danh mục |
+| Products | ✅ | Tạo/sửa/xoá mềm/khôi phục; SKU, đơn vị, mô tả, ảnh, cảnh báo; N-N với danh mục. Hạn dùng nằm ở lô/phiếu nhập |
 | Categories | ✅ | Tạo/sửa/xoá mềm/khôi phục, slug tự sinh, liên kết N-N với sản phẩm |
 | Suppliers | ✅ | Tạo/list/sửa/xoá/khôi phục |
-| Goods receipts | 🟡 | Tạo/xác nhận/huỷ; thiếu list/detail |
-| Inventories | 🟡 | Xuất/kiểm kê theo lô; thiếu API đọc tồn/lô |
+| Goods receipts | ✅ | Tạo/list/detail/xác nhận/huỷ; UI phiếu nhập đầy đủ |
+| Inventories | ✅ | Xem tồn tổng hợp, danh sách/chi tiết lô, xuất và kiểm kê theo lô |
 | Orders | ⬜ | Module rỗng |
 | Expenses | 🟡 | Tạo; domain có duyệt/chi/huỷ nhưng chưa có API |
 | Audit logs | ✅ | List/filter + detail |
@@ -106,19 +106,19 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
-| FR-PROD-01 | Tạo sản phẩm: tên, giá bán, số lượng | ✅ |
+| FR-PROD-01 | Tạo sản phẩm: tên, giá bán | ✅ |
 | FR-PROD-02 | Danh sách sản phẩm | ✅ |
 | FR-PROD-03 | Thêm `sku` unique | ✅ chuẩn hoá chữ hoa, trùng trả `409`, cả API và UI |
 | FR-PROD-04 | Thêm `category` (OTC/TPCN/mỹ phẩm/thiết bị) | 🟡 N-N qua `product_categories`, API đọc và form chọn nhiều danh mục; chưa seed nhóm cố định |
 | FR-PROD-05 | Thêm `unit` (viên, hộp, chai, tuýp…) | ✅ |
-| FR-PROD-06 | Thêm mô tả, ảnh, thông tin hạn dùng/cảnh báo | ✅ `description`, `imageUrl`, `expiryDate` (`YYYY-MM-DD`), `warning` |
+| FR-PROD-06 | Thêm mô tả, ảnh, cảnh báo | ✅ `description`, `imageUrl`, `warning` |
 | FR-PROD-07 | Sửa/xoá/ngừng bán sản phẩm | ✅ sửa, xoá mềm và khôi phục |
 | FR-PROD-08 | Tìm kiếm/lọc theo category, khoảng giá, còn hàng | 🟡 API hỗ trợ cả khoảng giá; UI có tìm kiếm, danh mục và tồn kho, chưa có ô lọc khoảng giá |
 | FR-PROD-09 | Phân trang | ✅ 10/20/50 |
 | FR-PROD-10 | Danh mục công khai cho khách chưa đăng nhập | ⬜ |
-| FR-PROD-11 | Không cho giá/số lượng âm | ✅ |
+| FR-PROD-11 | Không cho giá âm | ✅ |
 
-**Phạm vi đã làm:** quản trị sản phẩm tại `/products` gồm danh sách có lọc/tìm kiếm/phân trang, chi tiết, tạo, sửa, xoá mềm và khôi phục. Form tạo/sửa nhận `sku`, `unit`, `description`, `imageUrl`, `expiryDate`, `warning` (đều optional) và cho phép chọn nhiều danh mục đang hoạt động. SKU được chuẩn hoá chữ hoa, kiểm tra trùng ở tầng ứng dụng (`409`) và có ràng buộc unique trong DB. Mỗi sản phẩm liên kết N-N với danh mục qua `product_categories`. Thao tác cần `products:read/create/update/delete` (Super Admin được bỏ qua), còn việc tải danh mục cần `categories:read`. Storefront vẫn dùng dữ liệu mẫu.
+**Phạm vi đã làm:** quản trị sản phẩm tại `/products` gồm danh sách có lọc/tìm kiếm/phân trang, chi tiết, tạo, sửa, xoá mềm và khôi phục. Form tạo/sửa nhận `sku`, `unit`, `description`, `imageUrl`, `warning` (đều optional) và cho phép chọn nhiều danh mục đang hoạt động. Hạn dùng chỉ nhập trên từng dòng phiếu nhập và được theo dõi theo lô. SKU được chuẩn hoá chữ hoa, kiểm tra trùng ở tầng ứng dụng (`409`) và có ràng buộc unique trong DB. Mỗi sản phẩm liên kết N-N với danh mục qua `product_categories`. Thao tác cần `products:read/create/update/delete` (Super Admin được bỏ qua), còn việc tải danh mục cần `categories:read`. Storefront vẫn dùng dữ liệu mẫu.
 
 ## 8. Categories
 
@@ -158,9 +158,12 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 | FR-GR-05 | Xác nhận phiếu → sinh lô + nhập kho | ✅ |
 | FR-GR-06 | Huỷ phiếu `pending` | ✅ |
 | FR-GR-07 | Chỉ xác nhận/huỷ phiếu `pending` | ✅ |
-| FR-GR-08 | Danh sách/chi tiết phiếu nhập | ⬜ |
+| FR-GR-08 | Danh sách/chi tiết phiếu nhập (lọc mã, trạng thái, NCC; phân trang) | ✅ |
 | FR-GR-09 | Sửa phiếu `pending` | ⬜ |
 | FR-GR-10 | Ghi audit tạo/xác nhận/huỷ | ✅ |
+| FR-GR-11 | Chọn sản phẩm trong phiếu nhập bằng ô tìm kiếm theo tên/mã SKU | ✅ |
+
+Form phiếu nhập tìm sản phẩm qua `GET /products?search=...` thay vì bắt cuộn danh sách đầy đủ. Số lượng được gửi dạng số cho API; ô nhập được bố trí thành 2 hàng để dễ đọc.
 
 ## 11. Inventories (tồn kho theo lô)
 
@@ -170,8 +173,8 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 | FR-INV-02 | Nhập kho từ phiếu nhập đã xác nhận (consumer outbox) | ✅ |
 | FR-INV-03 | Xuất kho theo `batchId`, không cho âm | ✅ |
 | FR-INV-04 | Kiểm kê/điều chỉnh số lượng theo lô | ✅ |
-| FR-INV-05 | Xem tồn tổng hợp theo sản phẩm (view `inventories`) | 🟡 có view, chưa có API |
-| FR-INV-06 | Xem danh sách lô của sản phẩm | ⬜ |
+| FR-INV-05 | Xem tồn tổng hợp theo sản phẩm qua `GET /inventories` | ✅ |
+| FR-INV-06 | Xem danh sách/chi tiết lô qua `GET /inventories/batches`, `GET /inventories/batches/:id` | ✅ |
 | FR-INV-07 | Gợi ý/chặn xuất theo FEFO | ⬜ |
 | FR-INV-08 | Tự chuyển lô sang `expired`/`out`, chặn bán hàng hết hạn | ⬜ |
 | FR-INV-09 | Cảnh báo tồn thấp/lô cận hạn | ⬜ |
@@ -179,10 +182,11 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 
 **Quy tắc**
 
-- Tồn kho thật lấy từ `batches`; `products.quantity` là trường cũ, không phải
-  nguồn sự thật.
+- Tồn kho lấy từ `batches`/view `inventories`; `products` không còn cột
+  `quantity`. Danh sách sản phẩm hiển thị `stockQuantity` và lọc `inStock` từ
+  tồn thực tế.
 - Xuất kho hiện yêu cầu truyền đúng `batchId`; hệ thống chưa tự chọn lô FEFO.
-- Không có endpoint đọc tồn kho trong code hiện tại.
+- Lô hết hạn/hết số lượng vẫn nằm trong view cho đến khi được kiểm kê hoặc xuất.
 
 ## 12. Orders
 

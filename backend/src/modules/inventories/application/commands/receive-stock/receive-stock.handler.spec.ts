@@ -61,7 +61,14 @@ const setup = (inventory: Inventory | null) => {
   const save = jest.fn<Save>((value) => Promise.resolve(value));
   const run = jest.fn<Run>((work) => work());
 
-  const repository: IInventoriesRepository = { findByProductId, save };
+  const repository: IInventoriesRepository = {
+    findByProductId,
+    findBatchesPage: jest.fn<IInventoriesRepository['findBatchesPage']>(),
+    findBatchById: jest.fn<IInventoriesRepository['findBatchById']>(),
+    findInventorySummaryPage:
+      jest.fn<IInventoriesRepository['findInventorySummaryPage']>(),
+    save,
+  };
   const unitOfWork: IUnitOfWork = {
     run: run as unknown as IUnitOfWork['run'],
   };

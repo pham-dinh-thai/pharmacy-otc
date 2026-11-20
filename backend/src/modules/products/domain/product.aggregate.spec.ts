@@ -12,7 +12,6 @@ const createProduct = (): Product =>
   Product.create({
     name: 'Coffee',
     unitPrice: '12500',
-    quantity: 3,
   });
 
 describe('Product', () => {
@@ -28,7 +27,6 @@ describe('Product', () => {
     );
     expect(product.getName()).toBe('Coffee');
     expect(product.getUnitPrice()).toBe('12500');
-    expect(product.getQuantity()).toBe(3);
   });
 
   it('sets createdAt equal to updatedAt on creation', () => {
@@ -54,21 +52,18 @@ describe('Product', () => {
     expect(product.getCreatedAt()).toEqual(createdAt);
   });
 
-  it('updates unit price and quantity through value objects', () => {
+  it('updates the unit price through its value object', () => {
     const product = createProduct();
 
     product.updateUnitPrice('99990');
-    product.updateQuantity(0);
 
     expect(product.getUnitPrice()).toBe('99990');
-    expect(product.getQuantity()).toBe(0);
   });
 
   it('normalizes and deduplicates category ids on create', () => {
     const product = Product.create({
       name: 'Coffee',
       unitPrice: '12500',
-      quantity: 3,
       categoryIds: [CATEGORY_ID_1, ` ${CATEGORY_ID_1} `, CATEGORY_ID_2],
     });
 
@@ -79,17 +74,15 @@ describe('Product', () => {
     const product = Product.create({
       name: 'Coffee',
       unitPrice: '12500',
-      quantity: 3,
       categoryIds: [CATEGORY_ID_1],
     });
 
-    product.update({ name: 'Tea', unitPrice: '5000', quantity: 7 });
+    product.update({ name: 'Tea', unitPrice: '5000' });
     expect(product.getCategoryIds()).toEqual([CATEGORY_ID_1]);
 
     product.update({
       name: 'Tea',
       unitPrice: '5000',
-      quantity: 7,
       categoryIds: [CATEGORY_ID_2, CATEGORY_ID_2],
     });
     expect(product.getCategoryIds()).toEqual([CATEGORY_ID_2]);
@@ -101,7 +94,6 @@ describe('Product', () => {
       id: 'b3d7f2a8-7a0e-4f1c-9c1a-4d3f5e6a7b8c',
       name: 'Tea',
       unitPrice: '5000',
-      quantity: 7,
       categoryIds: [CATEGORY_ID_1],
       deletedAt,
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -111,7 +103,6 @@ describe('Product', () => {
     expect(product.getId()).toBe('b3d7f2a8-7a0e-4f1c-9c1a-4d3f5e6a7b8c');
     expect(product.getName()).toBe('Tea');
     expect(product.getUnitPrice()).toBe('5000');
-    expect(product.getQuantity()).toBe(7);
     expect(product.getCategoryIds()).toEqual([CATEGORY_ID_1]);
     expect(product.getDeletedAt()).toEqual(deletedAt);
     expect(product.isDeleted()).toBe(true);

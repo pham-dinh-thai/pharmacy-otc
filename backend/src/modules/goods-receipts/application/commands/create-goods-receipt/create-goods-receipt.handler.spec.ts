@@ -67,6 +67,7 @@ const setup = (sequence = 1) => {
 
   const repository: IGoodsReceiptsRepository = {
     nextSequence,
+    findPage: jest.fn<IGoodsReceiptsRepository['findPage']>(),
     findById,
     create,
     update,

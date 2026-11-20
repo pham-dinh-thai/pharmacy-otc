@@ -64,7 +64,6 @@ export class CreateProductHandler implements ICommandHandler<CreateProductComman
       const product = Product.create({
         name: command.name,
         unitPrice: command.unitPrice,
-        quantity: command.quantity,
         categoryIds,
         ...command.details,
       });
@@ -79,12 +78,10 @@ export class CreateProductHandler implements ICommandHandler<CreateProductComman
           after: {
             name: product.getName(),
             unitPrice: product.getUnitPrice(),
-            quantity: product.getQuantity(),
             sku: product.getSku(),
             unit: product.getUnit(),
             description: product.getDescription(),
             imageUrl: product.getImageUrl(),
-            expiryDate: product.getExpiryDate(),
             warning: product.getWarning(),
             categoryIds: [...product.getCategoryIds()],
           },

@@ -42,6 +42,24 @@ export function workspaceNav(user: CurrentUser): WorkspaceNavGroup[] {
               },
             ]
           : []),
+        ...(user.isSuperAdmin || hasPermission(user, 'goods_receipts:read')
+          ? [
+              {
+                label: 'Phiếu nhập',
+                href: '/goods-receipts',
+                hint: 'Lập phiếu, xác nhận lô hàng và huỷ phiếu nhập.',
+              },
+            ]
+          : []),
+        ...(user.isSuperAdmin || hasPermission(user, 'inventories:read')
+          ? [
+              {
+                label: 'Tồn kho',
+                href: '/inventories',
+                hint: 'Xem tồn theo sản phẩm, xuất kho và kiểm kê theo lô.',
+              },
+            ]
+          : []),
         ...(user.isSuperAdmin || hasPermission(user, 'customers:read')
           ? [
               {

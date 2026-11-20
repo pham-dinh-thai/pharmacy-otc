@@ -1,7 +1,5 @@
 import { Id } from '../../../shared/value-objects/id.value-object';
-import { Quantity } from '../../../shared/value-objects/quantity.value-object';
 import {
-  InvalidProductExpiryDateException,
   ProductAlreadyDeletedException,
   ProductNotDeletedException,
 } from './exceptions/product.exceptions';
@@ -23,12 +21,10 @@ export function normalizeProductSku(sku?: string | null): string | null {
 export type ProductInput = {
   name: string;
   unitPrice: string;
-  quantity: number;
   sku?: string | null;
   unit?: string | null;
   description?: string | null;
   imageUrl?: string | null;
-  expiryDate?: string | null;
   warning?: string | null;
   categoryIds?: string[];
 };
@@ -48,12 +44,10 @@ export class Product {
     private readonly id: Id,
     private name: string,
     private unitPrice: UnitPrice,
-    private quantity: Quantity,
     private sku: string | null,
     private unit: string | null,
     private description: string | null,
     private imageUrl: string | null,
-    private expiryDate: string | null,
     private warning: string | null,
     private categoryIds: string[],
     private deletedAt: Date | null,
@@ -68,12 +62,10 @@ export class Product {
       Id.generate(),
       props.name,
       UnitPrice.create(props.unitPrice),
-      Quantity.create(props.quantity),
       Product.normalizeSku(props.sku),
       Product.normalizeText(props.unit, PRODUCT_UNIT_MAX_LENGTH),
       Product.normalizeText(props.description, PRODUCT_DESCRIPTION_MAX_LENGTH),
       Product.normalizeText(props.imageUrl, PRODUCT_IMAGE_URL_MAX_LENGTH),
-      Product.normalizeExpiryDate(props.expiryDate),
       Product.normalizeText(props.warning, PRODUCT_WARNING_MAX_LENGTH),
       Product.normalizeCategoryIds(props.categoryIds),
       null,
@@ -87,12 +79,10 @@ export class Product {
       Id.create(props.id),
       props.name,
       UnitPrice.create(props.unitPrice),
-      Quantity.create(props.quantity),
       Product.normalizeSku(props.sku),
       Product.normalizeText(props.unit, PRODUCT_UNIT_MAX_LENGTH),
       Product.normalizeText(props.description, PRODUCT_DESCRIPTION_MAX_LENGTH),
       Product.normalizeText(props.imageUrl, PRODUCT_IMAGE_URL_MAX_LENGTH),
-      Product.normalizeExpiryDate(props.expiryDate),
       Product.normalizeText(props.warning, PRODUCT_WARNING_MAX_LENGTH),
       Product.normalizeCategoryIds(props.categoryIds),
       props.deletedAt ?? null,
@@ -104,7 +94,6 @@ export class Product {
   public update(props: UpdateProductProps): void {
     this.name = props.name;
     this.unitPrice = UnitPrice.create(props.unitPrice);
-    this.quantity = Quantity.create(props.quantity);
 
     if (props.sku !== undefined) this.sku = Product.normalizeSku(props.sku);
     if (props.unit !== undefined) {
@@ -121,9 +110,6 @@ export class Product {
         props.imageUrl,
         PRODUCT_IMAGE_URL_MAX_LENGTH,
       );
-    }
-    if (props.expiryDate !== undefined) {
-      this.expiryDate = Product.normalizeExpiryDate(props.expiryDate);
     }
     if (props.warning !== undefined) {
       this.warning = Product.normalizeText(
@@ -145,11 +131,6 @@ export class Product {
 
   public updateUnitPrice(newUnitPrice: string): void {
     this.unitPrice = UnitPrice.create(newUnitPrice);
-    this.updatedAt = new Date();
-  }
-
-  public updateQuantity(newQuantity: number): void {
-    this.quantity = Quantity.create(newQuantity);
     this.updatedAt = new Date();
   }
 
@@ -189,10 +170,6 @@ export class Product {
     return this.unitPrice.toString();
   }
 
-  public getQuantity(): number {
-    return this.quantity.getValue();
-  }
-
   public getSku(): string | null {
     return this.sku;
   }
@@ -207,10 +184,6 @@ export class Product {
 
   public getImageUrl(): string | null {
     return this.imageUrl;
-  }
-
-  public getExpiryDate(): string | null {
-    return this.expiryDate;
   }
 
   public getWarning(): string | null {
@@ -258,26 +231,5 @@ export class Product {
     const trimmed = value?.trim();
 
     return trimmed ? trimmed.slice(0, maxLength) : null;
-  }
-
-  private static normalizeExpiryDate(value?: string | null): string | null {
-    const trimmed = value?.trim();
-
-    if (!trimmed) return null;
-
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-      throw new InvalidProductExpiryDateException();
-    }
-
-    const parsed = new Date(`${trimmed}T00:00:00.000Z`);
-
-    if (
-      Number.isNaN(parsed.getTime()) ||
-      parsed.toISOString().slice(0, 10) !== trimmed
-    ) {
-      throw new InvalidProductExpiryDateException();
-    }
-
-    return trimmed;
   }
 }

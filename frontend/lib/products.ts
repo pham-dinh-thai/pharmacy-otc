@@ -1,16 +1,16 @@
 import type { TriStateValue } from './list-filters';
 import { authFetch } from './auth';
 
+/** `stockQuantity` là tồn thực tế từ view inventories, không phải cột của products. */
 export type ProductListItem = {
   id: string;
   name: string;
   unitPrice: string;
-  quantity: number;
+  stockQuantity: number;
   sku: string | null;
   unit: string | null;
   description: string | null;
   imageUrl: string | null;
-  expiryDate: string | null;
   warning: string | null;
   categoryIds: string[];
   createdAt: string;

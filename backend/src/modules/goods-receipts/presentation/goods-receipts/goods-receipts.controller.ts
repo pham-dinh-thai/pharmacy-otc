@@ -1,18 +1,25 @@
 import {
   Body,
   Controller,
+  Get,
   Logger,
   Param,
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { CommandBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreateGoodsReceiptCommand } from '../../application/commands/create-goods-receipt/create-goods-receipt.command';
 import { ConfirmGoodsReceiptCommand } from '../../application/commands/confirm-goods-receipt/confirm-goods-receipt.command';
 import { CancelGoodsReceiptCommand } from '../../application/commands/cancel-goods-receipt/cancel-goods-receipt.command';
+import { GetGoodsReceiptsQuery } from '../../application/queries/get-goods-receipts/get-goods-receipts.query';
+import { GoodsReceiptListPageReadModel } from '../../application/queries/get-goods-receipts/goods-receipt-list-page.read-model';
+import { GetGoodsReceiptQuery } from '../../application/queries/get-goods-receipt/get-goods-receipt.query';
+import { GoodsReceiptDetailReadModel } from '../../application/queries/get-goods-receipt/goods-receipt-detail.read-model';
 import { CreateGoodsReceiptRequest } from './requests/create-goods-receipt.request';
+import { ListGoodsReceiptsRequest } from './requests/list-goods-receipts.request';
 import { AuthGuard } from '../../../../shared/modules/security/auth.guard';
 import { PermissionsGuard } from '../../../../shared/modules/security/permissions.guard';
 import { RequirePermissions } from '../../../../shared/modules/security/require-permissions.decorator';
@@ -24,7 +31,34 @@ import { type ActorHeaders } from '../../../../shared/types/actor-headers';
 export class GoodsReceiptsController {
   private readonly logger = new Logger(GoodsReceiptsController.name);
 
-  public constructor(private readonly commandBus: CommandBus) {}
+  public constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
+
+  @Get()
+  @RequirePermissions(['goods_receipts:read'])
+  public findAll(
+    @Query() request: ListGoodsReceiptsRequest,
+  ): Promise<GoodsReceiptListPageReadModel> {
+    return this.queryBus.execute(
+      new GetGoodsReceiptsQuery(
+        request.search,
+        request.status,
+        request.supplierId,
+        request.page,
+        request.limit,
+      ),
+    );
+  }
+
+  @Get(':id')
+  @RequirePermissions(['goods_receipts:read'])
+  public findOne(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ): Promise<GoodsReceiptDetailReadModel> {
+    return this.queryBus.execute(new GetGoodsReceiptQuery(id));
+  }
 
   @Post()
   @RequirePermissions(['goods_receipts:create'])

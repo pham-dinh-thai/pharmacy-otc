@@ -76,7 +76,6 @@ export class ProductsController {
       new CreateProductCommand(
         request.name,
         request.unitPrice,
-        request.quantity,
         request.categoryIds ?? [],
         headers,
         {
@@ -84,7 +83,6 @@ export class ProductsController {
           unit: request.unit,
           description: request.description,
           imageUrl: request.imageUrl,
-          expiryDate: request.expiryDate,
           warning: request.warning,
         },
       ),
@@ -107,7 +105,6 @@ export class ProductsController {
         id,
         request.name,
         request.unitPrice,
-        request.quantity,
         request.categoryIds ?? [],
         headers,
         {
@@ -115,7 +112,6 @@ export class ProductsController {
           unit: request.unit,
           description: request.description,
           imageUrl: request.imageUrl,
-          expiryDate: request.expiryDate,
           warning: request.warning,
         },
       ),

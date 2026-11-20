@@ -11,6 +11,9 @@ import { IssueBatchStockHandler } from './application/commands/issue-batch-stock
 import { SecurityModule } from '../../shared/modules/security/security.module';
 import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { GoodsReceiptStockReceivedConsumer } from './application/consumers/goods-receipt-stock-received.consumer';
+import { GetInventorySummaryHandler } from './application/queries/get-inventory-summary/get-inventory-summary.handler';
+import { GetBatchesHandler } from './application/queries/get-batches/get-batches.handler';
+import { GetBatchHandler } from './application/queries/get-batch/get-batch.handler';
 
 @Module({
   imports: [
@@ -25,6 +28,9 @@ import { GoodsReceiptStockReceivedConsumer } from './application/consumers/goods
     ReconcileBatchStockHandler,
     IssueBatchStockHandler,
     GoodsReceiptStockReceivedConsumer,
+    GetInventorySummaryHandler,
+    GetBatchesHandler,
+    GetBatchHandler,
   ],
 })
 export class InventoriesModule {}

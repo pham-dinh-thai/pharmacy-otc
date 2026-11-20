@@ -14,9 +14,6 @@ export class MikroProduct {
   })
   unitPrice!: bigint;
 
-  @Property({ type: 'int' })
-  quantity!: number;
-
   @Property({
     type: 'string',
     length: 100,
@@ -38,13 +35,6 @@ export class MikroProduct {
     nullable: true,
   })
   imageUrl!: string | null;
-
-  @Property({
-    fieldName: 'expiry_date',
-    type: 'date',
-    nullable: true,
-  })
-  expiryDate!: Date | null;
 
   @Property({ type: 'text', nullable: true })
   warning!: string | null;

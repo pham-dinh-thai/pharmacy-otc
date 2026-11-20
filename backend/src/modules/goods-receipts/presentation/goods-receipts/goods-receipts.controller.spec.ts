@@ -1,11 +1,14 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { CommandBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import { GoodsReceiptsController } from './goods-receipts.controller';
 import { CreateGoodsReceiptCommand } from '../../application/commands/create-goods-receipt/create-goods-receipt.command';
 import { ConfirmGoodsReceiptCommand } from '../../application/commands/confirm-goods-receipt/confirm-goods-receipt.command';
 import { CancelGoodsReceiptCommand } from '../../application/commands/cancel-goods-receipt/cancel-goods-receipt.command';
 import { CreateGoodsReceiptRequest } from './requests/create-goods-receipt.request';
+import { GetGoodsReceiptsQuery } from '../../application/queries/get-goods-receipts/get-goods-receipts.query';
+import { GetGoodsReceiptQuery } from '../../application/queries/get-goods-receipt/get-goods-receipt.query';
+import { GoodsReceiptStatus } from '../../domain/goods-receipt-status.enum';
 import { AuthGuard } from '../../../../shared/modules/security/auth.guard';
 import { PermissionsGuard } from '../../../../shared/modules/security/permissions.guard';
 
@@ -41,13 +44,18 @@ const createRequest = (): CreateGoodsReceiptRequest => ({
 describe('GoodsReceiptsController', () => {
   let controller: GoodsReceiptsController;
   let execute: jest.Mock<Execute>;
+  let queryExecute: jest.Mock<Execute>;
 
   beforeEach(async () => {
     execute = jest.fn<Execute>();
+    queryExecute = jest.fn<Execute>();
 
     const module = await Test.createTestingModule({
       controllers: [GoodsReceiptsController],
-      providers: [{ provide: CommandBus, useValue: { execute } }],
+      providers: [
+        { provide: CommandBus, useValue: { execute } },
+        { provide: QueryBus, useValue: { execute: queryExecute } },
+      ],
     })
       .overrideGuard(AuthGuard)
       .useValue({ canActivate: () => true })
@@ -113,6 +121,46 @@ describe('GoodsReceiptsController', () => {
         new CancelGoodsReceiptCommand(RECEIPT_ID, ACTOR_ID, headers),
       );
       expect(result).toEqual({ id: RECEIPT_ID });
+    });
+  });
+
+  describe('read routes', () => {
+    it('dispatches GetGoodsReceiptsQuery with pagination and filters', async () => {
+      const page = { items: [], total: 0, page: 2, limit: 10 };
+
+      queryExecute.mockResolvedValue(page);
+
+      const result = await controller.findAll({
+        search: 'GR-0001',
+        status: GoodsReceiptStatus.PENDING,
+        supplierId: SUPPLIER_ID,
+        page: 2,
+        limit: 10,
+      });
+
+      expect(queryExecute).toHaveBeenCalledWith(
+        new GetGoodsReceiptsQuery(
+          'GR-0001',
+          GoodsReceiptStatus.PENDING,
+          SUPPLIER_ID,
+          2,
+          10,
+        ),
+      );
+      expect(result).toBe(page);
+    });
+
+    it('dispatches GetGoodsReceiptQuery with the receipt id', async () => {
+      const detail = { id: RECEIPT_ID, lines: [] };
+
+      queryExecute.mockResolvedValue(detail);
+
+      const result = await controller.findOne(RECEIPT_ID);
+
+      expect(queryExecute).toHaveBeenCalledWith(
+        new GetGoodsReceiptQuery(RECEIPT_ID),
+      );
+      expect(result).toBe(detail);
     });
   });
 });

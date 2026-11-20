@@ -69,12 +69,10 @@ export class UpdateProductHandler implements ICommandHandler<UpdateProductComman
       const before = {
         name: product.getName(),
         unitPrice: product.getUnitPrice(),
-        quantity: product.getQuantity(),
         sku: product.getSku(),
         unit: product.getUnit(),
         description: product.getDescription(),
         imageUrl: product.getImageUrl(),
-        expiryDate: product.getExpiryDate(),
         warning: product.getWarning(),
         categoryIds: [...product.getCategoryIds()],
       };
@@ -82,7 +80,6 @@ export class UpdateProductHandler implements ICommandHandler<UpdateProductComman
       product.update({
         name: command.name,
         unitPrice: command.unitPrice,
-        quantity: command.quantity,
         categoryIds,
         ...command.details,
       });
@@ -98,12 +95,10 @@ export class UpdateProductHandler implements ICommandHandler<UpdateProductComman
           after: {
             name: product.getName(),
             unitPrice: product.getUnitPrice(),
-            quantity: product.getQuantity(),
             sku: product.getSku(),
             unit: product.getUnit(),
             description: product.getDescription(),
             imageUrl: product.getImageUrl(),
-            expiryDate: product.getExpiryDate(),
             warning: product.getWarning(),
             categoryIds: [...product.getCategoryIds()],
           },

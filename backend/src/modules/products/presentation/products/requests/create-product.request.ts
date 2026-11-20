@@ -1,7 +1,6 @@
 import { Transform, type TransformFnParams } from 'class-transformer';
 import {
   IsArray,
-  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -41,10 +40,6 @@ export class CreateProductRequest {
   @IsNotEmpty()
   unitPrice!: string;
 
-  @IsInt()
-  @IsNotEmpty()
-  quantity!: number;
-
   @Transform(trimOrNull)
   @IsOptional()
   @IsString()
@@ -68,13 +63,6 @@ export class CreateProductRequest {
   @IsString()
   @MaxLength(2048)
   imageUrl?: string | null;
-
-  @Transform(trimOrNull)
-  @IsOptional()
-  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
-    message: 'expiryDate must be YYYY-MM-DD',
-  })
-  expiryDate?: string | null;
 
   @Transform(trimOrNull)
   @IsOptional()

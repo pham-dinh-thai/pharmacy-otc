@@ -10,6 +10,7 @@ import { Product } from '../../domain/product.aggregate';
 import { likePattern } from '../../../../shared/utils/list-filters';
 import { MikroProduct } from '../entities/mikro-product.entity';
 import { MikroProductCategory } from '../../../categories/infrastructure/entities/mikro-product-category.entity';
+import { MikroInventory } from '../../../inventories/infrastructure/entities/mikro-inventory.entity';
 import { ProductMapper } from '../mappers/product.mapper';
 
 @Injectable()
@@ -20,6 +21,15 @@ export class MikroProductsRepository implements IProductsRepository {
     const deleted = filters?.deleted ?? false;
     const pattern = likePattern(filters?.search);
 
+    const inStockProductIds =
+      filters?.inStock !== undefined
+        ? await this.findProductIdsWithPositiveStock()
+        : undefined;
+
+    if (filters?.inStock === true && inStockProductIds?.length === 0) {
+      return { items: [], total: 0 };
+    }
+
     const where: FilterQuery<MikroProduct> = {
       ...(deleted === true
         ? { deletedAt: { $ne: null } }
@@ -27,11 +37,6 @@ export class MikroProductsRepository implements IProductsRepository {
           ? { deletedAt: null }
           : {}),
       ...(pattern ? { name: { $ilike: pattern } } : {}),
-      ...(filters?.inStock === true
-        ? { quantity: { $gt: 0 } }
-        : filters?.inStock === false
-          ? { quantity: 0 }
-          : {}),
       ...(filters?.minPrice !== undefined || filters?.maxPrice !== undefined
         ? {
             unitPrice: {
@@ -46,14 +51,26 @@ export class MikroProductsRepository implements IProductsRepository {
         : {}),
     };
 
-    let linkedProductIds: string[] | undefined;
-
     if (filters?.categoryId) {
-      linkedProductIds = await this.findProductIdsByCategory(
+      let linkedProductIds = await this.findProductIdsByCategory(
         filters.categoryId,
       );
+
+      if (inStockProductIds) {
+        linkedProductIds = linkedProductIds.filter((id) =>
+          filters.inStock
+            ? inStockProductIds.includes(id)
+            : !inStockProductIds.includes(id),
+        );
+      }
+
       if (linkedProductIds.length === 0) return { items: [], total: 0 };
       where.id = { $in: linkedProductIds };
+    } else if (filters?.inStock === true && inStockProductIds) {
+      where.id = { $in: inStockProductIds };
+    } else if (filters?.inStock === false && inStockProductIds?.length) {
+      // Sản phẩm không có bản g inventories cũng được coi là hết hàng.
+      where.id = { $nin: inStockProductIds };
     }
 
     const [mikroProducts, total] = await this.entityManager.findAndCount(
@@ -94,6 +111,20 @@ export class MikroProductsRepository implements IProductsRepository {
     );
 
     return rows.map((row) => row.categoryId);
+  }
+
+  public async findStockQuantities(
+    productIds: string[],
+  ): Promise<Map<string, number>> {
+    if (productIds.length === 0) return new Map();
+
+    const rows = await this.entityManager.find(
+      MikroInventory,
+      { productId: { $in: productIds } },
+      { fields: ['productId', 'totalQuantity'] },
+    );
+
+    return new Map(rows.map((row) => [row.productId, row.totalQuantity]));
   }
 
   public async existsById(id: string): Promise<boolean> {
@@ -143,6 +174,16 @@ export class MikroProductsRepository implements IProductsRepository {
       mikroProduct,
       await this.findCategoryIds(mikroProduct.id),
     );
+  }
+
+  private async findProductIdsWithPositiveStock(): Promise<string[]> {
+    const rows = await this.entityManager.find(
+      MikroInventory,
+      { totalQuantity: { $gt: 0 } },
+      { fields: ['productId'] },
+    );
+
+    return rows.map((row) => row.productId);
   }
 
   private async findProductIdsByCategory(
