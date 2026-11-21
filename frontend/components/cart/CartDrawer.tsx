@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { formatVND } from '@/lib/utils';
 
@@ -102,9 +103,9 @@ export function CartDrawer() {
                         <button
                           type="button"
                           aria-label={`Giảm số lượng ${product.name}`}
-                          onClick={() =>
-                            updateQuantity(product.id, quantity - 1)
-                          }
+                          onClick={() => {
+                            void updateQuantity(product.id, quantity - 1);
+                          }}
                           className="px-2.5 py-1 text-[13px] hover:bg-surface"
                         >
                           −
@@ -115,9 +116,9 @@ export function CartDrawer() {
                         <button
                           type="button"
                           aria-label={`Tăng số lượng ${product.name}`}
-                          onClick={() =>
-                            updateQuantity(product.id, quantity + 1)
-                          }
+                          onClick={() => {
+                            void updateQuantity(product.id, quantity + 1);
+                          }}
                           className="px-2.5 py-1 text-[13px] hover:bg-surface"
                         >
                           +
@@ -131,7 +132,9 @@ export function CartDrawer() {
 
                     <button
                       type="button"
-                      onClick={() => removeFromCart(product.id)}
+                      onClick={() => {
+                        void removeFromCart(product.id);
+                      }}
                       className="mt-2 text-[12px] text-muted underline decoration-rule underline-offset-4 hover:text-ink"
                     >
                       Xóa
@@ -148,6 +151,13 @@ export function CartDrawer() {
                   {formatVND(subtotal)}
                 </span>
               </div>
+              <Link
+                href="/cart"
+                onClick={closeCart}
+                className="mt-4 block border border-ink bg-ink py-2.5 text-center text-[13px] font-semibold text-paper hover:bg-accent"
+              >
+                Xem giỏ hàng
+              </Link>
               <p className="mt-2 text-[12px] leading-5 text-muted">
                 Chưa hỗ trợ thanh toán trực tuyến.
               </p>

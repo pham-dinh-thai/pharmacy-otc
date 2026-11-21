@@ -34,4 +34,20 @@ export interface StorefrontProductPage {
 export interface CartItem {
   product: StorefrontProduct;
   quantity: number;
+  lineTotal: number;
+}
+
+export interface CartItemResponse {
+  product: Omit<StorefrontProduct, 'unitPrice'> & { unitPrice: string };
+  quantity: number;
+  lineTotal: string;
+}
+
+export interface CartResponse {
+  kind: 'guest' | 'user';
+  items: CartItemResponse[];
+  totalItems: number;
+  subtotal: string;
+  shippingFee: string;
+  total: string;
 }

@@ -12,16 +12,16 @@ export function AddToCartButton({
   className?: string;
   label?: string;
 }) {
-  const { addToCart } = useCart();
+  const { addToCart, canAddMore } = useCart();
 
-  if (!product.inStock) {
+  if (!product.inStock || !canAddMore) {
     return (
       <button
         type="button"
         disabled
         className={`border border-rule py-2 text-[12px] font-semibold text-muted ${className}`}
       >
-        Hết hàng
+        {product.inStock ? 'Giỏ đã đầy' : 'Hết hàng'}
       </button>
     );
   }
@@ -29,7 +29,9 @@ export function AddToCartButton({
   return (
     <button
       type="button"
-      onClick={() => addToCart(product)}
+      onClick={() => {
+        void addToCart(product);
+      }}
       className={`border border-rule py-2 text-[12px] font-semibold transition-colors hover:border-ink hover:bg-ink hover:text-paper ${className}`}
     >
       {label}

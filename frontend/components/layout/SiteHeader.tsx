@@ -15,7 +15,7 @@ export function SiteHeader({
   categories: NavCategory[];
   authSlot?: React.ReactNode;
 }) {
-  const { totalItems, openCart } = useCart();
+  const { totalItems } = useCart();
 
   return (
     <header className="z-40 border-b border-rule bg-paper lg:sticky lg:top-0">
@@ -41,15 +41,15 @@ export function SiteHeader({
         />
 
         <div className="ml-auto flex items-center gap-4 text-[13px] font-medium sm:gap-5">
-          <button
-            type="button"
-            onClick={openCart}
+          <Link
+            href="/cart"
             className="flex items-baseline gap-1.5 hover:text-accent"
+            aria-label={`Giỏ hàng, ${totalItems} sản phẩm`}
           >
             <span className="sm:hidden">Giỏ</span>
             <span className="hidden sm:inline">Giỏ hàng</span>
             <span className="tabular-nums text-muted">({totalItems})</span>
-          </button>
+          </Link>
 
           {authSlot ?? (
             <Link href="/login" className="hover:text-accent">
