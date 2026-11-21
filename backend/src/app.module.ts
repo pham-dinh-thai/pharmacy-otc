@@ -22,6 +22,7 @@ import { EmployeesModule } from './modules/employees/employees.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
+import { StorefrontModule } from './modules/storefront/storefront.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
     DepartmentsModule,
     CategoriesModule,
     UploadsModule,
+    StorefrontModule,
   ],
   controllers: [AppController],
   providers: [AppService],
