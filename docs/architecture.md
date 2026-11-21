@@ -267,7 +267,7 @@ backend/src/
 | ADR-02 | CQRS nhẹ (command/query bus), không event sourcing | Đủ tách đọc/ghi, ít phức tạp | Read model phải viết tay |
 | ADR-03 | Outbox trong PostgreSQL | Không cần message broker, đảm bảo atomic | Relay polling, độ trễ ~1s |
 | ADR-04 | Domain không phụ thuộc ORM | Test nhanh, dễ thay hạ tầng | Phải viết mapper thủ công |
-| ADR-05 | `bigint` VND | Chính xác tuyệt đối | Phải convert string ở API |
+| ADR-05 | `bigint` VND | Chính xác tuyệt đối | Convert `number` ở ranh giới JSON (giới hạn `10^15` < `2^53`) |
 | ADR-06 | Một nhà thuốc, không multi-tenant | Đúng phạm vi | Không tái sử dụng cho SaaS |
 | ADR-07 | Permission dạng chuỗi trong mảng | Đơn giản, dễ kiểm tra | Không có FK, cần validate catalog |
 | ADR-08 | Refresh token ở Redis | Thu hồi được, không stateless hoàn toàn | Phụ thuộc Redis |

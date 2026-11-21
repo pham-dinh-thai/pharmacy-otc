@@ -332,7 +332,7 @@ async function ExpensesList({
                   <td
                     className={`${TD_CLASS} whitespace-nowrap text-right tabular-nums`}
                   >
-                    {formatVND(Number(expense.amount))}
+                    {formatVND(expense.amount)}
                   </td>
                   <td className={TD_CLASS}>
                     {expense.supplierId

@@ -16,7 +16,7 @@ export type Expense = {
   id: string;
   name: string;
   category: ExpenseCategory;
-  amount: string;
+  amount: number;
   expenseDate: string;
   supplierId: string | null;
   status: ExpenseStatus;

@@ -26,7 +26,7 @@ export function expenseFormValues(expense?: Expense | null): ExpenseFormValues {
   return {
     name: expense?.name ?? '',
     category: expense?.category ?? 'rent',
-    amount: expense?.amount ?? '',
+    amount: expense ? String(expense.amount) : '',
     expenseDate: expense ? expense.expenseDate.slice(0, 10) : '',
     supplierId: expense?.supplierId ?? null,
     paymentMethod: expense?.paymentMethod ?? null,

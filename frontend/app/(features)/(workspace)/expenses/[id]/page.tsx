@@ -223,7 +223,7 @@ async function ExpenseDetailContent({
           <div>
             <dt className="text-muted">Số tiền</dt>
             <dd className="mt-1 font-semibold tabular-nums">
-              {formatVND(Number(expense.amount))}
+              {formatVND(expense.amount)}
             </dd>
           </div>
           <div>

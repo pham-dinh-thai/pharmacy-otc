@@ -148,7 +148,7 @@ export async function createExpense(formData: FormData) {
     res = await authFetch('/expenses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, amount: Number(payload.amount) }),
     });
   } catch {
     redirect(withQuery(CREATE_PATH, { error: 'server' }));
@@ -180,7 +180,7 @@ export async function updateExpense(formData: FormData) {
     res = await authFetch(`/expenses/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, amount: Number(payload.amount) }),
     });
   } catch {
     redirect(withQuery(back, { error: 'server' }));

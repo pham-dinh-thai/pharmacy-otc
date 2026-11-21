@@ -48,7 +48,7 @@
 ### `bigint` thay vì decimal/float
 
 - VND không có phần lẻ; dùng số nguyên tránh sai số.
-- API nhận/trả tiền dạng chuỗi số (`"250000"`), domain parse thành `bigint`.
+- API nhận/trả tiền dạng số nguyên JSON (`250000`), domain dùng `bigint`; giới hạn `10^15` nên `number` trên JSON vẫn nhỏ hơn `2^53`.
 - Không dùng `decimal.js`, không dùng `number` cho tiền.
 
 ### Argon2id
