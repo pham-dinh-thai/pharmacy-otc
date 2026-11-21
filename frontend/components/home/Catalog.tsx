@@ -1,52 +1,27 @@
 import Link from 'next/link';
-import { CATEGORIES, MOCK_PRODUCTS } from '@/data/mock-data';
 import { Container } from '@/components/layout/Container';
 import { ProductCard } from '@/components/product/ProductCard';
+import {
+  fetchStorefrontCategories,
+  fetchStorefrontProducts,
+} from '@/lib/storefront';
 
-type CatalogSearchParams = Promise<{ q?: string; 'danh-muc'?: string }>;
-
-/** Bỏ dấu tiếng Việt để "thuoc" khớp "thuốc". */
-function normalize(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
-    .toLowerCase();
-}
+type CatalogSearchParams = Promise<{ q?: string; category?: string }>;
 
 export async function Catalog({
   searchParams,
 }: {
   searchParams: CatalogSearchParams;
 }) {
-  const { q = '', 'danh-muc': categoryId } = await searchParams;
+  const { q = '', category: categoryId } = await searchParams;
   const query = q.trim();
-  const category = CATEGORIES.find((item) => item.id === categoryId);
 
-  let products = MOCK_PRODUCTS;
+  const [categories, result] = await Promise.all([
+    fetchStorefrontCategories(),
+    fetchStorefrontProducts({ q: query, category: categoryId }),
+  ]);
 
-  if (category) {
-    products = products.filter((product) => product.category === category.id);
-  }
-
-  if (query) {
-    const needle = normalize(query);
-    products = products.filter((product) =>
-      normalize(
-        [
-          product.name,
-          product.activeIngredient,
-          product.manufacturer,
-          product.categoryName,
-          product.subCategory,
-        ]
-          .filter(Boolean)
-          .join(' ')
-      ).includes(needle)
-    );
-  }
-
+  const category = categories.find((item) => item.id === categoryId);
   const isFiltered = Boolean(query || category);
   const title = category ? category.name : 'Sản phẩm';
 
@@ -56,7 +31,7 @@ export async function Catalog({
         <div>
           <h2 className="text-[22px] font-bold tracking-[-0.02em]">{title}</h2>
           <p className="mt-1 text-[13px] text-muted">
-            {products.length} sản phẩm
+            {result.total} sản phẩm
             {query ? ` khớp với “${query}”` : ''}
           </p>
         </div>
@@ -71,7 +46,7 @@ export async function Catalog({
         ) : null}
       </div>
 
-      {products.length === 0 ? (
+      {result.items.length === 0 ? (
         <div className="py-16">
           <p className="text-[15px] font-semibold">
             Không tìm thấy sản phẩm nào khớp với “{query}”.
@@ -88,7 +63,7 @@ export async function Catalog({
         </div>
       ) : (
         <div className="mt-8 grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
-          {products.map((product) => (
+          {result.items.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>

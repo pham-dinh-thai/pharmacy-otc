@@ -4,12 +4,9 @@ import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { SearchBox } from '@/components/search/SearchBox';
 import { Container } from './Container';
+import type { StorefrontCategory } from '@/types';
 
-type NavCategory = {
-  id: string;
-  name: string;
-  shortName: string;
-};
+type NavCategory = StorefrontCategory & { shortName: string };
 
 export function SiteHeader({
   categories,
@@ -39,6 +36,7 @@ export function SiteHeader({
           variant="header"
           inputId="header-q"
           ariaLabel="Tìm thuốc"
+          categories={categories}
           className="hidden min-w-0 max-w-[420px] flex-1 md:block"
         />
 
@@ -66,7 +64,7 @@ export function SiteHeader({
           {categories.map((category) => (
             <Link
               key={category.id}
-              href={`/?danh-muc=${category.id}`}
+              href={`/?category=${category.id}`}
               className="hover:text-ink"
             >
               {category.shortName}

@@ -1,8 +1,12 @@
 import Link from 'next/link';
-import { CATEGORIES } from '@/data/mock-data';
 import { Container } from './Container';
+import type { StorefrontCategory } from '@/types';
 
-export function SiteFooter() {
+export function SiteFooter({
+  categories,
+}: {
+  categories: StorefrontCategory[];
+}) {
   return (
     <footer className="border-t border-rule">
       <Container className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4">
@@ -18,10 +22,10 @@ export function SiteFooter() {
         <div>
           <h2 className="text-[13px] font-medium text-muted">Danh mục</h2>
           <ul className="mt-3 space-y-2 text-[13px]">
-            {CATEGORIES.map((category) => (
+            {categories.map((category) => (
               <li key={category.id}>
                 <Link
-                  href={`/?danh-muc=${category.id}`}
+                  href={`/?category=${category.id}`}
                   className="hover:text-accent"
                 >
                   {category.name}

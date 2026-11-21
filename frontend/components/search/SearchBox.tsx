@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useId, useRef, useState } from 'react';
 import { IconSearch } from '@/components/icons/Icons';
-import { SEARCH_CATEGORIES, SEARCH_KEYWORDS } from '@/data/search-data';
+import { SEARCH_KEYWORDS } from '@/data/search-data';
+import type { StorefrontCategory } from '@/types';
 
 const HISTORY_KEY = 'pharmaotc:search-history';
 const HISTORY_LIMIT = 5;
@@ -31,11 +32,13 @@ export function SearchBox({
   variant,
   inputId,
   ariaLabel,
+  categories,
   className = '',
 }: {
   variant: Variant;
   inputId: string;
   ariaLabel: string;
+  categories: StorefrontCategory[];
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -167,10 +170,10 @@ export function SearchBox({
           <section className="border-b border-rule px-4 py-4">
             <h2 className="text-[12px] font-medium text-muted">Danh mục</h2>
             <ul className="mt-1">
-              {SEARCH_CATEGORIES.map((category) => (
+              {categories.map((category) => (
                 <li key={category.id}>
                   <Link
-                    href={`/?danh-muc=${category.id}`}
+                    href={`/?category=${category.id}`}
                     onClick={() => setOpen(false)}
                     className="group flex items-baseline justify-between gap-4 py-2 text-[14px]"
                   >
@@ -178,7 +181,7 @@ export function SearchBox({
                       {category.name}
                     </span>
                     <span className="tabular-nums text-[12px] text-muted">
-                      {category.count}
+                      {category.productCount}
                     </span>
                   </Link>
                 </li>

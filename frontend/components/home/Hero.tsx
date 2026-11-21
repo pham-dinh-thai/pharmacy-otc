@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { SearchBox } from '@/components/search/SearchBox';
-import { SEARCH_CATEGORIES } from '@/data/search-data';
 import { Container } from '@/components/layout/Container';
+import type { StorefrontCategory } from '@/types';
 
-export function Hero() {
+export function Hero({ categories }: { categories: StorefrontCategory[] }) {
   return (
     <Container>
       <div className="grid gap-12 border-b border-rule py-14 lg:grid-cols-12 lg:gap-12 lg:py-24">
@@ -21,6 +21,7 @@ export function Hero() {
             variant="hero"
             inputId="q"
             ariaLabel="Tìm thuốc trong danh mục"
+            categories={categories}
             className="mt-8 max-w-xl"
           />
         </div>
@@ -28,17 +29,17 @@ export function Hero() {
         <aside className="lg:col-span-5 lg:pt-2">
           <h2 className="text-[13px] font-medium text-muted">Danh mục</h2>
           <ul className="mt-3 border-t border-rule">
-            {SEARCH_CATEGORIES.map((category) => (
+            {categories.map((category) => (
               <li key={category.id} className="border-b border-rule">
                 <Link
-                  href={`/?danh-muc=${category.id}`}
+                  href={`/?category=${category.id}`}
                   className="group flex items-baseline justify-between gap-4 py-3.5"
                 >
                   <span className="text-[15px] font-semibold group-hover:text-accent">
                     {category.name}
                   </span>
                   <span className="tabular-nums text-[13px] text-muted">
-                    {category.count}
+                    {category.productCount}
                   </span>
                 </Link>
               </li>

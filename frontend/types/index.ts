@@ -1,67 +1,37 @@
-export type ProductCategory =
-  | 'otc_medicine'
-  | 'supplement'
-  | 'cosmetics'
-  | 'medical_device';
-
-export interface Product {
+/** Public storefront models returned by /api/storefront. */
+export interface StorefrontProductCategory {
   id: string;
   name: string;
   slug: string;
-  sku: string;
-  category: ProductCategory;
-  categoryName: string;
-  subCategory?: string;
-  unit: string;
+}
+
+export interface StorefrontCategory extends StorefrontProductCategory {
+  description: string | null;
+  productCount: number;
+}
+
+export interface StorefrontProduct {
+  id: string;
+  name: string;
+  sku: string | null;
+  unit: string | null;
   unitPrice: number;
-  originalPrice?: number;
-  discountPercent?: number;
-  rating: number;
-  reviewCount: number;
+  imageUrl: string | null;
+  description: string | null;
+  warning: string | null;
+  stockQuantity: number;
   inStock: boolean;
-  soldCount: number;
-  prescriptionRequired: false;
-  dosageForm: string;
-  manufacturer: string;
-  origin: string;
-  imageUrl: string;
-  shortDescription: string;
-  description?: string;
-  activeIngredient?: string;
-  indications?: string[];
-  usageWarning?: string;
-  tags?: ('bestseller' | 'hotdeal' | 'pharmacist_pick' | 'new')[];
+  categories: StorefrontProductCategory[];
 }
 
-export interface CategoryInfo {
-  id: ProductCategory;
-  name: string;
-  slug: string;
-  description: string;
-  iconName: string;
-  itemCount: number;
-  popularSubcategories: string[];
-  color: string;
-}
-
-export interface HealthArticle {
-  id: string;
-  title: string;
-  slug: string;
-  summary: string;
-  author: {
-    name: string;
-    role: string;
-    avatar: string;
-  };
-  date: string;
-  readTime: string;
-  imageUrl: string;
-  category: string;
-  tags: string[];
+export interface StorefrontProductPage {
+  items: StorefrontProduct[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export interface CartItem {
-  product: Product;
+  product: StorefrontProduct;
   quantity: number;
 }

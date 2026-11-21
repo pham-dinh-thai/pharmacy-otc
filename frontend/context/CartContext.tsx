@@ -1,14 +1,16 @@
 'use client';
 
 import React, { createContext, useContext, useState } from 'react';
-import { CartItem, Product } from '@/types';
+import { CartItem, StorefrontProduct } from '@/types';
+
+const CART_KEY = 'pharma_cart_v2';
 
 interface CartContextType {
   items: CartItem[];
   isOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
-  addToCart: (product: Product, quantity?: number) => void;
+  addToCart: (product: StorefrontProduct, quantity?: number) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -24,7 +26,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
-      const saved = localStorage.getItem('pharma_cart');
+      const saved = localStorage.getItem(CART_KEY);
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -35,13 +37,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const saveItems = (newItems: CartItem[]) => {
     setItems(newItems);
     try {
-      localStorage.setItem('pharma_cart', JSON.stringify(newItems));
+      localStorage.setItem(CART_KEY, JSON.stringify(newItems));
     } catch {
       // ignore
     }
   };
 
-  const addToCart = (product: Product, quantity = 1) => {
+  const addToCart = (product: StorefrontProduct, quantity = 1) => {
     setItems((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       let updated: CartItem[];
@@ -49,13 +51,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updated = prev.map((item) =>
           item.product.id === product.id
             ? { ...item, quantity: item.quantity + quantity }
-            : item
+            : item,
         );
       } else {
         updated = [...prev, { product, quantity }];
       }
       try {
-        localStorage.setItem('pharma_cart', JSON.stringify(updated));
+        localStorage.setItem(CART_KEY, JSON.stringify(updated));
       } catch {
         // ignore
       }
@@ -75,7 +77,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const updated = items.map((item) =>
-      item.product.id === productId ? { ...item, quantity } : item
+      item.product.id === productId ? { ...item, quantity } : item,
     );
     saveItems(updated);
   };
@@ -87,7 +89,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = items.reduce(
     (sum, item) => sum + item.product.unitPrice * item.quantity,
-    0
+    0,
   );
   // Free delivery for orders >= 250,000 VND
   const shippingFee = subtotal >= 250000 || subtotal === 0 ? 0 : 25000;
