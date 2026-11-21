@@ -21,6 +21,7 @@ import { ExpensesModule } from './modules/expenses/expenses.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { DepartmentsModule } from './modules/departments/departments.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
     EmployeesModule,
     DepartmentsModule,
     CategoriesModule,
+    UploadsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

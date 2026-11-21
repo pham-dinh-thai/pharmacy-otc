@@ -2,3 +2,6 @@
 
 # Personal HTTP request files (may contain real credentials)
 *.http
+
+# Uploaded product images (stored in a Docker volume when running via compose)
+backend/uploads/
