@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { WorkspacePage } from '@/components/layout/WorkspaceShell';
 import { FormMessage } from '@/components/roles/FormMessage';
 import { fetchCurrentUser, hasPermission } from '@/lib/account';
+import { formatActorLabel } from '@/lib/actors';
 import { authFetch } from '@/lib/auth';
 import {
   expenseCategoryLabel,
@@ -106,6 +107,7 @@ async function ExpenseDetailContent({
   if (!res.ok) throw new Error(`Failed to fetch expense: ${res.status}`);
 
   const expense = (await res.json()) as Expense;
+  const createdByLabel = formatActorLabel(expense.createdBy);
   const supplierOptions = await fetchSupplierOptions();
   const supplierName = expense.supplierId
     ? (supplierOptions.find((item) => item.id === expense.supplierId)?.name ??
@@ -250,8 +252,14 @@ async function ExpenseDetailContent({
           </div>
           <div>
             <dt className="text-muted">Người tạo</dt>
-            <dd className="mt-1 break-all font-mono text-[12px]">
-              {expense.createdBy}
+            <dd
+              className={
+                createdByLabel === 'SYSTEM'
+                  ? 'mt-1 font-medium'
+                  : 'mt-1 break-all font-mono text-[12px]'
+              }
+            >
+              {createdByLabel}
             </dd>
           </div>
           {expense.note && (
