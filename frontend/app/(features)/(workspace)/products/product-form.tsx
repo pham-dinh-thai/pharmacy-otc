@@ -49,11 +49,7 @@ export function ProductForm({
   locked?: boolean;
 }) {
   return (
-    <form
-      action={action}
-      encType="multipart/form-data"
-      className="grid gap-5 px-6 py-6 md:grid-cols-2"
-    >
+    <form action={action} className="grid gap-5 px-6 py-6 md:grid-cols-2">
       {productId && <input type="hidden" name="productId" value={productId} />}
       {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
 
