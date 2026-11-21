@@ -43,7 +43,7 @@
 
 - Mật khẩu hash Argon2id, không lưu plaintext.
 - Email unique, không phân biệt hoa/thường ở tầng kiểm tra.
-- Refresh token lưu Redis, TTL 7 ngày; access token 15 phút (cấu hình qua env).
+- Refresh token lưu Redis, TTL 7 ngày; access token 15 phút (cấu hình qua env). Refresh access token không xoay vòng refresh token, để các request prefetch đồng thời không làm nhau bị đăng xuất; token chỉ bị thu hồi khi logout, đổi mật khẩu hoặc hết hạn.
 - Cookie `sameSite=strict`, `path=/api/authentication/refresh`,
   `secure` khi `NODE_ENV=production`.
 

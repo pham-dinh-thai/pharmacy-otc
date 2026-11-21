@@ -48,7 +48,7 @@ export async function proxy(request: NextRequest) {
     maxAge: ACCESS_TOKEN_MAX_AGE,
   });
 
-  // Backend xoay vòng refresh token mỗi lần refresh → phải lưu bản mới.
+  // Backend trả refresh token trong Set-Cookie; lưu lại để đồng bộ cookie.
   if (refreshed.refreshToken) {
     response.cookies.set(REFRESH_TOKEN_COOKIE, refreshed.refreshToken, {
       httpOnly: true,
@@ -67,7 +67,10 @@ export const config = {
     '/roles/:path*',
     '/dashboard/:path*',
     '/products/:path*',
+    '/categories/:path*',
     '/suppliers/:path*',
+    '/goods-receipts/:path*',
+    '/inventories/:path*',
     '/customers/:path*',
     '/departments/:path*',
     '/employees/:path*',
