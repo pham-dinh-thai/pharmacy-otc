@@ -7,7 +7,7 @@ export class ExpenseMapper {
       id: mikroExpense.id,
       name: mikroExpense.name,
       category: mikroExpense.category,
-      amount: mikroExpense.amount.toString(),
+      amount: mikroExpense.amount,
       expenseDate: new Date(mikroExpense.expenseDate),
       supplierId: mikroExpense.supplierId,
       status: mikroExpense.status,
@@ -30,7 +30,7 @@ export class ExpenseMapper {
     mikroExpense.id = expense.getId();
     mikroExpense.name = expense.getName();
     mikroExpense.category = expense.getCategory();
-    mikroExpense.amount = BigInt(expense.getAmount());
+    mikroExpense.amount = expense.getAmount();
     mikroExpense.expenseDate = expense.getExpenseDate();
     mikroExpense.supplierId = expense.getSupplierId();
     mikroExpense.status = expense.getStatus();

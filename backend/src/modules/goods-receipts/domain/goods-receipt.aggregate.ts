@@ -127,6 +127,13 @@ export class GoodsReceipt {
     this.updatedAt = now;
   }
 
+  public getAmount(): bigint {
+    return this.goodsReceiptLines.reduce(
+      (total, line) => total + line.getTotalCost(),
+      0n,
+    );
+  }
+
   public getId(): string {
     return this.id.getValue();
   }

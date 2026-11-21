@@ -168,7 +168,7 @@ describe('GoodsReceiptLine', () => {
     it('returns unit cost multiplied by quantity', () => {
       const line = createLine({ quantity: 10, unitCost: '2500' });
 
-      expect(line.getTotalCost()).toBe('25000');
+      expect(line.getTotalCost()).toBe(25000n);
     });
   });
 });

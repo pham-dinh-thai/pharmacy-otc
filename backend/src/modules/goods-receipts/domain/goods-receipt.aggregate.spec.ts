@@ -111,6 +111,17 @@ describe('GoodsReceipt', () => {
     });
   });
 
+  describe('getAmount', () => {
+    it('sums all line totals as bigint', () => {
+      const receipt = createReceipt([
+        createLine({ lotNumber: 'LOT-001' }),
+        createLine({ lotNumber: 'LOT-002' }),
+      ]);
+
+      expect(receipt.getAmount()).toBe(50000n);
+    });
+  });
+
   describe('fromPersistent', () => {
     it('restores a receipt with status and lines', () => {
       const createdAt = new Date('2026-01-01T00:00:00.000Z');

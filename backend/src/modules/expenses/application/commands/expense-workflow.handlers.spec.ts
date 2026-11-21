@@ -39,7 +39,7 @@ const expense = (status: ExpenseStatus): Expense =>
     id: ID,
     name: 'Office rent',
     category: ExpenseCategory.RENT,
-    amount: '5000000',
+    amount: 5000000n,
     expenseDate: new Date('2026-11-01'),
     supplierId: null,
     status,

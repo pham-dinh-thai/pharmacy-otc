@@ -75,7 +75,7 @@ export class ExpensesController {
       new CreateExpenseCommand(
         request.name,
         request.category,
-        request.amount,
+        BigInt(request.amount),
         request.expenseDate,
         request.supplierId ?? null,
         request.paymentMethod ?? null,
@@ -102,7 +102,7 @@ export class ExpensesController {
         id,
         request.name,
         request.category,
-        request.amount,
+        BigInt(request.amount),
         request.expenseDate,
         request.supplierId ?? null,
         request.paymentMethod ?? null,

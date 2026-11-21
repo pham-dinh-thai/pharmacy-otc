@@ -15,7 +15,7 @@ const expense = (): Expense =>
     id: ID,
     name: 'Office rent',
     category: ExpenseCategory.RENT,
-    amount: '5000000',
+    amount: 5000000n,
     expenseDate: new Date('2026-11-01'),
     supplierId: SUPPLIER_ID,
     status: ExpenseStatus.PENDING,
@@ -56,7 +56,7 @@ describe('GetExpensesHandler', () => {
     expect(result.items[0]).toMatchObject({
       id: ID,
       name: 'Office rent',
-      amount: '5000000',
+      amount: 5000000,
       status: ExpenseStatus.PENDING,
     });
   });

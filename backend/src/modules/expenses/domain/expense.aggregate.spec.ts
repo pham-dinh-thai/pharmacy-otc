@@ -13,7 +13,7 @@ const createExpense = (
   Expense.create({
     name: 'Office rent',
     category: ExpenseCategory.RENT,
-    amount: '5000000',
+    amount: 5000000n,
     expenseDate: EXPENSE_DATE,
     supplierId: null,
     paymentMethod: null,
@@ -32,7 +32,7 @@ describe('Expense', () => {
       );
       expect(expense.getName()).toBe('Office rent');
       expect(expense.getCategory()).toBe(ExpenseCategory.RENT);
-      expect(expense.getAmount()).toBe('5000000');
+      expect(expense.getAmount()).toBe(5000000n);
       expect(expense.getExpenseDate()).toEqual(EXPENSE_DATE);
       expect(expense.getSupplierId()).toBeNull();
       expect(expense.getStatus()).toBe(ExpenseStatus.PENDING);
@@ -54,7 +54,7 @@ describe('Expense', () => {
     });
 
     it('rejects a negative amount', () => {
-      expect(() => createExpense({ amount: '-1' })).toThrow(
+      expect(() => createExpense({ amount: -1n })).toThrow(
         InvalidAmountException,
       );
     });
@@ -66,7 +66,7 @@ describe('Expense', () => {
         id: 'b3d7f2a8-7a0e-4f1c-9c1a-4d3f5e6a7b8c',
         name: 'Utilities',
         category: ExpenseCategory.UTILITIES,
-        amount: '250000',
+        amount: 250000n,
         expenseDate: EXPENSE_DATE,
         supplierId: '2c7c7a2e-6f5a-4b4b-8a3e-1c9d2e3f4a5b',
         status: ExpenseStatus.APPROVED,
@@ -94,7 +94,7 @@ describe('Expense', () => {
       expense.update({
         name: 'New office rent',
         category: ExpenseCategory.OTHER,
-        amount: '6000000',
+        amount: 6000000n,
         expenseDate: new Date('2026-11-05T00:00:00.000Z'),
         supplierId: null,
         paymentMethod: PaymentMethod.CASH,
@@ -103,7 +103,7 @@ describe('Expense', () => {
 
       expect(expense.getName()).toBe('New office rent');
       expect(expense.getCategory()).toBe(ExpenseCategory.OTHER);
-      expect(expense.getAmount()).toBe('6000000');
+      expect(expense.getAmount()).toBe(6000000n);
       expect(expense.getPaymentMethod()).toBe(PaymentMethod.CASH);
       expect(expense.getNote()).toBe('adjusted');
     });
@@ -116,7 +116,7 @@ describe('Expense', () => {
         expense.update({
           name: 'New office rent',
           category: ExpenseCategory.OTHER,
-          amount: '6000000',
+          amount: 6000000n,
           expenseDate: EXPENSE_DATE,
           supplierId: null,
           paymentMethod: null,

@@ -13,7 +13,7 @@ export function goodsReceiptLineToReadModel(
     line.getLotNumber(),
     line.getQuantity(),
     line.getUnitCost(),
-    line.getTotalCost(),
+    line.getTotalCost().toString(),
     line.getExpiresAt(),
     line.getBatchId(),
   );
@@ -31,9 +31,7 @@ export function goodsReceiptToListItem(
     receipt.getStatus(),
     lines.length,
     lines.reduce((sum, line) => sum + line.getQuantity(), 0),
-    lines
-      .reduce((sum, line) => sum + BigInt(line.getTotalCost()), 0n)
-      .toString(),
+    receipt.getAmount().toString(),
     receipt.getCreatedBy(),
     receipt.getConfirmedBy(),
     receipt.getConfirmedAt(),

@@ -2,12 +2,13 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsDate,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
-  Matches,
   MaxLength,
+  Min,
 } from 'class-validator';
 import { ExpenseCategory } from '../../../domain/enums/expense-category.enum';
 import { PaymentMethod } from '../../../domain/enums/payment-method.enum';
@@ -24,9 +25,9 @@ export class CreateExpenseRequest {
   @IsEnum(ExpenseCategory)
   category!: ExpenseCategory;
 
-  @Matches(/^\d+$/, { message: 'amount must be an integer in VND' })
-  @IsNotEmpty()
-  amount!: string;
+  @IsInt({ message: 'amount must be an integer in VND' })
+  @Min(0)
+  amount!: number;
 
   @Type(() => Date)
   @IsDate()

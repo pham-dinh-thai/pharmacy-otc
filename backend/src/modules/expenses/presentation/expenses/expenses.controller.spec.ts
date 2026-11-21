@@ -33,7 +33,7 @@ const buildRequest = (): CreateExpenseRequest =>
   Object.assign(new CreateExpenseRequest(), {
     name: 'Office rent',
     category: ExpenseCategory.RENT,
-    amount: '5000000',
+    amount: 5000000,
     expenseDate: EXPENSE_DATE,
     supplierId: SUPPLIER_ID,
     paymentMethod: PaymentMethod.BANK_TRANSFER,
@@ -69,7 +69,7 @@ describe('ExpensesController', () => {
     expect(command).toMatchObject({
       name: 'Office rent',
       category: ExpenseCategory.RENT,
-      amount: '5000000',
+      amount: 5000000n,
       expenseDate: EXPENSE_DATE,
       supplierId: SUPPLIER_ID,
       paymentMethod: PaymentMethod.BANK_TRANSFER,
@@ -129,7 +129,7 @@ describe('ExpensesController', () => {
     const request = Object.assign(new UpdateExpenseRequest(), {
       name: 'Updated rent',
       category: ExpenseCategory.RENT,
-      amount: '6000000',
+      amount: 6000000,
       expenseDate: EXPENSE_DATE,
       supplierId: null,
       paymentMethod: null,
@@ -147,7 +147,7 @@ describe('ExpensesController', () => {
         EXPENSE_ID,
         'Updated rent',
         ExpenseCategory.RENT,
-        '6000000',
+        6000000n,
         EXPENSE_DATE,
         null,
         null,

@@ -7,7 +7,7 @@ export class ExpenseListItemReadModel {
     public readonly id: string,
     public readonly name: string,
     public readonly category: ExpenseCategory,
-    public readonly amount: string,
+    public readonly amount: number,
     public readonly expenseDate: Date,
     public readonly supplierId: string | null,
     public readonly status: ExpenseStatus,

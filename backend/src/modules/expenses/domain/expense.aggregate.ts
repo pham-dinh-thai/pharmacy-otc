@@ -13,7 +13,7 @@ import { PaymentMethod } from './enums/payment-method.enum';
 export type CreateExpenseProps = {
   name: string;
   category: ExpenseCategory;
-  amount: string;
+  amount: bigint;
   expenseDate: Date;
   supplierId: string | null;
   paymentMethod: PaymentMethod | null;
@@ -31,7 +31,7 @@ export type FromPersistentExpenseProps = CreateExpenseProps & {
 export type UpdateExpenseProps = {
   name: string;
   category: ExpenseCategory;
-  amount: string;
+  amount: bigint;
   expenseDate: Date;
   supplierId: string | null;
   paymentMethod: PaymentMethod | null;
@@ -170,8 +170,8 @@ export class Expense {
     return this.category;
   }
 
-  public getAmount(): string {
-    return this.amount.toString();
+  public getAmount(): bigint {
+    return this.amount.getValue();
   }
 
   public getExpenseDate(): Date {

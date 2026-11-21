@@ -46,11 +46,11 @@ describe('UnitCost', () => {
 
   describe('getTotal', () => {
     it('multiplies by quantity as an integer', () => {
-      expect(UnitCost.create('2500').getTotal(4)).toBe('10000');
+      expect(UnitCost.create('2500').getTotal(4)).toBe(10000n);
     });
 
     it('returns zero when quantity is zero', () => {
-      expect(UnitCost.create('2500').getTotal(0)).toBe('0');
+      expect(UnitCost.create('2500').getTotal(0)).toBe(0n);
     });
   });
 });

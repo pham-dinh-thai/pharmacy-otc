@@ -27,7 +27,7 @@ const expense = (status: ExpenseStatus): Expense =>
     id: ID,
     name: 'Office rent',
     category: ExpenseCategory.RENT,
-    amount: '5000000',
+    amount: 5000000n,
     expenseDate: new Date('2026-11-01'),
     supplierId: null,
     status,
@@ -43,7 +43,7 @@ const command = () =>
     ID,
     'Updated rent',
     ExpenseCategory.UTILITIES,
-    '6000000',
+    6000000n,
     new Date('2026-11-02'),
     null,
     PaymentMethod.CARD,
@@ -99,7 +99,7 @@ describe('UpdateExpenseHandler', () => {
 
     const saved = update.mock.calls[0][0];
     expect(saved.getName()).toBe('Updated rent');
-    expect(saved.getAmount()).toBe('6000000');
+    expect(saved.getAmount()).toBe(6000000n);
     expect(saved.getCategory()).toBe(ExpenseCategory.UTILITIES);
     expect(saved.getStatus()).toBe(ExpenseStatus.PENDING);
 
@@ -112,11 +112,11 @@ describe('UpdateExpenseHandler', () => {
           entityId: ID,
           before: expect.objectContaining({
             name: 'Office rent',
-            amount: '5000000',
+            amount: 5000000,
           }),
           after: expect.objectContaining({
             name: 'Updated rent',
-            amount: '6000000',
+            amount: 6000000,
           }),
         },
       },
