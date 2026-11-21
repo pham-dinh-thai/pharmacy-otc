@@ -70,6 +70,7 @@ export const config = {
     '/categories/:path*',
     '/suppliers/:path*',
     '/goods-receipts/:path*',
+    '/expenses/:path*',
     '/inventories/:path*',
     '/customers/:path*',
     '/departments/:path*',

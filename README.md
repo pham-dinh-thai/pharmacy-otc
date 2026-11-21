@@ -35,7 +35,7 @@ Hệ thống bán thuốc không kê đơn (OTC) — đồ án demo backend vớ
 | `goods-receipts` | 🟡 | Tạo/xác nhận/huỷ phiếu nhập; chưa có list/detail |
 | `inventories` | 🟡 | Lô, tồn kho, xuất/kiểm kê; chưa có API đọc tồn |
 | `orders` | ⬜ | Chưa triển khai |
-| `expenses` | 🟡 | Tạo chi phí; chưa có API duyệt/chi/huỷ/list |
+| `expenses` | ✅ | Tạo/list/detail/sửa lúc chờ duyệt, duyệt/trả NCC/chi/huỷ phiếu chi |
 | `audit-logs` | ✅ | Ghi qua outbox, tra cứu theo actor/entity/thời gian |
 | `reports` | ⬜ | Chưa triển khai |
 

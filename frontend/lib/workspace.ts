@@ -51,6 +51,15 @@ export function workspaceNav(user: CurrentUser): WorkspaceNavGroup[] {
               },
             ]
           : []),
+        ...(user.isSuperAdmin || hasPermission(user, 'expenses:read')
+          ? [
+              {
+                label: 'Phiếu chi',
+                href: '/expenses',
+                hint: 'Lập phiếu, duyệt, chi tiền và huỷ chi phí.',
+              },
+            ]
+          : []),
         ...(user.isSuperAdmin || hasPermission(user, 'inventories:read')
           ? [
               {

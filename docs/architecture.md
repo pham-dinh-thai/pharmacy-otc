@@ -184,7 +184,8 @@ role.super_admin_set, account.signed_up, account.signed_in,
 user.created, user.email_changed, user.role_assigned, user.role_removed,
 product.created, supplier.created/updated/activated/deactivated,
 goods_receipt.created/confirmed/cancelled,
-inventory.stock_issued, inventory.stock_reconciled, expense.created
+inventory.stock_issued, inventory.stock_reconciled,
+expense.created/updated/approved/supplier_paid/paid/cancelled
 ```
 
 ## 6. Xác thực và phân quyền
@@ -289,6 +290,6 @@ backend/src/
 | `customers` thiếu hồ sơ/địa chỉ | Không giao hàng được |
 | `products` thiếu SKU/category/unit | Khó quản lý và lọc |
 | Lô hết hạn/hết số lượng chưa tự chuyển trạng thái | Cần job hoặc kiểm tra khi xuất |
-| Chưa có API duyệt/chi phí | Nghiệp vụ chi phí chưa hoàn chỉnh |
+| Chưa có báo cáo chi phí | Chưa tổng hợp chi phí theo nhóm/thời gian |
 | Outbox relay chạy trong API process | Không phù hợp khi scale ngang |
 | Không có rate limit/health check | Thiếu lớp bảo vệ vận hành |
