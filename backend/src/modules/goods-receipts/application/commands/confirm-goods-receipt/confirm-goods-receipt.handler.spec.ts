@@ -16,9 +16,11 @@ import { ConfirmGoodsReceiptCommand } from './confirm-goods-receipt.command';
 import { ConfirmGoodsReceiptHandler } from './confirm-goods-receipt.handler';
 import {
   GOODS_RECEIPT_CONFIRMED_EVENT,
+  GOODS_RECEIPT_CONFIRMED_EXPENSE,
   GOODS_RECEIPT_STOCK_RECEIVED_EVENT,
 } from '../../../domain/events/goods-receipt-confirmed.event';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
+import { ExpenseCategory } from '../../../../expenses/domain/enums/expense-category.enum';
 
 const RECEIPT_ID = 'b3d7f2a8-7a0e-4f1c-9c1a-4d3f5e6a7b8c';
 const SUPPLIER_ID = '0ca741a6-ce41-4010-8148-f7b2a32aef1c';
@@ -114,7 +116,7 @@ describe('ConfirmGoodsReceiptHandler', () => {
     jest.useRealTimers();
   });
 
-  it('confirms the receipt, attaches batch ids and emits audit + stock events', async () => {
+  it('confirms the receipt, attaches batch ids and emits audit + stock + expense events', async () => {
     const receipt = createReceipt();
     const { handler, findById, update, run, outboxCreate } = setup(receipt);
 
@@ -133,7 +135,7 @@ describe('ConfirmGoodsReceiptHandler', () => {
 
     expect(line.getBatchId()).toMatch(UUID_V4_REGEX);
 
-    expect(outboxCreate).toHaveBeenCalledTimes(2);
+    expect(outboxCreate).toHaveBeenCalledTimes(3);
     expect(outboxCreate).toHaveBeenNthCalledWith(1, {
       eventType: GOODS_RECEIPT_CONFIRMED_EVENT,
       payload: {
@@ -179,6 +181,18 @@ describe('ConfirmGoodsReceiptHandler', () => {
             expiresAt: EXPIRES_AT.toISOString(),
           },
         ],
+      },
+    });
+    expect(outboxCreate).toHaveBeenNthCalledWith(3, {
+      eventType: GOODS_RECEIPT_CONFIRMED_EXPENSE,
+      payload: {
+        name: `Trả tiền cho nhà cung cấp ${SUPPLIER_ID}`,
+        category: ExpenseCategory.OTHER,
+        amount: 25000,
+        expenseDate: receipt.getConfirmedAt()?.toISOString(),
+        supplierId: SUPPLIER_ID,
+        paymentMethod: null,
+        note: `Trả tiền cho phiếu nhập ${receipt.getId()}`,
       },
     });
   });

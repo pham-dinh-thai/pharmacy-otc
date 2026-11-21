@@ -101,7 +101,7 @@ export class GoodsReceipt {
     this.updatedAt = new Date();
   }
 
-  public confirm(by: string): void {
+  public confirm(by: string): Date {
     if (this.status !== GoodsReceiptStatus.PENDING) {
       throw new GoodsReceiptNotPendingException('confirmed');
     }
@@ -112,6 +112,8 @@ export class GoodsReceipt {
     this.confirmedBy = by;
     this.confirmedAt = now;
     this.updatedAt = now;
+
+    return now;
   }
 
   public cancel(by: string): void {
