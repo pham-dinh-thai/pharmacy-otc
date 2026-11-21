@@ -1,34 +1,29 @@
 import { Suspense } from 'react';
 import { StorefrontShell } from '@/components/layout/StorefrontShell';
 import { Hero } from '@/components/home/Hero';
-import { Catalog, CatalogFallback } from '@/components/home/Catalog';
+import {
+  FeaturedProducts,
+  FeaturedProductsFallback,
+} from '@/components/home/FeaturedProducts';
 import { fetchStorefrontCategories } from '@/lib/storefront';
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; category?: string }>;
-}) {
+export default function HomePage() {
   return (
     <Suspense fallback={<HomeFallback />}>
-      <HomeContent searchParams={searchParams} />
+      <HomeContent />
     </Suspense>
   );
 }
 
-async function HomeContent({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; category?: string }>;
-}) {
+async function HomeContent() {
   const categories = await fetchStorefrontCategories();
 
   return (
     <StorefrontShell categories={categories}>
       <Hero categories={categories} />
 
-      <Suspense fallback={<CatalogFallback />}>
-        <Catalog searchParams={searchParams} />
+      <Suspense fallback={<FeaturedProductsFallback />}>
+        <FeaturedProducts />
       </Suspense>
     </StorefrontShell>
   );
@@ -38,7 +33,7 @@ function HomeFallback() {
   return (
     <div className="flex min-h-screen flex-col">
       <div className="h-16 border-b border-rule" />
-      <CatalogFallback />
+      <FeaturedProductsFallback />
     </div>
   );
 }

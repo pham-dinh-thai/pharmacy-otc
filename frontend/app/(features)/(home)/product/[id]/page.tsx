@@ -38,7 +38,7 @@ async function ProductDetail({ params }: { params: Promise<{ id: string }> }) {
     <StorefrontShell categories={categories}>
       <Container className="py-10 lg:py-14">
         <nav aria-label="Breadcrumb" className="text-[13px] text-muted">
-          <Link href="/" className="hover:text-accent">
+          <Link href="/catalog" className="hover:text-accent">
             Sản phẩm
           </Link>
           <span className="mx-2">/</span>

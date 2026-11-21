@@ -25,7 +25,7 @@ export function SiteFooter({
             {categories.map((category) => (
               <li key={category.id}>
                 <Link
-                  href={`/?category=${category.id}`}
+                  href={`/catalog/category/${encodeURIComponent(category.slug)}`}
                   className="hover:text-accent"
                 >
                   {category.name}

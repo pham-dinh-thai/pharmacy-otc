@@ -61,10 +61,14 @@ export function SiteHeader({
 
       <div className="overflow-x-auto border-t border-rule">
         <Container className="flex gap-6 whitespace-nowrap py-2.5 text-[13px] font-medium text-muted lg:gap-8">
+          <Link href="/catalog" className="hover:text-ink">
+            Tất cả sản phẩm
+          </Link>
+
           {categories.map((category) => (
             <Link
               key={category.id}
-              href={`/?category=${category.id}`}
+              href={`/catalog/category/${encodeURIComponent(category.slug)}`}
               className="hover:text-ink"
             >
               {category.shortName}

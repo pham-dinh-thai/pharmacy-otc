@@ -1,6 +1,6 @@
 /** Từ khoá gợi ý cho ô tìm kiếm công khai. */
 export const SEARCH_KEYWORDS = [
-  'Paracetamol',
+  'Panadol',
   'Berberin',
   'Men vi sinh',
   'Nước biển sâu',

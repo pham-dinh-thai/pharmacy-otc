@@ -32,7 +32,7 @@ export function Hero({ categories }: { categories: StorefrontCategory[] }) {
             {categories.map((category) => (
               <li key={category.id} className="border-b border-rule">
                 <Link
-                  href={`/?category=${category.id}`}
+                  href={`/catalog/category/${encodeURIComponent(category.slug)}`}
                   className="group flex items-baseline justify-between gap-4 py-3.5"
                 >
                   <span className="text-[15px] font-semibold group-hover:text-accent">
