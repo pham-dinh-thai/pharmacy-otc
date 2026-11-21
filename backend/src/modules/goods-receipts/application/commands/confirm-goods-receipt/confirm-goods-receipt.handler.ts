@@ -27,6 +27,10 @@ import {
 import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { ExpenseCategory } from '../../../../expenses/domain/enums/expense-category.enum';
+import {
+  type ISuppliersRepository,
+  SUPPLIERS_REPOSITORY,
+} from '../../../../suppliers/domain/suppliers.repository';
 
 @CommandHandler(ConfirmGoodsReceiptCommand)
 export class ConfirmGoodsReceiptHandler implements ICommandHandler<ConfirmGoodsReceiptCommand> {
@@ -39,6 +43,9 @@ export class ConfirmGoodsReceiptHandler implements ICommandHandler<ConfirmGoodsR
 
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
+
+    @Inject(SUPPLIERS_REPOSITORY)
+    private readonly suppliersRepository: ISuppliersRepository,
   ) {}
 
   public execute(command: ConfirmGoodsReceiptCommand): Promise<{ id: string }> {
@@ -79,14 +86,18 @@ export class ConfirmGoodsReceiptHandler implements ICommandHandler<ConfirmGoodsR
         },
       });
 
+      const supplier = await this.suppliersRepository.findByIdIncludingDeleted(
+        goodsReceipt.getSupplierId(),
+      );
+
       const expensePayload: GoodsReceiptConfirmedExpensePayload = {
-        name: `Trả tiền cho nhà cung cấp ${goodsReceipt.getSupplierId()}`,
+        name: `Trả tiền cho nhà cung cấp ${supplier?.getName() ?? 'không xác định'}`,
         category: ExpenseCategory.OTHER,
         amount: Number(goodsReceipt.getAmount()),
         expenseDate: confirmedAt.toISOString(),
         supplierId: goodsReceipt.getSupplierId(),
         paymentMethod: null,
-        note: `Trả tiền cho phiếu nhập ${goodsReceipt.getId()}`,
+        note: `Trả tiền cho phiếu nhập ${goodsReceipt.getCode()}`,
       };
 
       await this.outboxRepository.create({
