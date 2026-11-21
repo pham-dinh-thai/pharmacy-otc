@@ -27,7 +27,6 @@ import {
   ACCOUNTS_REPOSITORY,
   type IAccountsRepository,
 } from '../../../domain/accounts.repository';
-import { randomUUID } from 'crypto';
 import { EmployeeStatus } from '../../../../employees/domain/enums/employee-status.enum';
 import {
   GET_EMPLOYMENT_STATUS_PORT,
@@ -74,8 +73,10 @@ export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand>
       throw new InvalidRefreshTokenException();
     }
 
-    await this.refreshTokenStorePort.revoke(sub, jti);
-
+    // Không xoay vòng refresh token ở đây. Nhiều request có thể refresh cùng
+    // lúc (prefetch của Next.js); nếu token cũ bị thu hồi ngay thì các request
+    // còn lại sẽ 401 và đẩy người dùng về /login. Token vẫn bị thu hồi khi
+    // logout/đổi mật khẩu hoặc khi hết hạn.
     const user = await this.getUserByIdPort.execute(sub);
     if (!user) {
       throw new AuthUserNotFoundException();
@@ -93,26 +94,16 @@ export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand>
 
     const mustChangePassword = account.getMustChangePassword();
 
-    const newJti = randomUUID();
-    const { accessToken, refreshToken } = await this.signTokenPort.sign(
-      {
-        sub,
-        email: user.email,
-        mustChangePassword,
-      },
-      {
-        sub,
-        jti: newJti,
-      },
-    );
-
-    await this.refreshTokenStorePort.save(
+    const accessToken = await this.signTokenPort.signAccessToken({
       sub,
-      newJti,
-      refreshToken,
-      7 * 24 * 60 * 60,
-    );
+      email: user.email,
+      mustChangePassword,
+    });
 
-    return { accessToken, refreshToken, mustChangePassword };
+    return {
+      accessToken,
+      refreshToken: command.refreshToken,
+      mustChangePassword,
+    };
   }
 }

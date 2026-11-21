@@ -14,6 +14,7 @@ export interface ISignTokenPort {
     accessTokenPayload: AccessTokenPayload,
     refreshTokenPayload: RefreshTokenPayload,
   ): Promise<{ accessToken: string; refreshToken: string }>;
+  signAccessToken(accessTokenPayload: AccessTokenPayload): Promise<string>;
 }
 
 export const SIGN_TOKEN_PORT = 'ISignTokenPort';
