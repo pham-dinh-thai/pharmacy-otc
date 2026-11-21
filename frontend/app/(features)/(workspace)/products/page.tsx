@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -37,6 +38,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid: 'Dữ liệu sản phẩm không hợp lệ. Kiểm tra lại các trường đã nhập.',
   exists: 'Mã SKU đã tồn tại. Đổi mã rồi thử lại.',
   notfound: 'Không tìm thấy sản phẩm.',
+  image:
+    'Không tải được ảnh. Chọn file JPG, PNG hoặc WebP dưới 5 MB rồi thử lại.',
   server: 'Không lưu được thay đổi. Kiểm tra kết nối rồi thử lại.',
 };
 
@@ -119,12 +122,9 @@ async function ProductsList({
     categoryOptions.map((category) => [category.id, category.name]),
   );
 
-  const canCreate =
-    user.isSuperAdmin || hasPermission(user, 'products:create');
-  const canUpdate =
-    user.isSuperAdmin || hasPermission(user, 'products:update');
-  const canDelete =
-    user.isSuperAdmin || hasPermission(user, 'products:delete');
+  const canCreate = user.isSuperAdmin || hasPermission(user, 'products:create');
+  const canUpdate = user.isSuperAdmin || hasPermission(user, 'products:update');
+  const canDelete = user.isSuperAdmin || hasPermission(user, 'products:delete');
 
   const errorMessage = query.error
     ? (ERROR_MESSAGES[first(query.error)] ?? ERROR_MESSAGES.server)
@@ -237,28 +237,49 @@ async function ProductsList({
                 return (
                   <tr key={product.id}>
                     <td className={TD_CLASS}>
-                      <Link
-                        href={detailHref(product.id)}
-                        className="font-semibold hover:text-accent"
-                      >
-                        {product.name}
-                      </Link>
-                      {product.unit && (
-                        <p className="mt-1 text-[12px] text-muted">
-                          {product.unit}
-                        </p>
-                      )}
+                      <div className="flex items-start gap-3">
+                        {product.imageUrl ? (
+                          <img
+                            src={product.imageUrl}
+                            alt=""
+                            width={44}
+                            height={44}
+                            className="h-11 w-11 shrink-0 border border-rule object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-dashed border-rule text-[11px] text-muted">
+                            —
+                          </span>
+                        )}
+                        <div>
+                          <Link
+                            href={detailHref(product.id)}
+                            className="font-semibold hover:text-accent"
+                          >
+                            {product.name}
+                          </Link>
+                          {product.unit && (
+                            <p className="mt-1 text-[12px] text-muted">
+                              {product.unit}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className={`${TD_CLASS} break-all text-muted`}>
                       {product.sku ?? '—'}
                     </td>
-                    <td className={`${TD_CLASS} whitespace-nowrap tabular-nums`}>
+                    <td
+                      className={`${TD_CLASS} whitespace-nowrap tabular-nums`}
+                    >
                       {formatVND(Number(product.unitPrice))}
                     </td>
                     <td className={`${TD_CLASS} text-right tabular-nums`}>
                       {product.stockQuantity}
                     </td>
-                    <td className={TD_CLASS}>{categoryLabel(product.categoryIds)}</td>
+                    <td className={TD_CLASS}>
+                      {categoryLabel(product.categoryIds)}
+                    </td>
                     <td className={TD_CLASS}>
                       <StateCell deleted={deletedProduct} />
                     </td>

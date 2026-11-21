@@ -38,3 +38,4 @@ volumes:
   postgre_data:
   redis_data:
   redisinsight_data:
+  uploads_data:

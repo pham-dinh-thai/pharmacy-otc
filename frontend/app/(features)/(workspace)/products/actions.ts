@@ -4,6 +4,10 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { fetchCurrentUser, hasPermission } from '@/lib/account';
 import { authFetch } from '@/lib/auth';
+import {
+  ALLOWED_PRODUCT_IMAGE_TYPES,
+  PRODUCT_IMAGE_MAX_BYTES,
+} from '@/lib/product-image';
 
 const LIST_PATH = '/products';
 const CREATE_PATH = `${LIST_PATH}/new`;
@@ -31,7 +35,9 @@ function listReturnPath(value: FormDataEntryValue | null): string {
   const path = returnPath(value);
   const url = new URL(path, 'http://localhost');
 
-  return url.pathname === LIST_PATH ? `${url.pathname}${url.search}` : LIST_PATH;
+  return url.pathname === LIST_PATH
+    ? `${url.pathname}${url.search}`
+    : LIST_PATH;
 }
 
 function trimmed(value: FormDataEntryValue | null): string {
@@ -131,6 +137,53 @@ function revalidateProduct(id?: string): void {
   if (id) revalidatePath(`${LIST_PATH}/${id}`);
 }
 
+type UploadedImage = {
+  hash: string;
+  url: string;
+  contentType: string;
+  size: number;
+};
+
+async function uploadProductImage(file: File, back: string): Promise<string> {
+  if (
+    file.size > PRODUCT_IMAGE_MAX_BYTES ||
+    !ALLOWED_PRODUCT_IMAGE_TYPES.has(file.type)
+  ) {
+    redirect(withQuery(back, { error: 'image' }));
+  }
+
+  let res: Response;
+  try {
+    res = await authFetch('/uploads/images', {
+      method: 'POST',
+      headers: { 'Content-Type': file.type },
+      body: file,
+    });
+  } catch {
+    redirect(withQuery(back, { error: 'image' }));
+  }
+
+  if (!res.ok) {
+    redirect(withQuery(back, { error: 'image' }));
+  }
+
+  const uploaded = (await res.json()) as UploadedImage;
+
+  return uploaded.url;
+}
+
+async function resolveImageUrl(
+  formData: FormData,
+  payload: { imageUrl: string },
+  back: string,
+): Promise<void> {
+  const image = formData.get('image');
+
+  if (image instanceof File && image.size > 0) {
+    payload.imageUrl = await uploadProductImage(image, back);
+  }
+}
+
 export async function createProduct(formData: FormData) {
   await requirePermission('products:create', CREATE_PATH);
 
@@ -140,6 +193,8 @@ export async function createProduct(formData: FormData) {
   if (validation !== 'ok') {
     redirect(withQuery(CREATE_PATH, { error: validation }));
   }
+
+  await resolveImageUrl(formData, payload, CREATE_PATH);
 
   let res: Response;
   try {
@@ -174,6 +229,8 @@ export async function updateProduct(formData: FormData) {
   if (validation !== 'ok') {
     redirect(withQuery(back, { error: validation }));
   }
+
+  await resolveImageUrl(formData, payload, back);
 
   let res: Response;
   try {

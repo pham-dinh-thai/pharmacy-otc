@@ -14,6 +14,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   exists: 'Mã SKU đã tồn tại. Đổi mã rồi thử lại.',
   forbidden: 'Bạn không có quyền tạo sản phẩm.',
   notfound: 'Không tìm thấy danh mục đã chọn.',
+  image:
+    'Không tải được ảnh. Chọn file JPG, PNG hoặc WebP dưới 5 MB rồi thử lại.',
   server: 'Không tạo được sản phẩm. Kiểm tra kết nối rồi thử lại.',
 };
 
@@ -58,7 +60,8 @@ async function NewProductForm({
         <div className="border-b border-rule px-6 py-4">
           <h2 className="text-[15px] font-semibold">Thông tin sản phẩm</h2>
           <p className="mt-1 text-[13px] text-muted">
-            Có thể tạo sản phẩm không gắn danh mục nếu chưa có danh mục hoạt động.
+            Có thể tạo sản phẩm không gắn danh mục nếu chưa có danh mục hoạt
+            động.
           </p>
         </div>
 
