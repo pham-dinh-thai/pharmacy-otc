@@ -1906,8 +1906,8 @@
         },
         {
           "name": "expenses_status_check",
-          "expression": "\"status\" in ('pending', 'approved', 'paid', 'cancelled')",
-          "definition": "check (\"status\" in ('pending', 'approved', 'paid', 'cancelled'))",
+          "expression": "\"status\" in ('pending', 'approved', 'supplier_paid', 'paid', 'cancelled')",
+          "definition": "check (\"status\" in ('pending', 'approved', 'supplier_paid', 'paid', 'cancelled'))",
           "columnName": "status"
         }
       ],

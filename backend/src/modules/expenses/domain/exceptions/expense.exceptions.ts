@@ -12,6 +12,12 @@ export class ExpenseAlreadyCancelledException extends DomainException {
   }
 }
 
+export class ExpenseNotFoundException extends DomainException {
+  public constructor(id: string) {
+    super(`Expense ${id} not found`, 'EXPENSE_NOT_FOUND');
+  }
+}
+
 export class ExpenseNameRequiredException extends DomainException {
   public constructor() {
     super('Expense name is required', 'EXPENSE_NAME_REQUIRED');

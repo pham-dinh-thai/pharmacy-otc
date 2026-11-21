@@ -145,20 +145,43 @@ describe('Expense', () => {
     });
   });
 
-  describe('pay', () => {
-    it('pays an approved expense', () => {
+  describe('paySupplier', () => {
+    it('marks an approved expense as paid to the supplier', () => {
       const expense = createExpense();
       expense.approve();
+
+      expense.paySupplier();
+
+      expect(expense.getStatus()).toBe(ExpenseStatus.SUPPLIER_PAID);
+    });
+
+    it('rejects paying a pending expense to the supplier', () => {
+      const expense = createExpense();
+
+      expect(() => expense.paySupplier()).toThrow(
+        'Only approved expenses can be paid to the supplier',
+      );
+    });
+  });
+
+  describe('pay', () => {
+    it('marks an expense paid to the supplier as paid', () => {
+      const expense = createExpense();
+      expense.approve();
+      expense.paySupplier();
 
       expense.pay();
 
       expect(expense.getStatus()).toBe(ExpenseStatus.PAID);
     });
 
-    it('rejects paying a pending expense', () => {
+    it('rejects paying an approved expense before paying the supplier', () => {
       const expense = createExpense();
+      expense.approve();
 
-      expect(() => expense.pay()).toThrow('Only approved expenses can be paid');
+      expect(() => expense.pay()).toThrow(
+        'Only expenses paid to the supplier can be marked as paid',
+      );
     });
   });
 
@@ -171,15 +194,19 @@ describe('Expense', () => {
       expect(expense.getStatus()).toBe(ExpenseStatus.CANCELLED);
     });
 
-    it('rejects cancelling a paid expense', () => {
-      const expense = createExpense();
-      expense.approve();
-      expense.pay();
+    it.each(['supplier_paid', 'paid'] as const)(
+      'rejects cancelling a %s expense',
+      (status) => {
+        const expense = createExpense();
+        expense.approve();
+        expense.paySupplier();
+        if (status === 'paid') expense.pay();
 
-      expect(() => expense.cancel()).toThrow(
-        'Paid expenses can not be cancelled',
-      );
-    });
+        expect(() => expense.cancel()).toThrow(
+          'Paid expenses can not be cancelled',
+        );
+      },
+    );
 
     it('rejects cancelling twice', () => {
       const expense = createExpense();

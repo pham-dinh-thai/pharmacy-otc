@@ -1,9 +1,31 @@
 import { Expense } from './expense.aggregate';
+import { ExpenseCategory } from './enums/expense-category.enum';
+import { ExpenseStatus } from './enums/expense-status.enum';
+
+export type FindExpensesFilters = {
+  search?: string;
+  status?: ExpenseStatus | 'all';
+  category?: ExpenseCategory | 'all';
+  supplierId?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export type FindExpenseOptions = {
+  forUpdate?: boolean;
+};
+
+export type ExpensePage = {
+  items: Expense[];
+  total: number;
+};
 
 export interface IExpensesRepository {
   findAll(): Promise<Expense[]>;
 
-  findById(id: string): Promise<Expense | null>;
+  findPage(filters?: FindExpensesFilters): Promise<ExpensePage>;
+
+  findById(id: string, options?: FindExpenseOptions): Promise<Expense | null>;
 
   create(expense: Expense): Promise<Expense>;
 

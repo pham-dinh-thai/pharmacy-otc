@@ -48,6 +48,7 @@ const setup = () => {
 
   const repository: IExpensesRepository = {
     findAll: jest.fn<IExpensesRepository['findAll']>(),
+    findPage: jest.fn<IExpensesRepository['findPage']>(),
     findById: jest.fn<IExpensesRepository['findById']>(),
     create,
     update: jest.fn<IExpensesRepository['update']>(),
