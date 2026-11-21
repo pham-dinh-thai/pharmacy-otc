@@ -13,7 +13,7 @@ import { PaymentMethod } from './enums/payment-method.enum';
 export type CreateExpenseProps = {
   name: string;
   category: ExpenseCategory;
-  amount: string;
+  amount: bigint;
   expenseDate: Date;
   supplierId: string | null;
   paymentMethod: PaymentMethod | null;
@@ -31,7 +31,7 @@ export type FromPersistentExpenseProps = CreateExpenseProps & {
 export type UpdateExpenseProps = {
   name: string;
   category: ExpenseCategory;
-  amount: string;
+  amount: bigint;
   expenseDate: Date;
   supplierId: string | null;
   paymentMethod: PaymentMethod | null;
@@ -118,10 +118,21 @@ export class Expense {
     this.updatedAt = new Date();
   }
 
-  public pay(): void {
+  public paySupplier(): void {
     if (this.status !== ExpenseStatus.APPROVED) {
       throw new ExpenseInvalidStatusException(
-        'Only approved expenses can be paid',
+        'Only approved expenses can be paid to the supplier',
+      );
+    }
+
+    this.status = ExpenseStatus.SUPPLIER_PAID;
+    this.updatedAt = new Date();
+  }
+
+  public pay(): void {
+    if (this.status !== ExpenseStatus.SUPPLIER_PAID) {
+      throw new ExpenseInvalidStatusException(
+        'Only expenses paid to the supplier can be marked as paid',
       );
     }
 
@@ -130,7 +141,10 @@ export class Expense {
   }
 
   public cancel(): void {
-    if (this.status === ExpenseStatus.PAID) {
+    if (
+      this.status === ExpenseStatus.SUPPLIER_PAID ||
+      this.status === ExpenseStatus.PAID
+    ) {
       throw new ExpenseInvalidStatusException(
         'Paid expenses can not be cancelled',
       );
@@ -156,8 +170,8 @@ export class Expense {
     return this.category;
   }
 
-  public getAmount(): string {
-    return this.amount.toString();
+  public getAmount(): bigint {
+    return this.amount.getValue();
   }
 
   public getExpenseDate(): Date {

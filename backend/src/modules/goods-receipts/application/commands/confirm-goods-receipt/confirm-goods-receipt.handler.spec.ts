@@ -16,12 +16,17 @@ import { ConfirmGoodsReceiptCommand } from './confirm-goods-receipt.command';
 import { ConfirmGoodsReceiptHandler } from './confirm-goods-receipt.handler';
 import {
   GOODS_RECEIPT_CONFIRMED_EVENT,
+  GOODS_RECEIPT_CONFIRMED_EXPENSE,
   GOODS_RECEIPT_STOCK_RECEIVED_EVENT,
 } from '../../../domain/events/goods-receipt-confirmed.event';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
+import { ExpenseCategory } from '../../../../expenses/domain/enums/expense-category.enum';
+import { Supplier } from '../../../../suppliers/domain/supplier.aggregate';
+import { type ISuppliersRepository } from '../../../../suppliers/domain/suppliers.repository';
 
 const RECEIPT_ID = 'b3d7f2a8-7a0e-4f1c-9c1a-4d3f5e6a7b8c';
 const SUPPLIER_ID = '0ca741a6-ce41-4010-8148-f7b2a32aef1c';
+const SUPPLIER_NAME = 'Dược phẩm ABC';
 const PRODUCT_ID = '8a2f6c1e-3b4d-4e5f-9a0b-1c2d3e4f5a6b';
 const OTHER_PRODUCT_ID = '11111111-1111-4111-8111-111111111111';
 const CREATED_BY = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
@@ -93,11 +98,26 @@ const setup = (receipt: GoodsReceipt | null) => {
   const unitOfWork: IUnitOfWork = {
     run: run as unknown as IUnitOfWork['run'],
   };
+  const supplier = Supplier.create({
+    sequence: 1,
+    name: SUPPLIER_NAME,
+    phone: null,
+    email: null,
+    address: null,
+    taxCode: null,
+  });
+  const findSupplier = jest
+    .fn<ISuppliersRepository['findByIdIncludingDeleted']>()
+    .mockResolvedValue(supplier);
+  const suppliersRepository = {
+    findByIdIncludingDeleted: findSupplier,
+  } as unknown as ISuppliersRepository;
 
   const handler = new ConfirmGoodsReceiptHandler(
     goodsReceiptsRepository,
     { create: outboxCreate } as unknown as IOutboxRepository,
     unitOfWork,
+    suppliersRepository,
   );
 
   return {
@@ -114,7 +134,7 @@ describe('ConfirmGoodsReceiptHandler', () => {
     jest.useRealTimers();
   });
 
-  it('confirms the receipt, attaches batch ids and emits audit + stock events', async () => {
+  it('confirms the receipt, attaches batch ids and emits audit + stock + expense events', async () => {
     const receipt = createReceipt();
     const { handler, findById, update, run, outboxCreate } = setup(receipt);
 
@@ -133,7 +153,7 @@ describe('ConfirmGoodsReceiptHandler', () => {
 
     expect(line.getBatchId()).toMatch(UUID_V4_REGEX);
 
-    expect(outboxCreate).toHaveBeenCalledTimes(2);
+    expect(outboxCreate).toHaveBeenCalledTimes(3);
     expect(outboxCreate).toHaveBeenNthCalledWith(1, {
       eventType: GOODS_RECEIPT_CONFIRMED_EVENT,
       payload: {
@@ -179,6 +199,18 @@ describe('ConfirmGoodsReceiptHandler', () => {
             expiresAt: EXPIRES_AT.toISOString(),
           },
         ],
+      },
+    });
+    expect(outboxCreate).toHaveBeenNthCalledWith(3, {
+      eventType: GOODS_RECEIPT_CONFIRMED_EXPENSE,
+      payload: {
+        name: `Trả tiền cho nhà cung cấp ${SUPPLIER_NAME}`,
+        category: ExpenseCategory.OTHER,
+        amount: 25000,
+        expenseDate: receipt.getConfirmedAt()?.toISOString(),
+        supplierId: SUPPLIER_ID,
+        paymentMethod: null,
+        note: `Trả tiền cho phiếu nhập ${receipt.getCode()}`,
       },
     });
   });

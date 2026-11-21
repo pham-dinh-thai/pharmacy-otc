@@ -11,8 +11,8 @@ export class UnitCost {
     return new UnitCost(Money.create(raw));
   }
 
-  public getTotal(quantity: number): string {
-    return this.value.multiply(quantity).toString();
+  public getTotal(quantity: number): bigint {
+    return this.value.multiply(quantity).getValue();
   }
 
   public equals(other: UnitCost): boolean {

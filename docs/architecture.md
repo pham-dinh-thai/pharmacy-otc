@@ -184,7 +184,8 @@ role.super_admin_set, account.signed_up, account.signed_in,
 user.created, user.email_changed, user.role_assigned, user.role_removed,
 product.created, supplier.created/updated/activated/deactivated,
 goods_receipt.created/confirmed/cancelled,
-inventory.stock_issued, inventory.stock_reconciled, expense.created
+inventory.stock_issued, inventory.stock_reconciled,
+expense.created/updated/approved/supplier_paid/paid/cancelled
 ```
 
 ## 6. Xác thực và phân quyền
@@ -266,7 +267,7 @@ backend/src/
 | ADR-02 | CQRS nhẹ (command/query bus), không event sourcing | Đủ tách đọc/ghi, ít phức tạp | Read model phải viết tay |
 | ADR-03 | Outbox trong PostgreSQL | Không cần message broker, đảm bảo atomic | Relay polling, độ trễ ~1s |
 | ADR-04 | Domain không phụ thuộc ORM | Test nhanh, dễ thay hạ tầng | Phải viết mapper thủ công |
-| ADR-05 | `bigint` VND | Chính xác tuyệt đối | Phải convert string ở API |
+| ADR-05 | `bigint` VND | Chính xác tuyệt đối | Convert `number` ở ranh giới JSON (giới hạn `10^15` < `2^53`) |
 | ADR-06 | Một nhà thuốc, không multi-tenant | Đúng phạm vi | Không tái sử dụng cho SaaS |
 | ADR-07 | Permission dạng chuỗi trong mảng | Đơn giản, dễ kiểm tra | Không có FK, cần validate catalog |
 | ADR-08 | Refresh token ở Redis | Thu hồi được, không stateless hoàn toàn | Phụ thuộc Redis |
@@ -289,6 +290,6 @@ backend/src/
 | `customers` thiếu hồ sơ/địa chỉ | Không giao hàng được |
 | `products` thiếu SKU/category/unit | Khó quản lý và lọc |
 | Lô hết hạn/hết số lượng chưa tự chuyển trạng thái | Cần job hoặc kiểm tra khi xuất |
-| Chưa có API duyệt/chi phí | Nghiệp vụ chi phí chưa hoàn chỉnh |
+| Chưa có báo cáo chi phí | Chưa tổng hợp chi phí theo nhóm/thời gian |
 | Outbox relay chạy trong API process | Không phù hợp khi scale ngang |
 | Không có rate limit/health check | Thiếu lớp bảo vệ vận hành |

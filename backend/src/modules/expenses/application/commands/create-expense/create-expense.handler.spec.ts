@@ -24,7 +24,7 @@ const headers = {
   userAgent: 'jest',
 };
 
-const createCommand = (amount = '5000000') =>
+const createCommand = (amount = 5000000n) =>
   new CreateExpenseCommand(
     'Office rent',
     ExpenseCategory.RENT,
@@ -48,6 +48,7 @@ const setup = () => {
 
   const repository: IExpensesRepository = {
     findAll: jest.fn<IExpensesRepository['findAll']>(),
+    findPage: jest.fn<IExpensesRepository['findPage']>(),
     findById: jest.fn<IExpensesRepository['findById']>(),
     create,
     update: jest.fn<IExpensesRepository['update']>(),
@@ -82,7 +83,7 @@ describe('CreateExpenseHandler', () => {
     expect(expense.getId()).toBe(result.id);
     expect(expense.getName()).toBe('Office rent');
     expect(expense.getCategory()).toBe(ExpenseCategory.RENT);
-    expect(expense.getAmount()).toBe('5000000');
+    expect(expense.getAmount()).toBe(5000000n);
     expect(expense.getExpenseDate()).toEqual(EXPENSE_DATE);
     expect(expense.getSupplierId()).toBe(SUPPLIER_ID);
     expect(expense.getStatus()).toBe(ExpenseStatus.PENDING);
@@ -100,7 +101,7 @@ describe('CreateExpenseHandler', () => {
           after: {
             name: 'Office rent',
             category: ExpenseCategory.RENT,
-            amount: '5000000',
+            amount: 5000000,
             expenseDate: '2026-11-01',
             supplierId: SUPPLIER_ID,
             status: ExpenseStatus.PENDING,
@@ -116,7 +117,7 @@ describe('CreateExpenseHandler', () => {
   it('does not persist an expense that violates a domain rule', async () => {
     const { handler, create, outboxCreate } = setup();
 
-    await expect(handler.execute(createCommand('1.5'))).rejects.toThrow(
+    await expect(handler.execute(createCommand(-1n))).rejects.toThrow(
       InvalidAmountException,
     );
 

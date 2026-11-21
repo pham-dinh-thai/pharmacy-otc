@@ -29,6 +29,11 @@ import { GOODS_RECEIPT_CANCELLED_EVENT } from '../../../goods-receipts/domain/ev
 import { INVENTORY_STOCK_ISSUED_EVENT } from '../../../inventories/domain/events/inventory-stock-issued.event';
 import { INVENTORY_STOCK_RECONCILED_EVENT } from '../../../inventories/domain/events/inventory-stock-reconciled.event';
 import { EXPENSE_CREATED_EVENT } from '../../../expenses/domain/events/expense-created.event';
+import { EXPENSE_UPDATED_EVENT } from '../../../expenses/domain/events/expense-updated.event';
+import { EXPENSE_APPROVED_EVENT } from '../../../expenses/domain/events/expense-approved.event';
+import { EXPENSE_SUPPLIER_PAID_EVENT } from '../../../expenses/domain/events/expense-supplier-paid.event';
+import { EXPENSE_PAID_EVENT } from '../../../expenses/domain/events/expense-paid.event';
+import { EXPENSE_CANCELLED_EVENT } from '../../../expenses/domain/events/expense-cancelled.event';
 import { PASSWORD_CHANGED_AUDIT_EVENT } from '../../../authentication/domain/events/password-changed.event';
 import { EMPLOYEE_STATUS_CHANGED_EVENT } from '../../../employees/domain/events/employee-status-changed.event';
 import { USER_DEACTIVATED_EVENT } from '../../../users/domain/events/user-deactivated.event';
@@ -64,6 +69,8 @@ export type AuditAction =
   | 'delete'
   | 'restore'
   | 'confirm'
+  | 'approve'
+  | 'pay'
   | 'cancel'
   | 'issue'
   | 'reconcile'
@@ -106,6 +113,11 @@ export const AUDITED_EVENT_ACTIONS = {
   [INVENTORY_STOCK_ISSUED_EVENT]: 'issue',
   [INVENTORY_STOCK_RECONCILED_EVENT]: 'reconcile',
   [EXPENSE_CREATED_EVENT]: 'create',
+  [EXPENSE_UPDATED_EVENT]: 'update',
+  [EXPENSE_APPROVED_EVENT]: 'approve',
+  [EXPENSE_SUPPLIER_PAID_EVENT]: 'pay',
+  [EXPENSE_PAID_EVENT]: 'pay',
+  [EXPENSE_CANCELLED_EVENT]: 'cancel',
   [PASSWORD_CHANGED_AUDIT_EVENT]: 'change_password',
   [EMPLOYEE_STATUS_CHANGED_EVENT]: 'update',
   [USER_DEACTIVATED_EVENT]: 'deactivate',

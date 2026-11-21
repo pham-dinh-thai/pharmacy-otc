@@ -29,5 +29,6 @@ import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
     GetSupplierHandler,
     GetSuppliersHandler,
   ],
+  exports: [SUPPLIERS_REPOSITORY],
 })
 export class SuppliersModule {}

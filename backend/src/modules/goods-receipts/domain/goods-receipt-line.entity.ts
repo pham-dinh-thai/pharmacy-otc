@@ -90,7 +90,7 @@ export class GoodsReceiptLine {
     this.updatedAt = new Date();
   }
 
-  public getTotalCost(): string {
+  public getTotalCost(): bigint {
     return this.unitCost.getTotal(this.quantity.getValue());
   }
 

@@ -13,7 +13,7 @@ const createExpense = (
   Expense.create({
     name: 'Office rent',
     category: ExpenseCategory.RENT,
-    amount: '5000000',
+    amount: 5000000n,
     expenseDate: EXPENSE_DATE,
     supplierId: null,
     paymentMethod: null,
@@ -32,7 +32,7 @@ describe('Expense', () => {
       );
       expect(expense.getName()).toBe('Office rent');
       expect(expense.getCategory()).toBe(ExpenseCategory.RENT);
-      expect(expense.getAmount()).toBe('5000000');
+      expect(expense.getAmount()).toBe(5000000n);
       expect(expense.getExpenseDate()).toEqual(EXPENSE_DATE);
       expect(expense.getSupplierId()).toBeNull();
       expect(expense.getStatus()).toBe(ExpenseStatus.PENDING);
@@ -54,7 +54,7 @@ describe('Expense', () => {
     });
 
     it('rejects a negative amount', () => {
-      expect(() => createExpense({ amount: '-1' })).toThrow(
+      expect(() => createExpense({ amount: -1n })).toThrow(
         InvalidAmountException,
       );
     });
@@ -66,7 +66,7 @@ describe('Expense', () => {
         id: 'b3d7f2a8-7a0e-4f1c-9c1a-4d3f5e6a7b8c',
         name: 'Utilities',
         category: ExpenseCategory.UTILITIES,
-        amount: '250000',
+        amount: 250000n,
         expenseDate: EXPENSE_DATE,
         supplierId: '2c7c7a2e-6f5a-4b4b-8a3e-1c9d2e3f4a5b',
         status: ExpenseStatus.APPROVED,
@@ -94,7 +94,7 @@ describe('Expense', () => {
       expense.update({
         name: 'New office rent',
         category: ExpenseCategory.OTHER,
-        amount: '6000000',
+        amount: 6000000n,
         expenseDate: new Date('2026-11-05T00:00:00.000Z'),
         supplierId: null,
         paymentMethod: PaymentMethod.CASH,
@@ -103,7 +103,7 @@ describe('Expense', () => {
 
       expect(expense.getName()).toBe('New office rent');
       expect(expense.getCategory()).toBe(ExpenseCategory.OTHER);
-      expect(expense.getAmount()).toBe('6000000');
+      expect(expense.getAmount()).toBe(6000000n);
       expect(expense.getPaymentMethod()).toBe(PaymentMethod.CASH);
       expect(expense.getNote()).toBe('adjusted');
     });
@@ -116,7 +116,7 @@ describe('Expense', () => {
         expense.update({
           name: 'New office rent',
           category: ExpenseCategory.OTHER,
-          amount: '6000000',
+          amount: 6000000n,
           expenseDate: EXPENSE_DATE,
           supplierId: null,
           paymentMethod: null,
@@ -145,20 +145,43 @@ describe('Expense', () => {
     });
   });
 
-  describe('pay', () => {
-    it('pays an approved expense', () => {
+  describe('paySupplier', () => {
+    it('marks an approved expense as paid to the supplier', () => {
       const expense = createExpense();
       expense.approve();
+
+      expense.paySupplier();
+
+      expect(expense.getStatus()).toBe(ExpenseStatus.SUPPLIER_PAID);
+    });
+
+    it('rejects paying a pending expense to the supplier', () => {
+      const expense = createExpense();
+
+      expect(() => expense.paySupplier()).toThrow(
+        'Only approved expenses can be paid to the supplier',
+      );
+    });
+  });
+
+  describe('pay', () => {
+    it('marks an expense paid to the supplier as paid', () => {
+      const expense = createExpense();
+      expense.approve();
+      expense.paySupplier();
 
       expense.pay();
 
       expect(expense.getStatus()).toBe(ExpenseStatus.PAID);
     });
 
-    it('rejects paying a pending expense', () => {
+    it('rejects paying an approved expense before paying the supplier', () => {
       const expense = createExpense();
+      expense.approve();
 
-      expect(() => expense.pay()).toThrow('Only approved expenses can be paid');
+      expect(() => expense.pay()).toThrow(
+        'Only expenses paid to the supplier can be marked as paid',
+      );
     });
   });
 
@@ -171,15 +194,19 @@ describe('Expense', () => {
       expect(expense.getStatus()).toBe(ExpenseStatus.CANCELLED);
     });
 
-    it('rejects cancelling a paid expense', () => {
-      const expense = createExpense();
-      expense.approve();
-      expense.pay();
+    it.each(['supplier_paid', 'paid'] as const)(
+      'rejects cancelling a %s expense',
+      (status) => {
+        const expense = createExpense();
+        expense.approve();
+        expense.paySupplier();
+        if (status === 'paid') expense.pay();
 
-      expect(() => expense.cancel()).toThrow(
-        'Paid expenses can not be cancelled',
-      );
-    });
+        expect(() => expense.cancel()).toThrow(
+          'Paid expenses can not be cancelled',
+        );
+      },
+    );
 
     it('rejects cancelling twice', () => {
       const expense = createExpense();

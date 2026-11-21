@@ -22,7 +22,7 @@
 | Goods receipts | ✅ | Tạo/list/detail/xác nhận/huỷ; UI phiếu nhập đầy đủ |
 | Inventories | ✅ | Xem tồn tổng hợp, danh sách/chi tiết lô, xuất và kiểm kê theo lô |
 | Orders | ⬜ | Module rỗng |
-| Expenses | 🟡 | Tạo; domain có duyệt/chi/huỷ nhưng chưa có API |
+| Expenses | ✅ | Tạo/list/detail/sửa lúc `pending`/duyệt/chi/huỷ; UI `/expenses` |
 | Audit logs | ✅ | List/filter + detail |
 | Reports | ⬜ | Chỉ có permission |
 | Payments/Ledger | ⬜ | Chỉ có tài liệu thiết kế |
@@ -43,7 +43,7 @@
 
 - Mật khẩu hash Argon2id, không lưu plaintext.
 - Email unique, không phân biệt hoa/thường ở tầng kiểm tra.
-- Refresh token lưu Redis, TTL 7 ngày; access token 15 phút (cấu hình qua env).
+- Refresh token lưu Redis, TTL 7 ngày; access token 15 phút (cấu hình qua env). Refresh access token không xoay vòng refresh token, để các request prefetch đồng thời không làm nhau bị đăng xuất; token chỉ bị thu hồi khi logout, đổi mật khẩu hoặc hết hạn.
 - Cookie `sameSite=strict`, `path=/api/authentication/refresh`,
   `secure` khi `NODE_ENV=production`.
 
@@ -206,12 +206,18 @@ Form phiếu nhập tìm sản phẩm qua `GET /products?search=...` thay vì b�
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
 | FR-EXP-01 | Tạo chi phí: tên, nhóm, số tiền VND, ngày, nhà cung cấp, phương thức, ghi chú | ✅ |
-| FR-EXP-02 | Trạng thái `pending → approved → paid` | 🟡 domain có, API chưa |
-| FR-EXP-03 | Huỷ chi phí chưa thanh toán | 🟡 domain có, API chưa |
-| FR-EXP-04 | Chỉ sửa chi phí `pending` | 🟡 domain có, API chưa |
-| FR-EXP-05 | Danh sách/tìm kiếm chi phí | ⬜ |
+| FR-EXP-02 | Trạng thái `pending → approved → supplier_paid → paid` | ✅ |
+| FR-EXP-03 | Huỷ chi phí chưa thanh toán (trước `supplier_paid`) | ✅ |
+| FR-EXP-04 | Chỉ sửa chi phí `pending` | ✅ |
+| FR-EXP-05 | Danh sách/tìm kiếm/lọc theo trạng thái, nhóm, nhà cung cấp | ✅ |
 | FR-EXP-06 | Báo cáo chi phí theo nhóm/thời gian | ⬜ |
-| FR-EXP-07 | Ghi audit tạo/duyệt/chi/huỷ | 🟡 mới có audit tạo |
+| FR-EXP-07 | Ghi audit tạo/sửa/duyệt/trả NCC/chi/huỷ | ✅ |
+
+**Quy tắc**
+
+- Mỗi thao tác dùng quyền riêng: `expenses:read/create/update/approve/pay/cancel`; hai bước `supplier_paid` và `paid` dùng chung `expenses:pay`.
+- `expenses:delete` có trong catalog nhưng không dùng: huỷ phiếu là `expenses:cancel`, không xoá mềm bản ghi.
+- Chuyển trạng thái và sửa phiếu khoá hàng bằng `FOR UPDATE`; phiếu đã chi trả về `409`.
 
 **Nhóm chi phí:** thuê mặt bằng, điện nước, lương, vận chuyển, marketing, văn
 phòng phẩm, khác.
@@ -259,4 +265,4 @@ phòng phẩm, khác.
 3. Seed nhóm danh mục cố định OTC/TPCN/mỹ phẩm/thiết bị (FR-PROD-04).
 4. `orders` + giỏ hàng + trừ tồn theo lô.
 5. API đọc tồn kho/lô, cảnh báo cận hạn.
-6. Hoàn thiện chi phí (duyệt/chi/huỷ/list).
+6. Báo cáo chi phí theo nhóm/thời gian (FR-EXP-06).

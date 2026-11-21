@@ -7,7 +7,7 @@ import { Expense } from './expense.aggregate';
 export const expenseSnapshot = (expense: Expense) => ({
   name: expense.getName(),
   category: expense.getCategory(),
-  amount: expense.getAmount(),
+  amount: Number(expense.getAmount()),
   expenseDate: expense.getExpenseDate().toISOString().slice(0, 10),
   supplierId: expense.getSupplierId(),
   status: expense.getStatus(),

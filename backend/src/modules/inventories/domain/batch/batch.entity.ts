@@ -89,7 +89,7 @@ export class Batch {
   }
 
   public getTotalCost(): string {
-    return this.unitCost.getTotal(this.quantity.getValue());
+    return this.unitCost.getTotal(this.quantity.getValue()).toString();
   }
 
   public getId(): string {

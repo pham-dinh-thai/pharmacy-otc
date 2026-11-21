@@ -9,7 +9,7 @@ const SUPPLIER_ID = 'b3d7f2a8-7a0e-4f1c-9c1a-4d3f5e6a7b8c';
 const validPayload = (): Record<string, unknown> => ({
   name: 'Office rent',
   category: 'rent',
-  amount: '5000000',
+  amount: 5000000,
   expenseDate: '2026-11-01T00:00:00.000Z',
   supplierId: SUPPLIER_ID,
   paymentMethod: 'bank_transfer',
@@ -39,7 +39,7 @@ describe('CreateExpenseRequest', () => {
     const { instance, errors } = await validateRequest({
       name: 'Office rent',
       category: 'rent',
-      amount: '5000000',
+      amount: 5000000,
       expenseDate: '2026-11-01T00:00:00.000Z',
     });
 
@@ -62,9 +62,9 @@ describe('CreateExpenseRequest', () => {
   it.each([
     { field: 'name', value: '   ' },
     { field: 'category', value: 'unknown' },
-    { field: 'amount', value: 'not-a-number' },
-    { field: 'amount', value: '-1000' },
-    { field: 'amount', value: '12.5' },
+    { field: 'amount', value: '5000000' },
+    { field: 'amount', value: -1000 },
+    { field: 'amount', value: 1.5 },
     { field: 'expenseDate', value: 'not-a-date' },
     { field: 'supplierId', value: 'not-a-uuid' },
     { field: 'paymentMethod', value: 'unknown' },

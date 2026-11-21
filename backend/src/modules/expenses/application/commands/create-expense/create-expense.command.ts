@@ -7,7 +7,7 @@ export class CreateExpenseCommand extends Command<{ id: string }> {
   public constructor(
     public readonly name: string,
     public readonly category: ExpenseCategory,
-    public readonly amount: string,
+    public readonly amount: bigint,
     public readonly expenseDate: Date,
     public readonly supplierId: string | null,
     public readonly paymentMethod: PaymentMethod | null,
