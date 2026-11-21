@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { CategoryOption } from '@/lib/products';
+import { ProductImageField } from './product-image-field';
 
 const LABEL_CLASS = 'block text-[13px] font-medium text-muted';
 const INPUT_CLASS =
@@ -48,7 +49,11 @@ export function ProductForm({
   locked?: boolean;
 }) {
   return (
-    <form action={action} className="grid gap-5 px-6 py-6 md:grid-cols-2">
+    <form
+      action={action}
+      encType="multipart/form-data"
+      className="grid gap-5 px-6 py-6 md:grid-cols-2"
+    >
       {productId && <input type="hidden" name="productId" value={productId} />}
       {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
 
@@ -136,19 +141,7 @@ export function ProductForm({
       </div>
 
       <div className="md:col-span-2">
-        <label htmlFor="imageUrl" className={LABEL_CLASS}>
-          Đường dẫn ảnh
-        </label>
-        <input
-          id="imageUrl"
-          name="imageUrl"
-          type="text"
-          maxLength={2048}
-          defaultValue={values.imageUrl}
-          disabled={locked}
-          placeholder="https://…"
-          className={INPUT_CLASS}
-        />
+        <ProductImageField initialUrl={values.imageUrl} disabled={locked} />
       </div>
 
       <div className="md:col-span-2">

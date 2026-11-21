@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -22,6 +23,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid: 'Dữ liệu sản phẩm không hợp lệ. Kiểm tra lại các trường đã nhập.',
   exists: 'Mã SKU đã tồn tại. Đổi mã rồi thử lại.',
   notfound: 'Không tìm thấy sản phẩm.',
+  image:
+    'Không tải được ảnh. Chọn file JPG, PNG hoặc WebP dưới 5 MB rồi thử lại.',
   server: 'Không lưu được thay đổi. Kiểm tra kết nối rồi thử lại.',
 };
 
@@ -75,10 +78,8 @@ async function ProductDetailPageContent({
   const product = (await res.json()) as ProductDetail;
   const categories = await fetchCategoryOptions();
   const deleted = isProductDeleted(product);
-  const canUpdate =
-    user.isSuperAdmin || hasPermission(user, 'products:update');
-  const canDelete =
-    user.isSuperAdmin || hasPermission(user, 'products:delete');
+  const canUpdate = user.isSuperAdmin || hasPermission(user, 'products:update');
+  const canDelete = user.isSuperAdmin || hasPermission(user, 'products:delete');
   const locked = !canUpdate || deleted;
 
   const errorMessage = query.error
@@ -142,12 +143,25 @@ async function ProductDetailPageContent({
 
       <section className="border border-rule bg-paper">
         <div className="border-b border-rule px-6 py-4">
-          <h2 className="text-[15px] font-semibold">Thông tin sản phẩm</h2>
-          <p className="mt-1 text-[13px] text-muted">
-            Trạng thái: {productStateLabel(deleted)} · Tạo lúc:{' '}
-            {formatProductDate(product.createdAt)} · Cập nhật lúc:{' '}
-            {formatProductDate(product.updatedAt)}
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-[15px] font-semibold">Thông tin sản phẩm</h2>
+              <p className="mt-1 text-[13px] text-muted">
+                Trạng thái: {productStateLabel(deleted)} · Tạo lúc:{' '}
+                {formatProductDate(product.createdAt)} · Cập nhật lúc:{' '}
+                {formatProductDate(product.updatedAt)}
+              </p>
+            </div>
+            {product.imageUrl && (
+              <img
+                src={product.imageUrl}
+                alt={`Ảnh ${product.name}`}
+                width={96}
+                height={96}
+                className="h-24 w-24 shrink-0 border border-rule object-cover"
+              />
+            )}
+          </div>
         </div>
 
         <ProductForm
