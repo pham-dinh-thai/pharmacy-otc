@@ -20,6 +20,8 @@ import { MikroEmployee } from './src/modules/employees/infrastructure/entities/m
 import { MikroDepartment } from './src/modules/departments/infrastructure/entities/mikro-department.entity';
 import { MikroCategory } from './src/modules/categories/infrastructure/entities/mikro-category.entity';
 import { MikroProductCategory } from './src/modules/categories/infrastructure/entities/mikro-product-category.entity';
+import { MikroCart } from './src/modules/carts/infrastructure/entities/mikro-cart.entity';
+import { MikroCartItem } from './src/modules/carts/infrastructure/entities/mikro-cart-item.entity';
 
 dotenv.config({ path: path.resolve('../.env') });
 
@@ -50,6 +52,8 @@ export default defineConfig({
     MikroEmployee,
     MikroCategory,
     MikroProductCategory,
+    MikroCart,
+    MikroCartItem,
   ],
   entitiesTs: [
     MikroProduct,
@@ -71,6 +75,8 @@ export default defineConfig({
     MikroEmployee,
     MikroCategory,
     MikroProductCategory,
+    MikroCart,
+    MikroCartItem,
   ],
 
   debug: process.env.NODE_ENV !== 'production',

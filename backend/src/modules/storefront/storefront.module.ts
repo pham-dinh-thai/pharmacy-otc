@@ -8,5 +8,6 @@ import { StorefrontController } from './presentation/storefront.controller';
   imports: [ProductsModule, CategoriesModule],
   controllers: [StorefrontController],
   providers: [StorefrontService],
+  exports: [StorefrontService],
 })
 export class StorefrontModule {}
