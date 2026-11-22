@@ -1,17 +1,34 @@
 'use client';
 
-import React, { createContext, useContext, useState } from 'react';
-import { CartItem, Product } from '@/types';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
+import {
+  addToCartAction,
+  clearCartAction,
+  fetchCartAction,
+  removeFromCartAction,
+  setCartQuantityAction,
+} from '@/lib/cart-actions';
+import { MAX_CART_ITEMS } from '@/lib/cart';
+import type { CartItem, CartResponse, StorefrontProduct } from '@/types';
 
 interface CartContextType {
   items: CartItem[];
   isOpen: boolean;
+  isLoading: boolean;
+  error: string | null;
+  canAddMore: boolean;
   openCart: () => void;
   closeCart: () => void;
-  addToCart: (product: Product, quantity?: number) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  clearCart: () => void;
+  addToCart: (product: StorefrontProduct, quantity?: number) => Promise<void>;
+  removeFromCart: (productId: string) => Promise<void>;
+  updateQuantity: (productId: string, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
   totalItems: number;
   subtotal: number;
   shippingFee: number;
@@ -20,94 +37,119 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+function toItems(cart: CartResponse): CartItem[] {
+  return cart.items.map((item) => ({
+    product: { ...item.product, unitPrice: Number(item.product.unitPrice) },
+    quantity: item.quantity,
+    lineTotal: Number(item.lineTotal),
+  }));
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const saved = localStorage.getItem('pharma_cart');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+  const [items, setItems] = useState<CartItem[]>([]);
+  const [totals, setTotals] = useState({
+    totalItems: 0,
+    subtotal: 0,
+    shippingFee: 0,
+    total: 0,
   });
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const saveItems = (newItems: CartItem[]) => {
-    setItems(newItems);
-    try {
-      localStorage.setItem('pharma_cart', JSON.stringify(newItems));
-    } catch {
-      // ignore
-    }
-  };
-
-  const addToCart = (product: Product, quantity = 1) => {
-    setItems((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
-      let updated: CartItem[];
-      if (existing) {
-        updated = prev.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
-      } else {
-        updated = [...prev, { product, quantity }];
-      }
-      try {
-        localStorage.setItem('pharma_cart', JSON.stringify(updated));
-      } catch {
-        // ignore
-      }
-      return updated;
+  const apply = useCallback((cart: CartResponse) => {
+    setItems(toItems(cart));
+    setTotals({
+      totalItems: cart.totalItems,
+      subtotal: Number(cart.subtotal),
+      shippingFee: Number(cart.shippingFee),
+      total: Number(cart.total),
     });
-    setIsOpen(true);
-  };
+    setError(null);
+  }, []);
 
-  const removeFromCart = (productId: string) => {
-    const updated = items.filter((item) => item.product.id !== productId);
-    saveItems(updated);
-  };
-
-  const updateQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removeFromCart(productId);
-      return;
-    }
-    const updated = items.map((item) =>
-      item.product.id === productId ? { ...item, quantity } : item
-    );
-    saveItems(updated);
-  };
-
-  const clearCart = () => {
-    saveItems([]);
-  };
-
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = items.reduce(
-    (sum, item) => sum + item.product.unitPrice * item.quantity,
-    0
+  const run = useCallback(
+    async (action: () => Promise<CartResponse>) => {
+      try {
+        apply(await action());
+      } catch (cause) {
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : 'Không cập nhật được giỏ hàng.',
+        );
+      }
+    },
+    [apply],
   );
-  // Free delivery for orders >= 250,000 VND
-  const shippingFee = subtotal >= 250000 || subtotal === 0 ? 0 : 25000;
-  const total = subtotal + shippingFee;
+
+  useEffect(() => {
+    let active = true;
+
+    fetchCartAction()
+      .then((cart) => {
+        if (active) apply(cart);
+      })
+      .catch((cause: unknown) => {
+        if (active) {
+          setError(
+            cause instanceof Error ? cause.message : 'Không tải được giỏ hàng.',
+          );
+        }
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [apply]);
+
+  const addToCart = useCallback(
+    async (product: StorefrontProduct, quantity = 1) => {
+      await run(() => addToCartAction(product.id, quantity));
+      setIsOpen(true);
+    },
+    [run],
+  );
+
+  const removeFromCart = useCallback(
+    async (productId: string) => {
+      await run(() => removeFromCartAction(productId));
+    },
+    [run],
+  );
+
+  const updateQuantity = useCallback(
+    async (productId: string, quantity: number) => {
+      await run(() => setCartQuantityAction(productId, quantity));
+    },
+    [run],
+  );
+
+  const clearCart = useCallback(async () => {
+    await run(() => clearCartAction());
+  }, [run]);
 
   return (
     <CartContext.Provider
       value={{
         items,
         isOpen,
+        isLoading,
+        error,
+        canAddMore: totals.totalItems < MAX_CART_ITEMS,
         openCart: () => setIsOpen(true),
         closeCart: () => setIsOpen(false),
         addToCart,
         removeFromCart,
         updateQuantity,
         clearCart,
-        totalItems,
-        subtotal,
-        shippingFee,
-        total,
+        totalItems: totals.totalItems,
+        subtotal: totals.subtotal,
+        shippingFee: totals.shippingFee,
+        total: totals.total,
       }}
     >
       {children}

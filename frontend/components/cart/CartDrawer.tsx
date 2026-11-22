@@ -2,18 +2,13 @@
 
 import { useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { formatVND } from '@/lib/utils';
 
 export function CartDrawer() {
-  const {
-    items,
-    isOpen,
-    closeCart,
-    removeFromCart,
-    updateQuantity,
-    subtotal,
-  } = useCart();
+  const { items, isOpen, closeCart, removeFromCart, updateQuantity, subtotal } =
+    useCart();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -49,7 +44,9 @@ export function CartDrawer() {
 
       <aside className="absolute inset-y-0 right-0 flex w-full max-w-[420px] flex-col border-l border-rule bg-paper">
         <div className="flex items-center justify-between border-b border-rule px-5 py-4">
-          <h2 className="text-[15px] font-semibold">Giỏ hàng ({items.length})</h2>
+          <h2 className="text-[15px] font-semibold">
+            Giỏ hàng ({items.length})
+          </h2>
           <button
             type="button"
             onClick={closeCart}
@@ -79,13 +76,20 @@ export function CartDrawer() {
                   className="flex gap-4 border-b border-rule px-5 py-4"
                 >
                   <div className="relative h-16 w-16 shrink-0 overflow-hidden bg-surface">
-                    <Image
-                      src={product.imageUrl}
-                      alt=""
-                      fill
-                      sizes="64px"
-                      className="object-cover"
-                    />
+                    {product.imageUrl ? (
+                      <Image
+                        src={product.imageUrl}
+                        alt=""
+                        fill
+                        unoptimized
+                        sizes="64px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <span className="grid h-full place-items-center text-[10px] text-muted">
+                        —
+                      </span>
+                    )}
                   </div>
 
                   <div className="min-w-0 flex-1">
@@ -99,7 +103,9 @@ export function CartDrawer() {
                         <button
                           type="button"
                           aria-label={`Giảm số lượng ${product.name}`}
-                          onClick={() => updateQuantity(product.id, quantity - 1)}
+                          onClick={() => {
+                            void updateQuantity(product.id, quantity - 1);
+                          }}
                           className="px-2.5 py-1 text-[13px] hover:bg-surface"
                         >
                           −
@@ -110,7 +116,9 @@ export function CartDrawer() {
                         <button
                           type="button"
                           aria-label={`Tăng số lượng ${product.name}`}
-                          onClick={() => updateQuantity(product.id, quantity + 1)}
+                          onClick={() => {
+                            void updateQuantity(product.id, quantity + 1);
+                          }}
                           className="px-2.5 py-1 text-[13px] hover:bg-surface"
                         >
                           +
@@ -124,7 +132,9 @@ export function CartDrawer() {
 
                     <button
                       type="button"
-                      onClick={() => removeFromCart(product.id)}
+                      onClick={() => {
+                        void removeFromCart(product.id);
+                      }}
                       className="mt-2 text-[12px] text-muted underline decoration-rule underline-offset-4 hover:text-ink"
                     >
                       Xóa
@@ -141,6 +151,13 @@ export function CartDrawer() {
                   {formatVND(subtotal)}
                 </span>
               </div>
+              <Link
+                href="/cart"
+                onClick={closeCart}
+                className="mt-4 block border border-ink bg-ink py-2.5 text-center text-[13px] font-semibold text-paper hover:bg-accent"
+              >
+                Xem giỏ hàng
+              </Link>
               <p className="mt-2 text-[12px] leading-5 text-muted">
                 Chưa hỗ trợ thanh toán trực tuyến.
               </p>

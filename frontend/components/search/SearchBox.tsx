@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 import { IconSearch } from '@/components/icons/Icons';
-import { SEARCH_CATEGORIES, SEARCH_KEYWORDS } from '@/data/search-data';
+import { SEARCH_KEYWORDS } from '@/data/search-data';
+import type { StorefrontCategory } from '@/types';
 
 const HISTORY_KEY = 'pharmaotc:search-history';
 const HISTORY_LIMIT = 5;
@@ -31,19 +33,21 @@ export function SearchBox({
   variant,
   inputId,
   ariaLabel,
+  categories,
   className = '',
 }: {
   variant: Variant;
   inputId: string;
   ariaLabel: string;
+  categories: StorefrontCategory[];
   className?: string;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   // Panel đóng lúc render đầu nên đọc localStorage ngay trong initializer không gây lệch hydration.
   const [history, setHistory] = useState<string[]>(readHistory);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const formRef = useRef<HTMLFormElement>(null);
   const panelId = useId();
 
   useEffect(() => {
@@ -90,8 +94,12 @@ export function SearchBox({
   }
 
   function searchFor(term: string) {
-    if (inputRef.current) inputRef.current.value = term;
-    formRef.current?.requestSubmit();
+    const value = term.trim();
+    if (!value) return;
+
+    remember(value);
+    setOpen(false);
+    router.push(`/catalog/search/${encodeURIComponent(value)}`);
   }
 
   const isHero = variant === 'hero';
@@ -99,14 +107,11 @@ export function SearchBox({
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       <form
-        ref={formRef}
-        action="/"
-        method="get"
         role="search"
         aria-label={ariaLabel}
-        onSubmit={() => {
-          remember(inputRef.current?.value ?? '');
-          setOpen(false);
+        onSubmit={(event) => {
+          event.preventDefault();
+          searchFor(inputRef.current?.value ?? '');
         }}
       >
         <label htmlFor={inputId} className="sr-only">
@@ -128,7 +133,6 @@ export function SearchBox({
           <input
             ref={inputRef}
             id={inputId}
-            name="q"
             type="search"
             autoComplete="off"
             placeholder={
@@ -167,10 +171,10 @@ export function SearchBox({
           <section className="border-b border-rule px-4 py-4">
             <h2 className="text-[12px] font-medium text-muted">Danh mục</h2>
             <ul className="mt-1">
-              {SEARCH_CATEGORIES.map((category) => (
+              {categories.map((category) => (
                 <li key={category.id}>
                   <Link
-                    href={`/?danh-muc=${category.id}`}
+                    href={`/catalog/category/${encodeURIComponent(category.slug)}`}
                     onClick={() => setOpen(false)}
                     className="group flex items-baseline justify-between gap-4 py-2 text-[14px]"
                   >
@@ -178,7 +182,7 @@ export function SearchBox({
                       {category.name}
                     </span>
                     <span className="tabular-nums text-[12px] text-muted">
-                      {category.count}
+                      {category.productCount}
                     </span>
                   </Link>
                 </li>

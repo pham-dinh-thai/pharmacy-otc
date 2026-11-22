@@ -1,16 +1,6 @@
-import { CATEGORIES, MOCK_PRODUCTS } from './mock-data';
-
-/** Danh mục kèm số sản phẩm thật đang có trong danh mục. */
-export const SEARCH_CATEGORIES = CATEGORIES.map((category) => ({
-  id: category.id,
-  name: category.name,
-  count: MOCK_PRODUCTS.filter((product) => product.category === category.id)
-    .length,
-}));
-
-/** Từ khoá lấy từ tên sản phẩm và hoạt chất có trong danh mục. */
+/** Từ khoá gợi ý cho ô tìm kiếm công khai. */
 export const SEARCH_KEYWORDS = [
-  'Paracetamol',
+  'Panadol',
   'Berberin',
   'Men vi sinh',
   'Nước biển sâu',

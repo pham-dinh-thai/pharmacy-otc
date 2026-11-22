@@ -4,12 +4,9 @@ import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { SearchBox } from '@/components/search/SearchBox';
 import { Container } from './Container';
+import type { StorefrontCategory } from '@/types';
 
-type NavCategory = {
-  id: string;
-  name: string;
-  shortName: string;
-};
+type NavCategory = StorefrontCategory & { shortName: string };
 
 export function SiteHeader({
   categories,
@@ -18,7 +15,7 @@ export function SiteHeader({
   categories: NavCategory[];
   authSlot?: React.ReactNode;
 }) {
-  const { totalItems, openCart } = useCart();
+  const { totalItems } = useCart();
 
   return (
     <header className="z-40 border-b border-rule bg-paper lg:sticky lg:top-0">
@@ -39,19 +36,20 @@ export function SiteHeader({
           variant="header"
           inputId="header-q"
           ariaLabel="Tìm thuốc"
+          categories={categories}
           className="hidden min-w-0 max-w-[420px] flex-1 md:block"
         />
 
         <div className="ml-auto flex items-center gap-4 text-[13px] font-medium sm:gap-5">
-          <button
-            type="button"
-            onClick={openCart}
+          <Link
+            href="/cart"
             className="flex items-baseline gap-1.5 hover:text-accent"
+            aria-label={`Giỏ hàng, ${totalItems} sản phẩm`}
           >
             <span className="sm:hidden">Giỏ</span>
             <span className="hidden sm:inline">Giỏ hàng</span>
             <span className="tabular-nums text-muted">({totalItems})</span>
-          </button>
+          </Link>
 
           {authSlot ?? (
             <Link href="/login" className="hover:text-accent">
@@ -63,10 +61,14 @@ export function SiteHeader({
 
       <div className="overflow-x-auto border-t border-rule">
         <Container className="flex gap-6 whitespace-nowrap py-2.5 text-[13px] font-medium text-muted lg:gap-8">
+          <Link href="/catalog" className="hover:text-ink">
+            Tất cả sản phẩm
+          </Link>
+
           {categories.map((category) => (
             <Link
               key={category.id}
-              href={`/?danh-muc=${category.id}`}
+              href={`/catalog/category/${encodeURIComponent(category.slug)}`}
               className="hover:text-ink"
             >
               {category.shortName}

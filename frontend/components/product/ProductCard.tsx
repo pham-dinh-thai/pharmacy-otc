@@ -1,36 +1,48 @@
 'use client';
 
 import Image from 'next/image';
-import { useCart } from '@/context/CartContext';
+import Link from 'next/link';
 import { formatVND } from '@/lib/utils';
-import type { Product } from '@/types';
+import type { StorefrontProduct } from '@/types';
+import { AddToCartButton } from './AddToCartButton';
 
-export function ProductCard({ product }: { product: Product }) {
-  const { addToCart } = useCart();
+export function ProductCard({ product }: { product: StorefrontProduct }) {
+  const detailHref = `/product/${product.id}`;
 
   return (
     <article className="flex flex-col">
-      <div className="relative aspect-[4/3] overflow-hidden bg-surface">
-        <Image
-          src={product.imageUrl}
-          alt={product.name}
-          fill
-          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-          className="object-cover"
-        />
-      </div>
+      <Link href={detailHref} className="block">
+        <div className="relative aspect-[4/3] overflow-hidden bg-surface">
+          {product.imageUrl ? (
+            <Image
+              src={product.imageUrl}
+              alt={product.name}
+              fill
+              unoptimized
+              sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+              className="object-cover"
+            />
+          ) : (
+            <span className="grid h-full place-items-center text-[13px] text-muted">
+              Chưa có ảnh
+            </span>
+          )}
+        </div>
+      </Link>
 
       <p className="mt-4 text-[12px] text-muted">
-        {product.subCategory ?? product.categoryName}
+        {product.categories[0]?.name ?? 'Sản phẩm'}
       </p>
 
       <h3 className="mt-1 text-[15px] font-semibold leading-6">
-        {product.name}
+        <Link href={detailHref} className="hover:text-accent">
+          {product.name}
+        </Link>
       </h3>
 
-      {product.activeIngredient ? (
+      {product.description ? (
         <p className="mt-1 line-clamp-2 text-[13px] leading-5 text-muted">
-          {product.activeIngredient}
+          {product.description}
         </p>
       ) : null}
 
@@ -39,16 +51,10 @@ export function ProductCard({ product }: { product: Product }) {
           <p className="tabular-nums text-[15px] font-semibold">
             {formatVND(product.unitPrice)}
           </p>
-          <p className="text-[12px] text-muted">{product.unit}</p>
+          <p className="text-[12px] text-muted">{product.unit ?? '—'}</p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => addToCart(product)}
-          className="mt-3 w-full border border-rule py-2 text-[12px] font-semibold transition-colors hover:border-ink hover:bg-ink hover:text-paper"
-        >
-          Thêm vào giỏ
-        </button>
+        <AddToCartButton product={product} className="mt-3 w-full" />
       </div>
     </article>
   );
