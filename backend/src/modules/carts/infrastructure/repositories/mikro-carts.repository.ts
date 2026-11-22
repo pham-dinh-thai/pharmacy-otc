@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { EntityManager } from '@mikro-orm/core';
-import { randomUUID } from 'crypto';
-import {
-  CartIdentity,
-  CartItemRecord,
-  CartRecord,
+import { EntityManager, LockMode } from '@mikro-orm/core';
+import { Cart } from '../../domain/cart.aggregate';
+import type { CartIdentity } from '../../domain/cart-identity';
+import type {
+  FindCartOptions,
   ICartsRepository,
 } from '../../domain/carts.repository';
 import { MikroCart } from '../entities/mikro-cart.entity';
 import { MikroCartItem } from '../entities/mikro-cart-item.entity';
+import { CartMapper } from '../mappers/cart.mapper';
 
 @Injectable()
 export class MikroCartsRepository implements ICartsRepository {
@@ -16,82 +16,57 @@ export class MikroCartsRepository implements ICartsRepository {
 
   public async findByIdentity(
     identity: CartIdentity,
-  ): Promise<CartRecord | null> {
-    const cart = await this.entityManager.findOne(
+    options: FindCartOptions = {},
+  ): Promise<Cart | null> {
+    const lockMode = options.forUpdate ? LockMode.PESSIMISTIC_WRITE : undefined;
+    const mikroCart = await this.entityManager.findOne(
       MikroCart,
       identity.userId
         ? { userId: identity.userId }
         : { guestToken: identity.guestToken ?? '' },
+      { lockMode },
     );
 
-    if (!cart) return null;
+    if (!mikroCart) return null;
 
-    return this.toRecord(cart);
+    const mikroItems = await this.entityManager.find(
+      MikroCartItem,
+      { cartId: mikroCart.id },
+      { orderBy: { createdAt: 'asc', id: 'asc' }, lockMode },
+    );
+
+    return CartMapper.toDomain(mikroCart, mikroItems);
   }
 
-  public async create(identity: CartIdentity): Promise<CartRecord> {
-    const now = new Date();
-    const cart = this.entityManager.create(MikroCart, {
-      id: randomUUID(),
-      userId: identity.userId ?? null,
-      guestToken: identity.userId ? null : (identity.guestToken ?? null),
-      createdAt: now,
-      updatedAt: now,
-    });
+  public async create(cart: Cart): Promise<Cart> {
+    const { cart: mikroCart, items } = CartMapper.toMikro(cart);
 
-    this.entityManager.persist(cart);
+    this.entityManager.persist(mikroCart);
+    await this.entityManager.flush();
+    await this.replaceItems(cart.getId(), items);
+
+    return CartMapper.toDomain(mikroCart, items);
+  }
+
+  public async update(cart: Cart): Promise<Cart> {
+    const mikroCart = this.entityManager.getReference(MikroCart, cart.getId());
+    const { items } = CartMapper.toMikro(cart);
+
+    CartMapper.assign(mikroCart, cart);
+    await this.replaceItems(cart.getId(), items);
     await this.entityManager.flush();
 
-    return this.toRecord(cart);
+    return cart;
   }
 
-  public async saveItems(
+  private async replaceItems(
     cartId: string,
-    items: CartItemRecord[],
+    items: MikroCartItem[],
   ): Promise<void> {
-    await this.entityManager.transactional(async (em) => {
-      await em.nativeDelete(MikroCartItem, { cartId });
+    await this.entityManager.nativeDelete(MikroCartItem, { cartId });
 
-      const now = new Date();
-      for (const item of items) {
-        em.create(MikroCartItem, {
-          id: randomUUID(),
-          cartId,
-          productId: item.productId,
-          quantity: item.quantity,
-          createdAt: now,
-          updatedAt: now,
-        });
-      }
-    });
-  }
-
-  public async delete(cartId: string): Promise<void> {
-    await this.entityManager.nativeDelete(MikroCart, { id: cartId });
-  }
-
-  private async toRecord(cart: MikroCart): Promise<CartRecord> {
-    return {
-      id: cart.id,
-      userId: cart.userId,
-      guestToken: cart.guestToken,
-      items: await this.findItems(this.entityManager, cart.id),
-    };
-  }
-
-  private async findItems(
-    em: EntityManager,
-    cartId: string,
-  ): Promise<CartItemRecord[]> {
-    const rows = await em.find(
-      MikroCartItem,
-      { cartId },
-      { orderBy: { createdAt: 'asc', id: 'asc' } },
-    );
-
-    return rows.map((row) => ({
-      productId: row.productId,
-      quantity: row.quantity,
-    }));
+    if (items.length > 0) {
+      await this.entityManager.insertMany(MikroCartItem, items);
+    }
   }
 }

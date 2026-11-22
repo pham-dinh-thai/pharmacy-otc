@@ -1,25 +1,19 @@
-export type CartIdentity = {
-  userId?: string;
-  guestToken?: string;
-};
+import { Cart } from './cart.aggregate';
+import type { CartIdentity } from './cart-identity';
 
-export type CartItemRecord = {
-  productId: string;
-  quantity: number;
-};
-
-export type CartRecord = {
-  id: string;
-  userId: string | null;
-  guestToken: string | null;
-  items: CartItemRecord[];
+export type FindCartOptions = {
+  forUpdate?: boolean;
 };
 
 export interface ICartsRepository {
-  findByIdentity(identity: CartIdentity): Promise<CartRecord | null>;
-  create(identity: CartIdentity): Promise<CartRecord>;
-  saveItems(cartId: string, items: CartItemRecord[]): Promise<void>;
-  delete(cartId: string): Promise<void>;
+  findByIdentity(
+    identity: CartIdentity,
+    options?: FindCartOptions,
+  ): Promise<Cart | null>;
+
+  create(cart: Cart): Promise<Cart>;
+
+  update(cart: Cart): Promise<Cart>;
 }
 
 export const CARTS_REPOSITORY = 'ICartsRepository';

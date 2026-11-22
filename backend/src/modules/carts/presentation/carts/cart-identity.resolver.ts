@@ -3,8 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { Request, Response } from 'express';
 import { randomUUID } from 'crypto';
-import type { AccessTokenPayload } from '../../authentication/application/ports/sign-token.port';
-import { CartIdentity } from '../domain/carts.repository';
+import type { AccessTokenPayload } from '../../../authentication/application/ports/sign-token.port';
+import type { CartIdentity } from '../../domain/cart-identity';
 
 export const CART_COOKIE = 'cart_id';
 export const CART_COOKIE_MAX_AGE = 30 * 24 * 60 * 60;

@@ -1,16 +1,20 @@
 import type { StorefrontProduct } from '../../storefront/application/storefront.read-model';
 
-export type CartItemReadModel = {
-  product: StorefrontProduct;
-  quantity: number;
-  lineTotal: string;
-};
+export class CartItemReadModel {
+  public constructor(
+    public readonly product: StorefrontProduct,
+    public readonly quantity: number,
+    public readonly lineTotal: string,
+  ) {}
+}
 
-export type CartReadModel = {
-  kind: 'guest' | 'user';
-  items: CartItemReadModel[];
-  totalItems: number;
-  subtotal: string;
-  shippingFee: string;
-  total: string;
-};
+export class CartReadModel {
+  public constructor(
+    public readonly kind: 'guest' | 'user',
+    public readonly items: CartItemReadModel[],
+    public readonly totalItems: number,
+    public readonly subtotal: string,
+    public readonly shippingFee: string,
+    public readonly total: string,
+  ) {}
+}
