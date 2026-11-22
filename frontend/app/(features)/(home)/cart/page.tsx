@@ -22,7 +22,7 @@ async function CartRoute() {
 
   return (
     <StorefrontShell categories={categories}>
-      <Container className="py-8 lg:py-10">
+      <Container className="pt-8 pb-0 lg:pt-10 lg:pb-0">
         <nav
           aria-label="Đường dẫn"
           className="flex items-center gap-2 text-[12px] text-muted"
