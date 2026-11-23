@@ -13,6 +13,17 @@ export const CART_COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 export const ACCESS_TOKEN_MAX_AGE = 15 * 60; // 15 phút, khớp JWT_ACCESS_EXPIRES_IN
 export const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60; // 7 ngày, khớp JWT_REFRESH_EXPIRES_IN
 
+/**
+ * Chỉ cho phép redirect tới đường dẫn tương đối trong cùng site.
+ * Chặn `//evil.com`, `\evil.com` và các ký tự điều khiển.
+ */
+export function safeNextPath(value: string | null | undefined): string | null {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return null;
+  if (/[\x00-\x1f]/.test(value)) return null;
+
+  return value;
+}
+
 /** Lấy giá trị 1 cookie từ header Set-Cookie (fetch của Node không có cookie jar). */
 export function readSetCookie(headers: Headers, name: string): string | null {
   for (const setCookie of headers.getSetCookie()) {

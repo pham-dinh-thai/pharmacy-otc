@@ -159,7 +159,7 @@ export function CartDrawer() {
                 Xem giỏ hàng
               </Link>
               <p className="mt-2 text-[12px] leading-5 text-muted">
-                Chưa hỗ trợ thanh toán trực tuyến.
+                Tick sản phẩm trong giỏ hàng rồi bấm “Mua” để thanh toán.
               </p>
             </div>
           </>

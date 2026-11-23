@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { AuthField } from '@/components/auth/AuthField';
+import { safeNextPath } from '@/lib/session';
 import { handleLogin } from './actions';
 
 const ERROR_MESSAGE =
@@ -61,6 +62,7 @@ export default function LoginPage({
     error?: string;
     registered?: string;
     passwordChanged?: string;
+    next?: string;
   }>;
 }) {
   return (
@@ -70,6 +72,9 @@ export default function LoginPage({
       </Suspense>
 
       <form action={handleLogin} className="space-y-5">
+        <Suspense fallback={null}>
+          <LoginNextField searchParams={searchParams} />
+        </Suspense>
         <AuthField
           label="Email"
           name="email"
@@ -105,5 +110,21 @@ export default function LoginPage({
         </Link>
       </p>
     </AuthShell>
+  );
+}
+
+async function LoginNextField({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+
+  return (
+    <input
+      type="hidden"
+      name="next"
+      value={safeNextPath(next) ?? ''}
+    />
   );
 }

@@ -5,13 +5,17 @@ import {
   REFRESH_TOKEN_COOKIE,
   REFRESH_TOKEN_MAX_AGE,
   requestNewAccessToken,
+  safeNextPath,
 } from '@/lib/session';
 
 const SECURE_COOKIE = process.env.NODE_ENV === 'production';
 
 function redirectToLogin(request: NextRequest) {
   const url = new URL('/login', request.url);
-  url.searchParams.set('next', request.nextUrl.pathname);
+  const next = safeNextPath(
+    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+  );
+  if (next) url.searchParams.set('next', next);
   return NextResponse.redirect(url);
 }
 
@@ -76,5 +80,6 @@ export const config = {
     '/departments/:path*',
     '/employees/:path*',
     '/account/:path*',
+    '/checkout/:path*',
   ],
 };

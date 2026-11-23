@@ -1,6 +1,7 @@
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Module } from '@nestjs/common';
 import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
+import { SecurityModule } from '../../shared/modules/security/security.module';
 import { CartsModule } from '../carts/carts.module';
 import { ProductsModule } from '../products/products.module';
 import { CreateCheckoutHandler } from './application/commands/create-checkout/create-checkout.handler';
@@ -16,6 +17,7 @@ import { CheckoutsController } from './presentation/checkouts/checkouts.controll
   imports: [
     MikroOrmModule.forFeature([MikroCheckout, MikroCheckoutLine]),
     OutBoxModule,
+    SecurityModule,
     CartsModule,
     ProductsModule,
   ],
