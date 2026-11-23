@@ -75,4 +75,8 @@ export class Money {
   public toString(): string {
     return this.value.toString();
   }
+
+  public toBigInt(): bigint {
+    return this.value;
+  }
 }
