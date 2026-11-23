@@ -11,3 +11,27 @@ export class CheckoutExpiredException extends DomainException {
     super('Checkout is expired', 'CHECKOUT_EXPIRED');
   }
 }
+
+export class EmptyCheckoutException extends DomainException {
+  public constructor() {
+    super('Checkout has no items', 'CHECKOUT_NO_ITEMS');
+  }
+}
+
+export class CheckoutProductNotInCartException extends DomainException {
+  public constructor(productId: string) {
+    super(
+      `Product "${productId}" is not in the cart`,
+      'CHECKOUT_PRODUCT_NOT_IN_CART',
+    );
+  }
+}
+
+export class CheckoutProductNotFoundException extends DomainException {
+  public constructor(productId: string) {
+    super(
+      `Product "${productId}" is not available`,
+      'CHECKOUT_PRODUCT_NOT_FOUND',
+    );
+  }
+}

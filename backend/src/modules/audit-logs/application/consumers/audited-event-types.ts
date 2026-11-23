@@ -47,6 +47,7 @@ import { CUSTOMER_CREATED_EVENT } from '../../../customers/domain/events/custome
 import { CUSTOMER_UPDATED_EVENT } from '../../../customers/domain/events/customer-updated.event';
 import { CUSTOMER_DELETED_EVENT } from '../../../customers/domain/events/customer-deleted.event';
 import { CUSTOMER_RESTORED_EVENT } from '../../../customers/domain/events/customer-restored.event';
+import { CHECKOUT_CREATED_AUDIT_EVENT } from '../../../checkouts/domain/events/checkout-created.event';
 
 /**
  * Verbs stored in `audit_logs.action`. The outbox event type identifies the
@@ -131,6 +132,7 @@ export const AUDITED_EVENT_ACTIONS = {
   [CUSTOMER_UPDATED_EVENT]: 'update',
   [CUSTOMER_DELETED_EVENT]: 'delete',
   [CUSTOMER_RESTORED_EVENT]: 'restore',
+  [CHECKOUT_CREATED_AUDIT_EVENT]: 'create',
 } as const satisfies Record<string, AuditAction>;
 
 export type AuditedEventType = keyof typeof AUDITED_EVENT_ACTIONS;
