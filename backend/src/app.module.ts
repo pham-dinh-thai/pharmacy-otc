@@ -24,6 +24,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { StorefrontModule } from './modules/storefront/storefront.module';
 import { CartsModule } from './modules/carts/carts.module';
+import { CheckoutsModule } from './modules/checkouts/checkouts.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { CartsModule } from './modules/carts/carts.module';
     UploadsModule,
     StorefrontModule,
     CartsModule,
+    CheckoutsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
