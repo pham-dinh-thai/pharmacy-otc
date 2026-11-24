@@ -18,6 +18,8 @@ import { DeleteCustomerHandler } from './application/commands/delete-customer/de
 import { RestoreCustomerHandler } from './application/commands/restore-customer/restore-customer.handler';
 import { GetCustomerHandler } from './application/queries/get-customer/get-customer.handler';
 import { GetCustomersHandler } from './application/queries/get-customers/get-customers.handler';
+import { SaveCustomerDeliveryContactHandler } from './application/commands/save-customer-delivery-contact/save-customer-delivery-contact.handler';
+import { GetMyDeliveryContactHandler } from './application/queries/get-my-delivery-contact/get-my-delivery-contact.handler';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { GetCustomersHandler } from './application/queries/get-customers/get-cus
     RestoreCustomerHandler,
     GetCustomerHandler,
     GetCustomersHandler,
+    SaveCustomerDeliveryContactHandler,
+    GetMyDeliveryContactHandler,
   ],
   exports: [CUSTOMERS_REPOSITORY],
 })

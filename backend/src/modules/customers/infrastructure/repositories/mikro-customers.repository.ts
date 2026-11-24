@@ -53,6 +53,15 @@ export class MikroCustomersRepository implements ICustomersRepository {
     return this.findOne(id, { deletedAt: null });
   }
 
+  public async findByUserId(userId: string): Promise<Customer | null> {
+    const row = await this.entityManager.findOne(MikroCustomer, {
+      userId,
+      deletedAt: null,
+    });
+
+    return row ? this.toDomain(row) : null;
+  }
+
   public async findByIdIncludingDeleted(id: string): Promise<Customer | null> {
     return this.findOne(id, {});
   }

@@ -14,7 +14,7 @@ export type CustomerAddressInput = {
 export class CustomerAddress {
   private constructor(
     private readonly id: Id,
-    private readonly address: string,
+    private address: string,
     private isDefault: boolean,
   ) {}
 
@@ -50,5 +50,9 @@ export class CustomerAddress {
 
   public setIsDefault(isDefault: boolean): void {
     this.isDefault = isDefault;
+  }
+
+  public update(address: string): void {
+    this.address = address.trim();
   }
 }

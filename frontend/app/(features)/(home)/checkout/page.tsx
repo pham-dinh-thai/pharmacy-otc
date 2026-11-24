@@ -6,6 +6,7 @@ import { StorefrontShell } from '@/components/layout/StorefrontShell';
 import { FormMessage } from '@/components/roles/FormMessage';
 import { displayName, fetchCurrentUser } from '@/lib/account';
 import { fetchCartAction } from '@/lib/cart-actions';
+import { fetchDeliveryContact } from '@/lib/delivery-contact';
 import { safeNextPath } from '@/lib/session';
 import { fetchStorefrontCategories } from '@/lib/storefront';
 import { formatVND } from '@/lib/utils';
@@ -60,6 +61,8 @@ async function CheckoutRoute({
     redirect(`/login?next=${encodeURIComponent(next)}`);
   }
 
+  const deliveryContact = await fetchDeliveryContact();
+
   let content: React.ReactNode;
 
   if (params.created) {
@@ -81,6 +84,8 @@ async function CheckoutRoute({
           items={items}
           selectedIds={selectedIds}
           defaultName={displayName(user)}
+          defaultPhone={deliveryContact.phone ?? ''}
+          defaultAddress={deliveryContact.address ?? ''}
           errorMessage={errorMessage(params.error)}
         />
       );
@@ -123,11 +128,15 @@ function CheckoutForm({
   items,
   selectedIds,
   defaultName,
+  defaultPhone,
+  defaultAddress,
   errorMessage,
 }: {
   items: CartItemResponse[];
   selectedIds: string[];
   defaultName: string;
+  defaultPhone: string;
+  defaultAddress: string;
   errorMessage?: string;
 }) {
   const subtotal = items.reduce(
@@ -148,6 +157,14 @@ function CheckoutForm({
           </h2>
 
           <FormMessage message={errorMessage} />
+
+          <p className="mt-3 text-[12px] text-muted">
+            Số điện thoại/địa chỉ đã lưu tại{' '}
+            <Link href="/account" className="underline underline-offset-4">
+              Tài khoản
+            </Link>{' '}
+            được điền sẵn. Bạn có thể sửa cho lần đặt này.
+          </p>
 
           <div className="mt-5 grid gap-5">
             <label className={LABEL_CLASS}>
@@ -170,6 +187,7 @@ function CheckoutForm({
                 name="shippingPhone"
                 type="tel"
                 autoComplete="tel"
+                defaultValue={defaultPhone}
                 required
                 maxLength={20}
                 className={INPUT_CLASS}
@@ -181,6 +199,7 @@ function CheckoutForm({
               Địa chỉ giao hàng
               <textarea
                 name="shippingAddress"
+                defaultValue={defaultAddress}
                 required
                 maxLength={500}
                 rows={3}

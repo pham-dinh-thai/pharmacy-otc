@@ -14,7 +14,7 @@ export type CustomerPhoneInput = {
 export class CustomerPhone {
   private constructor(
     private readonly id: Id,
-    private readonly phone: string,
+    private phone: string,
     private isPrimary: boolean,
   ) {}
 
@@ -46,5 +46,9 @@ export class CustomerPhone {
 
   public setIsPrimary(isPrimary: boolean): void {
     this.isPrimary = isPrimary;
+  }
+
+  public update(phone: string): void {
+    this.phone = phone.trim();
   }
 }

@@ -19,15 +19,19 @@ import type { ActorHeaders } from '../../../../shared/types/actor-headers';
 import { CustomerProfileInput } from '../../domain/customer.aggregate';
 import { CustomerDetailReadModel } from '../../application/queries/customer-detail.read-model';
 import { CustomerPageReadModel } from '../../application/queries/customer-page.read-model';
+import { DeliveryContactReadModel } from '../../application/queries/delivery-contact.read-model';
 import { CreateCustomerByAdminCommand } from '../../application/commands/create-customer-by-admin/create-customer-by-admin.command';
 import { UpdateCustomerCommand } from '../../application/commands/update-customer/update-customer.command';
 import { DeleteCustomerCommand } from '../../application/commands/delete-customer/delete-customer.command';
 import { RestoreCustomerCommand } from '../../application/commands/restore-customer/restore-customer.command';
 import { GetCustomerQuery } from '../../application/queries/get-customer/get-customer.query';
 import { GetCustomersQuery } from '../../application/queries/get-customers/get-customers.query';
+import { GetMyDeliveryContactQuery } from '../../application/queries/get-my-delivery-contact/get-my-delivery-contact.query';
+import { SaveCustomerDeliveryContactCommand } from '../../application/commands/save-customer-delivery-contact/save-customer-delivery-contact.command';
 import { CreateCustomerRequest } from './requests/create-customer.request';
 import { UpdateCustomerRequest } from './requests/update-customer.request';
 import { ListCustomersRequest } from './requests/list-customers.request';
+import { SaveCustomerDeliveryContactRequest } from './requests/save-customer-delivery-contact.request';
 
 @Controller('customers')
 @UseGuards(AuthGuard, PermissionsGuard)
@@ -49,6 +53,31 @@ export class CustomersController {
         search: request.search,
         deleted: request.deleted,
       }),
+    );
+  }
+
+  // Static routes phải đứng trước @Get(':id') để ParseUUIDPipe không chặn.
+  @Get('me/delivery-contact')
+  public getMyDeliveryContact(
+    @ActorContext() headers: ActorHeaders,
+  ): Promise<DeliveryContactReadModel> {
+    return this.queryBus.execute(
+      new GetMyDeliveryContactQuery(headers.actorId),
+    );
+  }
+
+  @Patch('me/delivery-contact')
+  public saveMyDeliveryContact(
+    @Body() request: SaveCustomerDeliveryContactRequest,
+    @ActorContext() headers: ActorHeaders,
+  ): Promise<{ id: string }> {
+    return this.commandBus.execute(
+      new SaveCustomerDeliveryContactCommand(
+        headers.actorId,
+        request.phone ?? null,
+        request.address ?? null,
+        headers,
+      ),
     );
   }
 
