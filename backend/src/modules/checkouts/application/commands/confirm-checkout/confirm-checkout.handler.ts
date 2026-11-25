@@ -7,10 +7,7 @@ import {
 import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
 import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
-import {
-  CARTS_REPOSITORY,
-  type ICartsRepository,
-} from '../../../../carts/domain/carts.repository';
+import { DeductCartItemsCommand } from '../../../../carts/application/commands/deduct-cart-items/deduct-cart-items.command';
 import { CreateOrderCommand } from '../../../../orders/application/commands/create-order/create-order.command';
 import {
   CHECKOUTS_REPOSITORY,
@@ -29,9 +26,6 @@ export class ConfirmCheckoutHandler implements ICommandHandler<ConfirmCheckoutCo
     @Inject(CHECKOUTS_REPOSITORY)
     private readonly checkoutsRepository: ICheckoutRepository,
 
-    @Inject(CARTS_REPOSITORY)
-    private readonly cartsRepository: ICartsRepository,
-
     private readonly commandBus: CommandBus,
   ) {}
 
@@ -48,6 +42,13 @@ export class ConfirmCheckoutHandler implements ICommandHandler<ConfirmCheckoutCo
       }
 
       const beforeStatus = checkout.getStatus();
+      const lines = checkout.getLines().map((line) => ({
+        productId: line.getProductId(),
+        quantity: line.getQuantity(),
+        productName: line.getProductName(),
+        productSku: line.getProductSku(),
+        unitPrice: line.getUnitPrice(),
+      }));
 
       checkout.confirm();
 
@@ -57,12 +58,12 @@ export class ConfirmCheckoutHandler implements ICommandHandler<ConfirmCheckoutCo
         new CreateOrderCommand(
           checkout.getId(),
           checkout.getUserId(),
-          checkout.getLines().map((line) => ({
-            productId: line.getProductId(),
-            productName: line.getProductName(),
-            productSku: line.getProductSku(),
-            unitPrice: line.getUnitPrice(),
-            quantity: line.getQuantity(),
+          lines.map((line) => ({
+            productId: line.productId,
+            productName: line.productName,
+            productSku: line.productSku,
+            unitPrice: line.unitPrice,
+            quantity: line.quantity,
           })),
           checkout.getShippingName(),
           checkout.getShippingAddress(),
@@ -73,15 +74,15 @@ export class ConfirmCheckoutHandler implements ICommandHandler<ConfirmCheckoutCo
         ),
       );
 
-      const cart = await this.cartsRepository.findByIdentity(
-        { userId: checkout.getUserId() },
-        { forUpdate: true },
+      await this.commandBus.execute(
+        new DeductCartItemsCommand(
+          { userId: checkout.getUserId() },
+          lines.map((line) => ({
+            productId: line.productId,
+            quantity: line.quantity,
+          })),
+        ),
       );
-
-      if (cart && cart.getItems().length > 0) {
-        cart.clear();
-        await this.cartsRepository.update(cart);
-      }
 
       await this.commandBus.execute(
         new RecordAuditLogCommand(

@@ -51,3 +51,30 @@ export interface CartResponse {
   shippingFee: string;
   total: string;
 }
+
+export interface CheckoutLineResponse {
+  productId: string;
+  productName: string;
+  productSku: string | null;
+  unitPrice: string;
+  quantity: number;
+  lineTotal: string;
+}
+
+export interface CheckoutDetailResponse {
+  id: string;
+  status: 'pending' | 'confirmed' | 'cancelled' | 'expired';
+  shippingName: string;
+  shippingAddress: string;
+  shippingPhone: string;
+  amount: string;
+  expiresAt: string;
+  createdAt: string;
+  lines: CheckoutLineResponse[];
+}
+
+export interface ConfirmCheckoutResponse {
+  id: string;
+  status: 'confirmed';
+  orderId: string;
+}

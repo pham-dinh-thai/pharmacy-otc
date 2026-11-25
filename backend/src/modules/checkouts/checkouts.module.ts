@@ -5,6 +5,7 @@ import { CartsModule } from '../carts/carts.module';
 import { ProductsModule } from '../products/products.module';
 import { ConfirmCheckoutHandler } from './application/commands/confirm-checkout/confirm-checkout.handler';
 import { CreateCheckoutHandler } from './application/commands/create-checkout/create-checkout.handler';
+import { GetCheckoutHandler } from './application/queries/get-checkout/get-checkout.handler';
 import { CHECKOUT_CATALOG } from './application/ports/checkout-catalog.port';
 import { CHECKOUTS_REPOSITORY } from './domain/checkouts.repository';
 import { ProductsCheckoutCatalogAdapter } from './infrastructure/adapters/products-checkout-catalog.adapter';
@@ -26,6 +27,7 @@ import { CheckoutsController } from './presentation/checkouts/checkouts.controll
     { provide: CHECKOUT_CATALOG, useClass: ProductsCheckoutCatalogAdapter },
     CreateCheckoutHandler,
     ConfirmCheckoutHandler,
+    GetCheckoutHandler,
   ],
   exports: [CHECKOUTS_REPOSITORY],
 })
