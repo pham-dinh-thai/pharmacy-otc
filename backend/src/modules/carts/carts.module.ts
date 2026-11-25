@@ -4,6 +4,7 @@ import { SecurityModule } from '../../shared/modules/security/security.module';
 import { StorefrontModule } from '../storefront/storefront.module';
 import { AddCartItemHandler } from './application/commands/add-cart-item/add-cart-item.handler';
 import { ClearCartHandler } from './application/commands/clear-cart/clear-cart.handler';
+import { DeductCartItemsHandler } from './application/commands/deduct-cart-items/deduct-cart-items.handler';
 import { RemoveCartItemHandler } from './application/commands/remove-cart-item/remove-cart-item.handler';
 import { SetCartItemQuantityHandler } from './application/commands/set-cart-item-quantity/set-cart-item-quantity.handler';
 import { GetCartHandler } from './application/queries/get-cart/get-cart.handler';
@@ -31,6 +32,7 @@ import { CartsController } from './presentation/carts/carts.controller';
     SetCartItemQuantityHandler,
     RemoveCartItemHandler,
     ClearCartHandler,
+    DeductCartItemsHandler,
     GetCartHandler,
   ],
   exports: [CARTS_REPOSITORY],

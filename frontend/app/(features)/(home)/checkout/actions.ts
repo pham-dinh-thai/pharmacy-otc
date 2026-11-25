@@ -5,6 +5,15 @@ import { fetchCurrentUser } from '@/lib/account';
 import { authFetch } from '@/lib/auth';
 
 type CheckoutErrorCode = 'missing' | 'cart' | 'server';
+type ConfirmErrorCode =
+  | 'checkout'
+  | 'expired'
+  | 'status'
+  | 'stock'
+  | 'server';
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function checkoutPath(
   productIds: string[],
@@ -16,6 +25,13 @@ function checkoutPath(
 
   const query = params.toString();
   return query ? `/checkout?${query}` : '/checkout';
+}
+
+function confirmPath(checkoutId: string, error?: ConfirmErrorCode): string {
+  const params = new URLSearchParams({ confirm: checkoutId });
+  if (error) params.set('error', error);
+
+  return `/checkout?${params.toString()}`;
 }
 
 export async function createCheckoutAction(formData: FormData): Promise<void> {
@@ -81,9 +97,73 @@ export async function createCheckoutAction(formData: FormData): Promise<void> {
   }
 
   const { id } = (await response.json()) as { id: string };
-  redirect(
-    typeof id === 'string' && id
-      ? `/checkout?created=1&id=${encodeURIComponent(id)}`
-      : '/checkout?created=1',
-  );
+  if (typeof id !== 'string' || !UUID_PATTERN.test(id)) {
+    redirect(checkoutPath(productIds, 'server'));
+  }
+
+  redirect(confirmPath(id));
+}
+
+export async function confirmCheckoutAction(formData: FormData): Promise<void> {
+  const checkoutId = String(formData.get('checkoutId') ?? '').trim();
+
+  const user = await fetchCurrentUser();
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent(confirmPath(checkoutId))}`);
+  }
+
+  if (!UUID_PATTERN.test(checkoutId)) {
+    redirect(confirmPath(checkoutId, 'checkout'));
+  }
+
+  let response: Response;
+  try {
+    response = await authFetch(
+      `/checkouts/${encodeURIComponent(checkoutId)}/confirm`,
+      { method: 'PATCH' },
+    );
+  } catch {
+    redirect(confirmPath(checkoutId, 'server'));
+  }
+
+  if (response.status === 401) {
+    redirect(`/login?next=${encodeURIComponent(confirmPath(checkoutId))}`);
+  }
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as {
+      code?: string;
+    };
+    const code = body.code ?? '';
+
+    const error: ConfirmErrorCode =
+      code === 'CHECKOUT_NOT_FOUND'
+        ? 'checkout'
+        : code === 'CHECKOUT_EXPIRED'
+          ? 'expired'
+          : code === 'CAN_NOT_UPDATE_CHECKOUT_STATUS'
+            ? 'status'
+            : code === 'INSUFFICIENT_STOCK'
+              ? 'stock'
+              : 'server';
+
+    redirect(confirmPath(checkoutId, error));
+  }
+
+  const { id, orderId } = (await response.json()) as {
+    id?: string;
+    orderId?: string;
+  };
+
+  if (
+    typeof id !== 'string' ||
+    !id ||
+    typeof orderId !== 'string' ||
+    !UUID_PATTERN.test(orderId)
+  ) {
+    redirect(confirmPath(checkoutId, 'server'));
+  }
+
+  const params = new URLSearchParams({ done: '1', id, order: orderId });
+  redirect(`/checkout?${params.toString()}`);
 }

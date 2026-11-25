@@ -29,6 +29,7 @@ interface CartContextType {
   removeFromCart: (productId: string) => Promise<void>;
   updateQuantity: (productId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
+  refreshCart: () => Promise<void>;
   totalItems: number;
   subtotal: number;
   shippingFee: number;
@@ -132,6 +133,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     await run(() => clearCartAction());
   }, [run]);
 
+  const refreshCart = useCallback(async () => {
+    await run(() => fetchCartAction());
+  }, [run]);
+
   return (
     <CartContext.Provider
       value={{
@@ -146,6 +151,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         removeFromCart,
         updateQuantity,
         clearCart,
+        refreshCart,
         totalItems: totals.totalItems,
         subtotal: totals.subtotal,
         shippingFee: totals.shippingFee,
