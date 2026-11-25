@@ -3,7 +3,9 @@ import { CommandBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import { AuthGuard } from '../../../../shared/modules/security/auth.guard';
 import { systemActorHeaders } from '../../../../shared/types/actor-headers';
+import { ConfirmCheckoutCommand } from '../../application/commands/confirm-checkout/confirm-checkout.command';
 import { CreateCheckoutCommand } from '../../application/commands/create-checkout/create-checkout.command';
+import { CheckoutStatus } from '../../domain/enums/checkout-status.enum';
 import { CheckoutsController } from './checkouts.controller';
 import { CreateCheckoutRequest } from './requests/create-checkout.request';
 
@@ -11,10 +13,17 @@ const PRODUCT_ID = '642b3190-9e97-4ce3-8533-894bc879b4fc';
 
 describe('CheckoutsController', () => {
   let controller: CheckoutsController;
-  let execute: jest.Mock<(command: unknown) => Promise<{ id: string }>>;
+  let execute: jest.Mock<
+    (command: unknown) => Promise<{ id: string; status?: CheckoutStatus }>
+  >;
 
   beforeEach(async () => {
-    execute = jest.fn(() => Promise.resolve({ id: 'checkout-id' }));
+    execute = jest.fn(() =>
+      Promise.resolve({
+        id: 'checkout-id',
+        status: CheckoutStatus.CONFIRMED,
+      }),
+    );
 
     const module = await Test.createTestingModule({
       controllers: [CheckoutsController],
@@ -40,7 +49,7 @@ describe('CheckoutsController', () => {
       shippingPhone: '0901234567',
     };
 
-    await expect(controller.create(request, headers)).resolves.toEqual({
+    await expect(controller.create(request, headers)).resolves.toMatchObject({
       id: 'checkout-id',
     });
     expect(execute).toHaveBeenCalledWith(
@@ -52,6 +61,19 @@ describe('CheckoutsController', () => {
         request.shippingPhone,
         headers,
       ),
+    );
+  });
+
+  it('dispatches confirm checkout with the authenticated actor', async () => {
+    const headers = systemActorHeaders();
+    const checkoutId = '01931f7a-1c3e-7a61-8f0e-1c2d3e4f5a6b';
+
+    await expect(controller.confirm(checkoutId, headers)).resolves.toEqual({
+      id: 'checkout-id',
+      status: CheckoutStatus.CONFIRMED,
+    });
+    expect(execute).toHaveBeenCalledWith(
+      new ConfirmCheckoutCommand(checkoutId, headers),
     );
   });
 });

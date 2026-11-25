@@ -4,6 +4,7 @@ import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { SecurityModule } from '../../shared/modules/security/security.module';
 import { CartsModule } from '../carts/carts.module';
 import { ProductsModule } from '../products/products.module';
+import { ConfirmCheckoutHandler } from './application/commands/confirm-checkout/confirm-checkout.handler';
 import { CreateCheckoutHandler } from './application/commands/create-checkout/create-checkout.handler';
 import { CHECKOUT_CATALOG } from './application/ports/checkout-catalog.port';
 import { CHECKOUTS_REPOSITORY } from './domain/checkouts.repository';
@@ -26,6 +27,7 @@ import { CheckoutsController } from './presentation/checkouts/checkouts.controll
     { provide: CHECKOUTS_REPOSITORY, useClass: MikroCheckoutsRepository },
     { provide: CHECKOUT_CATALOG, useClass: ProductsCheckoutCatalogAdapter },
     CreateCheckoutHandler,
+    ConfirmCheckoutHandler,
   ],
   exports: [CHECKOUTS_REPOSITORY],
 })

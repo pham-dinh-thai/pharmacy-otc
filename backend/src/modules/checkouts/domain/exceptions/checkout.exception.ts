@@ -35,3 +35,9 @@ export class CheckoutProductNotFoundException extends DomainException {
     );
   }
 }
+
+export class CheckoutNotFoundException extends DomainException {
+  public constructor(id: string) {
+    super(`Checkout with id "${id}" is not found`, 'CHECKOUT_NOT_FOUND');
+  }
+}

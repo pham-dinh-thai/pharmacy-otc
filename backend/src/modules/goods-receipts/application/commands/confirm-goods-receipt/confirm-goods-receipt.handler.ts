@@ -1,36 +1,37 @@
 import { Inject } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import {
-  type IGoodsReceiptsRepository,
-  GOODS_RECEIPTS_REPOSITORY,
-} from '../../../domain/goods-receipts.repository';
-import { GoodsReceiptNotFoundException } from '../../../domain/exceptions/goods-receipt.exceptions';
-import { goodsReceiptSnapshot } from '../../../domain/goods-receipt.snapshot';
-import { type GoodsReceipt } from '../../../domain/goods-receipt.aggregate';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import { Id } from '../../../../../shared/value-objects/id.value-object';
-import { ConfirmGoodsReceiptCommand } from './confirm-goods-receipt.command';
-import {
-  GOODS_RECEIPT_CONFIRMED_EVENT,
-  GOODS_RECEIPT_CONFIRMED_EXPENSE,
-  GOODS_RECEIPT_STOCK_RECEIVED_EVENT,
-  type GoodsReceiptConfirmedExpensePayload,
-  type GoodsReceiptStockReceivedLine,
-} from '../../../domain/events/goods-receipt-confirmed.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
+import { CreateExpenseCommand } from '../../../../expenses/application/commands/create-expense/create-expense.command';
 import { ExpenseCategory } from '../../../../expenses/domain/enums/expense-category.enum';
+import { ReceiveStockCommand } from '../../../../inventories/application/commands/receive-stock/receive-stock.command';
 import {
   type ISuppliersRepository,
   SUPPLIERS_REPOSITORY,
 } from '../../../../suppliers/domain/suppliers.repository';
+import { type GoodsReceipt } from '../../../domain/goods-receipt.aggregate';
+import { GoodsReceiptNotFoundException } from '../../../domain/exceptions/goods-receipt.exceptions';
+import { goodsReceiptSnapshot } from '../../../domain/goods-receipt.snapshot';
+import {
+  type IGoodsReceiptsRepository,
+  GOODS_RECEIPTS_REPOSITORY,
+} from '../../../domain/goods-receipts.repository';
+import { ConfirmGoodsReceiptCommand } from './confirm-goods-receipt.command';
+
+type StockLine = {
+  batchId: string;
+  productId: string;
+  lotNumber: string;
+  quantity: number;
+  unitCost: string;
+  expiresAt: Date;
+};
 
 @CommandHandler(ConfirmGoodsReceiptCommand)
 export class ConfirmGoodsReceiptHandler implements ICommandHandler<ConfirmGoodsReceiptCommand> {
@@ -38,14 +39,13 @@ export class ConfirmGoodsReceiptHandler implements ICommandHandler<ConfirmGoodsR
     @Inject(GOODS_RECEIPTS_REPOSITORY)
     private readonly goodsReceiptsRepository: IGoodsReceiptsRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
-
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
 
     @Inject(SUPPLIERS_REPOSITORY)
     private readonly suppliersRepository: ISuppliersRepository,
+
+    private readonly commandBus: CommandBus,
   ) {}
 
   public execute(command: ConfirmGoodsReceiptCommand): Promise<{ id: string }> {
@@ -60,63 +60,61 @@ export class ConfirmGoodsReceiptHandler implements ICommandHandler<ConfirmGoodsR
       }
 
       const previousStatus = goodsReceipt.getStatus();
-
       const confirmedAt = goodsReceipt.confirm(command.confirmedBy);
-
       const stockLines = this.prepareStockLines(goodsReceipt);
 
       await this.goodsReceiptsRepository.update(goodsReceipt);
 
-      await this.outboxRepository.create({
-        eventType: GOODS_RECEIPT_CONFIRMED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.GOODS_RECEIPTS,
-          entityId: goodsReceipt.getId(),
-          before: { status: previousStatus },
-          after: goodsReceiptSnapshot(goodsReceipt),
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'confirm',
+            entityType: EntityType.GOODS_RECEIPTS,
+            entityId: goodsReceipt.getId(),
+            before: { status: previousStatus },
+            after: goodsReceiptSnapshot(goodsReceipt),
+          }),
+        ),
+      );
 
-      await this.outboxRepository.create({
-        eventType: GOODS_RECEIPT_STOCK_RECEIVED_EVENT,
-        payload: {
-          goodsReceiptId: goodsReceipt.getId(),
-          confirmedBy: command.confirmedBy,
-          lines: stockLines,
-        },
-      });
+      for (const line of stockLines) {
+        await this.commandBus.execute(
+          new ReceiveStockCommand(
+            line.lotNumber,
+            line.productId,
+            line.quantity,
+            line.unitCost,
+            line.expiresAt,
+            command.confirmedBy,
+            line.batchId,
+          ),
+        );
+      }
 
       const supplier = await this.suppliersRepository.findByIdIncludingDeleted(
         goodsReceipt.getSupplierId(),
       );
 
-      const expensePayload: GoodsReceiptConfirmedExpensePayload = {
-        name: `Trả tiền cho nhà cung cấp ${supplier?.getName() ?? 'không xác định'}`,
-        category: ExpenseCategory.OTHER,
-        amount: Number(goodsReceipt.getAmount()),
-        expenseDate: confirmedAt.toISOString(),
-        supplierId: goodsReceipt.getSupplierId(),
-        paymentMethod: null,
-        note: `Trả tiền cho phiếu nhập ${goodsReceipt.getCode()}`,
-      };
-
-      await this.outboxRepository.create({
-        eventType: GOODS_RECEIPT_CONFIRMED_EXPENSE,
-        payload: expensePayload,
-      });
+      await this.commandBus.execute(
+        new CreateExpenseCommand(
+          `Trả tiền cho nhà cung cấp ${supplier?.getName() ?? 'không xác định'}`,
+          ExpenseCategory.OTHER,
+          goodsReceipt.getAmount(),
+          confirmedAt,
+          goodsReceipt.getSupplierId(),
+          null,
+          `Trả tiền cho phiếu nhập ${goodsReceipt.getCode()}`,
+          command.confirmedBy,
+          command.headers,
+        ),
+      );
 
       return { id: goodsReceipt.getId() };
     });
   }
 
-  /**
-   * Batch ids are generated here, before the inventory consumer runs, so the
-   * goods receipt lines already reference the batches they will receive. This
-   * also makes the consumer idempotent: replaying the event inserts nothing.
-   */
-  private prepareStockLines(
-    goodsReceipt: GoodsReceipt,
-  ): GoodsReceiptStockReceivedLine[] {
+  /** Batch ids are generated before receiving stock so they stay stable. */
+  private prepareStockLines(goodsReceipt: GoodsReceipt): StockLine[] {
     return goodsReceipt.getGoodsReceiptLines().map((line) => {
       const batchId = Id.generate().getValue();
 
@@ -128,7 +126,7 @@ export class ConfirmGoodsReceiptHandler implements ICommandHandler<ConfirmGoodsR
         lotNumber: line.getLotNumber(),
         quantity: line.getQuantity(),
         unitCost: line.getUnitCost(),
-        expiresAt: line.getExpiresAt().toISOString(),
+        expiresAt: line.getExpiresAt(),
       };
     });
   }
