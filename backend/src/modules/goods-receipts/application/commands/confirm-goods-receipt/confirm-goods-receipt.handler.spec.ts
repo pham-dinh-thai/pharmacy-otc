@@ -1,28 +1,26 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
+import type { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
+import { CreateExpenseCommand } from '../../../../expenses/application/commands/create-expense/create-expense.command';
+import { ExpenseCategory } from '../../../../expenses/domain/enums/expense-category.enum';
+import { ReceiveStockCommand } from '../../../../inventories/application/commands/receive-stock/receive-stock.command';
+import { Supplier } from '../../../../suppliers/domain/supplier.aggregate';
+import type { ISuppliersRepository } from '../../../../suppliers/domain/suppliers.repository';
 import {
   GoodsReceiptNotFoundException,
   GoodsReceiptNotPendingException,
 } from '../../../domain/exceptions/goods-receipt.exceptions';
-import {
-  type FindGoodsReceiptOptions,
-  type IGoodsReceiptsRepository,
-} from '../../../domain/goods-receipts.repository';
 import { GoodsReceipt } from '../../../domain/goods-receipt.aggregate';
 import { GoodsReceiptLine } from '../../../domain/goods-receipt-line.entity';
 import { GoodsReceiptStatus } from '../../../domain/goods-receipt-status.enum';
-import { type IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { type IOutboxRepository } from '../../../../../shared/modules/outbox/domain/outbox.repository';
+import type {
+  FindGoodsReceiptOptions,
+  IGoodsReceiptsRepository,
+} from '../../../domain/goods-receipts.repository';
 import { ConfirmGoodsReceiptCommand } from './confirm-goods-receipt.command';
 import { ConfirmGoodsReceiptHandler } from './confirm-goods-receipt.handler';
-import {
-  GOODS_RECEIPT_CONFIRMED_EVENT,
-  GOODS_RECEIPT_CONFIRMED_EXPENSE,
-  GOODS_RECEIPT_STOCK_RECEIVED_EVENT,
-} from '../../../domain/events/goods-receipt-confirmed.event';
-import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
-import { ExpenseCategory } from '../../../../expenses/domain/enums/expense-category.enum';
-import { Supplier } from '../../../../suppliers/domain/supplier.aggregate';
-import { type ISuppliersRepository } from '../../../../suppliers/domain/suppliers.repository';
 
 const RECEIPT_ID = 'b3d7f2a8-7a0e-4f1c-9c1a-4d3f5e6a7b8c';
 const SUPPLIER_ID = '0ca741a6-ce41-4010-8148-f7b2a32aef1c';
@@ -48,8 +46,6 @@ type FindById = (
   options?: FindGoodsReceiptOptions,
 ) => Promise<GoodsReceipt | null>;
 type Update = (receipt: GoodsReceipt) => Promise<GoodsReceipt>;
-type NextSequence = () => Promise<number>;
-type Create = (receipt: GoodsReceipt) => Promise<GoodsReceipt>;
 type Run = (work: () => Promise<unknown>) => Promise<unknown>;
 
 const createLine = (
@@ -81,23 +77,20 @@ const createReceipt = (
 const setup = (receipt: GoodsReceipt | null) => {
   const findById = jest.fn<FindById>(() => Promise.resolve(receipt));
   const update = jest.fn<Update>((value) => Promise.resolve(value));
-  const create = jest.fn<Create>((value) => Promise.resolve(value));
-  const nextSequence = jest.fn<NextSequence>(() => Promise.resolve(1));
   const run = jest.fn<Run>((work) => work());
-  const outboxCreate = jest
-    .fn<IOutboxRepository['create']>()
-    .mockResolvedValue(undefined);
+  const execute = jest.fn<CommandBus['execute']>(() =>
+    Promise.resolve({ id: 'command-id' }),
+  );
 
-  const goodsReceiptsRepository: IGoodsReceiptsRepository = {
-    nextSequence,
-    findPage: jest.fn<IGoodsReceiptsRepository['findPage']>(),
+  const goodsReceiptsRepository = {
+    nextSequence: jest.fn(),
+    findPage: jest.fn(),
     findById,
-    create,
+    create: jest.fn(),
     update,
-  };
-  const unitOfWork: IUnitOfWork = {
-    run: run as unknown as IUnitOfWork['run'],
-  };
+  } as unknown as IGoodsReceiptsRepository;
+  const unitOfWork = { run } as unknown as IUnitOfWork;
+
   const supplier = Supplier.create({
     sequence: 1,
     name: SUPPLIER_NAME,
@@ -115,18 +108,12 @@ const setup = (receipt: GoodsReceipt | null) => {
 
   const handler = new ConfirmGoodsReceiptHandler(
     goodsReceiptsRepository,
-    { create: outboxCreate } as unknown as IOutboxRepository,
     unitOfWork,
     suppliersRepository,
+    { execute } as unknown as CommandBus,
   );
 
-  return {
-    handler,
-    findById,
-    update,
-    run,
-    outboxCreate,
-  };
+  return { handler, findById, update, run, execute };
 };
 
 describe('ConfirmGoodsReceiptHandler', () => {
@@ -134,9 +121,9 @@ describe('ConfirmGoodsReceiptHandler', () => {
     jest.useRealTimers();
   });
 
-  it('confirms the receipt, attaches batch ids and emits audit + stock + expense events', async () => {
+  it('confirms the receipt and dispatches audit, stock and expense commands', async () => {
     const receipt = createReceipt();
-    const { handler, findById, update, run, outboxCreate } = setup(receipt);
+    const { handler, findById, update, run, execute } = setup(receipt);
 
     const result = await handler.execute(
       new ConfirmGoodsReceiptCommand(RECEIPT_ID, CONFIRMED_BY, headers),
@@ -149,104 +136,79 @@ describe('ConfirmGoodsReceiptHandler', () => {
     expect(receipt.getConfirmedBy()).toBe(CONFIRMED_BY);
     expect(update).toHaveBeenCalledWith(receipt);
 
+    expect(execute).toHaveBeenCalledTimes(3);
+
+    const [auditCommand, stockCommand, expenseCommand] = execute.mock.calls.map(
+      (call) => call[0],
+    );
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: CONFIRMED_BY,
+      action: 'confirm',
+      entityType: EntityType.GOODS_RECEIPTS,
+      entityId: receipt.getId(),
+      before: { status: GoodsReceiptStatus.PENDING },
+    });
+
     const line = receipt.getGoodsReceiptLines()[0];
-
     expect(line.getBatchId()).toMatch(UUID_V4_REGEX);
+    expect(stockCommand).toBeInstanceOf(ReceiveStockCommand);
+    expect(stockCommand).toMatchObject({
+      lotNumber: 'LOT-001',
+      productId: PRODUCT_ID,
+      quantity: 10,
+      unitCost: '2500',
+      expiresAt: EXPIRES_AT,
+      createdBy: CONFIRMED_BY,
+      batchId: line.getBatchId(),
+    });
 
-    expect(outboxCreate).toHaveBeenCalledTimes(3);
-    expect(outboxCreate).toHaveBeenNthCalledWith(1, {
-      eventType: GOODS_RECEIPT_CONFIRMED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.GOODS_RECEIPTS,
-          entityId: receipt.getId(),
-          before: { status: GoodsReceiptStatus.PENDING },
-          after: {
-            code: receipt.getCode(),
-            supplierId: SUPPLIER_ID,
-            status: GoodsReceiptStatus.CONFIRMED,
-            createdBy: CREATED_BY,
-            confirmedBy: CONFIRMED_BY,
-            confirmedAt: receipt.getConfirmedAt()?.toISOString(),
-            cancelledBy: null,
-            cancelledAt: null,
-            lines: receipt.getGoodsReceiptLines().map((item) => ({
-              id: item.getId(),
-              lotNumber: item.getLotNumber(),
-              productId: item.getProductId(),
-              quantity: item.getQuantity(),
-              unitCost: item.getUnitCost(),
-              expiresAt: item.getExpiresAt().toISOString(),
-              batchId: item.getBatchId(),
-            })),
-          },
-        },
-      },
-    });
-    expect(outboxCreate).toHaveBeenNthCalledWith(2, {
-      eventType: GOODS_RECEIPT_STOCK_RECEIVED_EVENT,
-      payload: {
-        goodsReceiptId: receipt.getId(),
-        confirmedBy: CONFIRMED_BY,
-        lines: [
-          {
-            batchId: line.getBatchId(),
-            productId: PRODUCT_ID,
-            lotNumber: 'LOT-001',
-            quantity: 10,
-            unitCost: '2500',
-            expiresAt: EXPIRES_AT.toISOString(),
-          },
-        ],
-      },
-    });
-    expect(outboxCreate).toHaveBeenNthCalledWith(3, {
-      eventType: GOODS_RECEIPT_CONFIRMED_EXPENSE,
-      payload: {
-        name: `Trả tiền cho nhà cung cấp ${SUPPLIER_NAME}`,
-        category: ExpenseCategory.OTHER,
-        amount: 25000,
-        expenseDate: receipt.getConfirmedAt()?.toISOString(),
-        supplierId: SUPPLIER_ID,
-        paymentMethod: null,
-        note: `Trả tiền cho phiếu nhập ${receipt.getCode()}`,
-      },
+    expect(expenseCommand).toBeInstanceOf(CreateExpenseCommand);
+    expect(expenseCommand).toMatchObject({
+      name: `Trả tiền cho nhà cung cấp ${SUPPLIER_NAME}`,
+      category: ExpenseCategory.OTHER,
+      amount: 25000n,
+      supplierId: SUPPLIER_ID,
+      paymentMethod: null,
+      note: `Trả tiền cho phiếu nhập ${receipt.getCode()}`,
+      createdBy: CONFIRMED_BY,
+      headers,
     });
   });
 
-  it('emits one stock line per receipt line with distinct batch ids', async () => {
+  it('dispatches one stock command per receipt line with distinct batch ids', async () => {
     const receipt = createReceipt([
       createLine({ lotNumber: 'LOT-001' }),
       createLine({ lotNumber: 'LOT-002' }),
       createLine({ lotNumber: 'LOT-003', productId: OTHER_PRODUCT_ID }),
     ]);
-    const { handler, outboxCreate } = setup(receipt);
+    const { handler, execute } = setup(receipt);
 
     await handler.execute(
       new ConfirmGoodsReceiptCommand(RECEIPT_ID, CONFIRMED_BY, headers),
     );
 
-    const stockEvent = outboxCreate.mock.calls[1][0];
-    const payload = stockEvent.payload as {
-      lines: Array<{ batchId: string; lotNumber: string; productId: string }>;
-    };
+    const stockCommands = execute.mock.calls
+      .map((call) => call[0])
+      .filter(
+        (command): command is ReceiveStockCommand =>
+          command instanceof ReceiveStockCommand,
+      );
 
-    expect(payload.lines).toHaveLength(3);
-    expect(payload.lines.map((line) => line.lotNumber)).toEqual([
+    expect(stockCommands).toHaveLength(3);
+    expect(stockCommands.map((command) => command.lotNumber)).toEqual([
       'LOT-001',
       'LOT-002',
       'LOT-003',
     ]);
-    expect(payload.lines[2].productId).toBe(OTHER_PRODUCT_ID);
-    expect(new Set(payload.lines.map((line) => line.batchId)).size).toBe(3);
-    expect(payload.lines.map((line) => line.batchId)).toEqual(
-      receipt.getGoodsReceiptLines().map((line) => line.getBatchId()),
+    expect(stockCommands[2].productId).toBe(OTHER_PRODUCT_ID);
+    expect(new Set(stockCommands.map((command) => command.batchId)).size).toBe(
+      3,
     );
   });
 
   it('rejects an unknown receipt', async () => {
-    const { handler, update, outboxCreate } = setup(null);
+    const { handler, update, execute } = setup(null);
 
     await expect(
       handler.execute(
@@ -255,15 +217,14 @@ describe('ConfirmGoodsReceiptHandler', () => {
     ).rejects.toThrow(GoodsReceiptNotFoundException);
 
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('rejects confirming a receipt that is not pending', async () => {
     const receipt = createReceipt();
-
     receipt.confirm(CREATED_BY);
 
-    const { handler, update, outboxCreate } = setup(receipt);
+    const { handler, update, execute } = setup(receipt);
 
     await expect(
       handler.execute(
@@ -272,6 +233,6 @@ describe('ConfirmGoodsReceiptHandler', () => {
     ).rejects.toThrow(GoodsReceiptNotPendingException);
 
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

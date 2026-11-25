@@ -24,7 +24,6 @@ import { SUPPLIER_UPDATED_EVENT } from '../../../suppliers/domain/events/supplie
 import { SUPPLIER_DELETED_EVENT } from '../../../suppliers/domain/events/supplier-deleted.event';
 import { SUPPLIER_RESTORED_EVENT } from '../../../suppliers/domain/events/supplier-restored.event';
 import { GOODS_RECEIPT_CREATED_EVENT } from '../../../goods-receipts/domain/events/goods-receipt-created.event';
-import { GOODS_RECEIPT_CONFIRMED_EVENT } from '../../../goods-receipts/domain/events/goods-receipt-confirmed.event';
 import { GOODS_RECEIPT_CANCELLED_EVENT } from '../../../goods-receipts/domain/events/goods-receipt-cancelled.event';
 import { INVENTORY_STOCK_ISSUED_EVENT } from '../../../inventories/domain/events/inventory-stock-issued.event';
 import { INVENTORY_STOCK_RECONCILED_EVENT } from '../../../inventories/domain/events/inventory-stock-reconciled.event';
@@ -47,6 +46,7 @@ import { CUSTOMER_CREATED_EVENT } from '../../../customers/domain/events/custome
 import { CUSTOMER_UPDATED_EVENT } from '../../../customers/domain/events/customer-updated.event';
 import { CUSTOMER_DELETED_EVENT } from '../../../customers/domain/events/customer-deleted.event';
 import { CUSTOMER_RESTORED_EVENT } from '../../../customers/domain/events/customer-restored.event';
+import { CHECKOUT_CREATED_AUDIT_EVENT } from '../../../checkouts/domain/events/checkout-created.event';
 
 /**
  * Verbs stored in `audit_logs.action`. The outbox event type identifies the
@@ -108,7 +108,6 @@ export const AUDITED_EVENT_ACTIONS = {
   [SUPPLIER_DELETED_EVENT]: 'delete',
   [SUPPLIER_RESTORED_EVENT]: 'restore',
   [GOODS_RECEIPT_CREATED_EVENT]: 'create',
-  [GOODS_RECEIPT_CONFIRMED_EVENT]: 'confirm',
   [GOODS_RECEIPT_CANCELLED_EVENT]: 'cancel',
   [INVENTORY_STOCK_ISSUED_EVENT]: 'issue',
   [INVENTORY_STOCK_RECONCILED_EVENT]: 'reconcile',
@@ -131,6 +130,7 @@ export const AUDITED_EVENT_ACTIONS = {
   [CUSTOMER_UPDATED_EVENT]: 'update',
   [CUSTOMER_DELETED_EVENT]: 'delete',
   [CUSTOMER_RESTORED_EVENT]: 'restore',
+  [CHECKOUT_CREATED_AUDIT_EVENT]: 'create',
 } as const satisfies Record<string, AuditAction>;
 
 export type AuditedEventType = keyof typeof AUDITED_EVENT_ACTIONS;

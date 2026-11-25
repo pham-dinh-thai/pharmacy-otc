@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { CartSkeleton } from './CartSkeleton';
 import { useCart } from '@/context/CartContext';
@@ -23,7 +24,7 @@ export function CartPanel() {
   const [deselectedIds, setDeselectedIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const [notice, setNotice] = useState<string | null>(null);
+  const router = useRouter();
 
   if (isLoading) return <CartSkeleton />;
 
@@ -91,14 +92,18 @@ export function CartPanel() {
       }
       return next;
     });
-    setNotice(null);
   };
 
   const toggleAll = () => {
     setDeselectedIds(
       allSelected ? new Set(items.map(({ product }) => product.id)) : new Set(),
     );
-    setNotice(null);
+  };
+
+  const goToCheckout = () => {
+    const params = new URLSearchParams();
+    for (const { product } of selectedItems) params.append('item', product.id);
+    router.push(`/checkout?${params.toString()}`);
   };
 
   return (
@@ -261,19 +266,11 @@ export function CartPanel() {
             <button
               type="button"
               disabled={selectedItems.length === 0}
-              onClick={() => setNotice('Chưa hỗ trợ thanh toán trực tuyến.')}
+              onClick={goToCheckout}
               className="mt-6 block w-full border border-ink bg-ink py-3 text-center text-[13px] font-semibold text-paper hover:bg-accent disabled:cursor-not-allowed disabled:border-rule disabled:bg-surface disabled:text-muted"
             >
               Mua
             </button>
-            {notice ? (
-              <p
-                role="status"
-                className="mt-3 border-l-2 border-accent bg-accent-soft px-3 py-2 text-[12px] leading-5 text-accent"
-              >
-                {notice}
-              </p>
-            ) : null}
 
             <Link
               href="/catalog"

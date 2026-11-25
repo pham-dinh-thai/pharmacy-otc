@@ -9,6 +9,7 @@ import {
   REFRESH_TOKEN_COOKIE,
   REFRESH_TOKEN_MAX_AGE,
   readSetCookie,
+  safeNextPath,
 } from '@/lib/session';
 
 const SECURE_COOKIE = process.env.NODE_ENV === 'production';
@@ -16,6 +17,7 @@ const SECURE_COOKIE = process.env.NODE_ENV === 'production';
 export async function handleLogin(formData: FormData) {
   const email = String(formData.get('email') ?? '');
   const password = String(formData.get('password') ?? '');
+  const next = safeNextPath(String(formData.get('next') ?? '')) ?? '/';
 
   let res: Response;
   try {
@@ -61,7 +63,7 @@ export async function handleLogin(formData: FormData) {
   // Tài khoản do admin tạo phải đổi mật khẩu ngay sau lần đăng nhập đầu tiên.
   if (mustChangePassword) redirect('/account/password');
 
-  redirect('/');
+  redirect(next);
 }
 
 export async function handleLogout() {

@@ -8,10 +8,13 @@ import { CreateCustomerRequest } from './requests/create-customer.request';
 import { UpdateCustomerRequest } from './requests/update-customer.request';
 import { GetCustomersQuery } from '../../application/queries/get-customers/get-customers.query';
 import { GetCustomerQuery } from '../../application/queries/get-customer/get-customer.query';
+import { GetMyDeliveryContactQuery } from '../../application/queries/get-my-delivery-contact/get-my-delivery-contact.query';
 import { CreateCustomerByAdminCommand } from '../../application/commands/create-customer-by-admin/create-customer-by-admin.command';
+import { SaveCustomerDeliveryContactCommand } from '../../application/commands/save-customer-delivery-contact/save-customer-delivery-contact.command';
 import { UpdateCustomerCommand } from '../../application/commands/update-customer/update-customer.command';
 import { DeleteCustomerCommand } from '../../application/commands/delete-customer/delete-customer.command';
 import { RestoreCustomerCommand } from '../../application/commands/restore-customer/restore-customer.command';
+import { SaveCustomerDeliveryContactRequest } from './requests/save-customer-delivery-contact.request';
 import { AuthGuard } from '../../../../shared/modules/security/auth.guard';
 import { PermissionsGuard } from '../../../../shared/modules/security/permissions.guard';
 import { CustomerGender } from '../../domain/enums/customer-gender.enum';
@@ -130,6 +133,37 @@ describe('CustomersController', () => {
     expect(command.id).toBe(CUSTOMER_ID);
     expect(command.profile.dateOfBirth).toEqual(
       new Date('1998-04-12T00:00:00.000Z'),
+    );
+  });
+
+  it('reads delivery contact for the authenticated user', async () => {
+    const contact = { phone: '0901234567', address: null };
+    queryExecute.mockResolvedValue(contact);
+
+    const result = await controller.getMyDeliveryContact(headers);
+
+    expect(queryExecute).toHaveBeenCalledWith(
+      new GetMyDeliveryContactQuery(headers.actorId),
+    );
+    expect(result).toEqual(contact);
+  });
+
+  it('saves a partial delivery contact for the authenticated user', async () => {
+    commandExecute.mockResolvedValue({ id: CUSTOMER_ID });
+    const request = Object.assign(new SaveCustomerDeliveryContactRequest(), {
+      phone: '0901234567',
+      address: null,
+    });
+
+    await controller.saveMyDeliveryContact(request, headers);
+
+    expect(commandExecute).toHaveBeenCalledWith(
+      new SaveCustomerDeliveryContactCommand(
+        headers.actorId,
+        '0901234567',
+        null,
+        headers,
+      ),
     );
   });
 

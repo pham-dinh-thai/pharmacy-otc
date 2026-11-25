@@ -18,6 +18,8 @@ export interface ICustomersRepository {
 
   findById(id: string): Promise<Customer | null>;
 
+  findByUserId(userId: string): Promise<Customer | null>;
+
   findByIdIncludingDeleted(id: string): Promise<Customer | null>;
 
   existsByIdAndUserId(id: string, userId: string): Promise<boolean>;

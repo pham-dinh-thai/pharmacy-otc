@@ -12,6 +12,7 @@ import type {
 import { CustomerGender } from './enums/customer-gender.enum';
 import {
   CustomerAddressRequiredException,
+  CustomerDeliveryContactRequiredException,
   CustomerPhoneRequiredException,
 } from './exceptions/customer.exceptions';
 
@@ -24,6 +25,12 @@ export type CustomerProfileInput = {
 
 export type CreateCustomerProps = CustomerProfileInput & {
   userId: string;
+};
+
+/** Thông tin giao hàng có thể lưu riêng từng phần (chỉ phone, chỉ address). */
+export type DeliveryContactInput = {
+  phone?: string | null;
+  address?: string | null;
 };
 
 export type FromPersistentCustomerProps = CustomerProfileInput & {
@@ -59,6 +66,35 @@ export class Customer {
       props.dateOfBirth ?? null,
       Customer.normalizePhones(props.phones),
       Customer.normalizeAddresses(props.addresses),
+      null,
+      now,
+      now,
+    );
+  }
+
+  /**
+   * Tạo hồ sơ khách cho một user đã có tài khoản (admin/nhân viên cũng dùng
+   * được) với thông tin giao hàng lưu từng phần.
+   */
+  public static createForDelivery(
+    props: DeliveryContactInput & { userId: string },
+  ): Customer {
+    const phone = props.phone?.trim();
+    const address = props.address?.trim();
+
+    if (!phone && !address) {
+      throw new CustomerDeliveryContactRequiredException();
+    }
+
+    const now = new Date();
+
+    return new Customer(
+      Id.generate(),
+      props.userId,
+      null,
+      null,
+      phone ? [CustomerPhone.create({ phone, isPrimary: true })] : [],
+      address ? [CustomerAddress.create({ address, isDefault: true })] : [],
       null,
       now,
       now,
@@ -124,6 +160,44 @@ export class Customer {
     this.dateOfBirth = props.dateOfBirth ?? null;
     this.phones = Customer.normalizePhones(props.phones);
     this.addresses = Customer.normalizeAddresses(props.addresses);
+    this.updatedAt = new Date();
+  }
+
+  /** Cập nhật riêng SĐT chính và/hoặc địa chỉ mặc định, giữ các contact khác. */
+  public saveDeliveryContact(props: DeliveryContactInput): void {
+    const phone = props.phone?.trim();
+    const address = props.address?.trim();
+
+    if (!phone && !address) {
+      throw new CustomerDeliveryContactRequiredException();
+    }
+
+    if (phone) {
+      const primary =
+        this.phones.find((item) => item.getIsPrimary()) ?? this.phones[0];
+
+      if (primary) {
+        primary.update(phone);
+        primary.setIsPrimary(true);
+      } else {
+        this.phones.push(CustomerPhone.create({ phone, isPrimary: true }));
+      }
+    }
+
+    if (address) {
+      const primary =
+        this.addresses.find((item) => item.getIsDefault()) ?? this.addresses[0];
+
+      if (primary) {
+        primary.update(address);
+        primary.setIsDefault(true);
+      } else {
+        this.addresses.push(
+          CustomerAddress.create({ address, isDefault: true }),
+        );
+      }
+    }
+
     this.updatedAt = new Date();
   }
 

@@ -38,3 +38,12 @@ export class CustomerAddressRequiredException extends DomainException {
     );
   }
 }
+
+export class CustomerDeliveryContactRequiredException extends DomainException {
+  public constructor() {
+    super(
+      'A delivery phone or address is required',
+      'CUSTOMER_DELIVERY_CONTACT_REQUIRED',
+    );
+  }
+}
