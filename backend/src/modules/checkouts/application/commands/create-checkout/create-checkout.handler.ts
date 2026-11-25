@@ -125,6 +125,8 @@ export class CreateCheckoutHandler implements ICommandHandler<CreateCheckoutComm
 
       return CheckoutLine.create({
         productId: item.getProductId(),
+        productName: snapshot.name,
+        productSku: snapshot.sku,
         unitPrice: snapshot.unitPrice,
         quantity: item.getQuantity(),
       });

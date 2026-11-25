@@ -14,7 +14,9 @@ const PRODUCT_ID = '642b3190-9e97-4ce3-8533-894bc879b4fc';
 describe('CheckoutsController', () => {
   let controller: CheckoutsController;
   let execute: jest.Mock<
-    (command: unknown) => Promise<{ id: string; status?: CheckoutStatus }>
+    (
+      command: unknown,
+    ) => Promise<{ id: string; status?: CheckoutStatus; orderId?: string }>
   >;
 
   beforeEach(async () => {
@@ -22,6 +24,7 @@ describe('CheckoutsController', () => {
       Promise.resolve({
         id: 'checkout-id',
         status: CheckoutStatus.CONFIRMED,
+        orderId: 'order-id',
       }),
     );
 
@@ -71,6 +74,7 @@ describe('CheckoutsController', () => {
     await expect(controller.confirm(checkoutId, headers)).resolves.toEqual({
       id: 'checkout-id',
       status: CheckoutStatus.CONFIRMED,
+      orderId: 'order-id',
     });
     expect(execute).toHaveBeenCalledWith(
       new ConfirmCheckoutCommand(checkoutId, headers),

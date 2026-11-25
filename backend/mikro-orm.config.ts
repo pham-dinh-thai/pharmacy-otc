@@ -24,6 +24,8 @@ import { MikroCart } from './src/modules/carts/infrastructure/entities/mikro-car
 import { MikroCartItem } from './src/modules/carts/infrastructure/entities/mikro-cart-item.entity';
 import { MikroCheckout } from './src/modules/checkouts/infrastructure/entities/mikro-checkout.entity';
 import { MikroCheckoutLine } from './src/modules/checkouts/infrastructure/entities/mikro-checkout-line.entity';
+import { MikroOrder } from './src/modules/orders/infrastructure/entities/mikro-order.entity';
+import { MikroOrderLine } from './src/modules/orders/infrastructure/entities/mikro-order-line.entity';
 
 dotenv.config({ path: path.resolve('../.env') });
 
@@ -58,6 +60,8 @@ export default defineConfig({
     MikroCartItem,
     MikroCheckout,
     MikroCheckoutLine,
+    MikroOrder,
+    MikroOrderLine,
   ],
   entitiesTs: [
     MikroProduct,
@@ -83,6 +87,8 @@ export default defineConfig({
     MikroCartItem,
     MikroCheckout,
     MikroCheckoutLine,
+    MikroOrder,
+    MikroOrderLine,
   ],
 
   debug: process.env.NODE_ENV !== 'production',

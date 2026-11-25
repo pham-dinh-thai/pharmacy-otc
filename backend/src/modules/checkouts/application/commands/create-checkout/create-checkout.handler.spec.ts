@@ -109,6 +109,8 @@ describe('CreateCheckoutHandler', () => {
     expect(checkout.getUserId()).toBe(USER_ID);
     expect(checkout.getLines()).toHaveLength(1);
     expect(checkout.getLines()[0].getProductId()).toBe(PRODUCT_ID);
+    expect(checkout.getLines()[0].getProductName()).toBe('Product');
+    expect(checkout.getLines()[0].getProductSku()).toBe('SKU');
     expect(checkout.getLines()[0].getUnitPrice()).toBe(UNIT_PRICE);
     expect(checkout.getLines()[0].getQuantity()).toBe(3);
     expect(checkout.getAmount()).toBe(UNIT_PRICE * 3n);

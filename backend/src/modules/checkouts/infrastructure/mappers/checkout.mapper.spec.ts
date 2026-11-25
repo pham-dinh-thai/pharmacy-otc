@@ -16,6 +16,8 @@ describe('CheckoutMapper', () => {
       lines: [
         CheckoutLine.create({
           productId: PRODUCT_ID,
+          productName: 'Paracetamol 500mg',
+          productSku: 'SKU-001',
           unitPrice: 25000n,
           quantity: 3,
         }),
@@ -34,6 +36,8 @@ describe('CheckoutMapper', () => {
     expect(lines[0]).toMatchObject({
       checkoutId: checkout.getId(),
       productId: PRODUCT_ID,
+      productName: 'Paracetamol 500mg',
+      productSku: 'SKU-001',
       unitPrice: 25000n,
       quantity: 3,
     });
@@ -50,6 +54,8 @@ describe('CheckoutMapper', () => {
     expect(restored.getStatus()).toBe(CheckoutStatus.PENDING);
     expect(restored.getLines()).toHaveLength(1);
     expect(restored.getLines()[0].getProductId()).toBe(PRODUCT_ID);
+    expect(restored.getLines()[0].getProductName()).toBe('Paracetamol 500mg');
+    expect(restored.getLines()[0].getProductSku()).toBe('SKU-001');
     expect(restored.getLines()[0].getUnitPrice()).toBe(25000n);
     expect(restored.getLines()[0].getQuantity()).toBe(3);
     expect(restored.getAmount()).toBe(75000n);

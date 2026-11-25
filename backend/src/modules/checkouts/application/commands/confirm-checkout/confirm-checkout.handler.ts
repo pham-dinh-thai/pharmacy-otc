@@ -4,9 +4,14 @@ import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
 import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
-import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import {
+  CARTS_REPOSITORY,
+  type ICartsRepository,
+} from '../../../../carts/domain/carts.repository';
+import { CreateOrderCommand } from '../../../../orders/application/commands/create-order/create-order.command';
 import {
   CHECKOUTS_REPOSITORY,
   type ICheckoutRepository,
@@ -24,12 +29,15 @@ export class ConfirmCheckoutHandler implements ICommandHandler<ConfirmCheckoutCo
     @Inject(CHECKOUTS_REPOSITORY)
     private readonly checkoutsRepository: ICheckoutRepository,
 
+    @Inject(CARTS_REPOSITORY)
+    private readonly cartsRepository: ICartsRepository,
+
     private readonly commandBus: CommandBus,
   ) {}
 
   public async execute(
     command: ConfirmCheckoutCommand,
-  ): Promise<{ id: string; status: CheckoutStatus }> {
+  ): Promise<{ id: string; status: CheckoutStatus; orderId: string }> {
     return this.unitOfWork.run(async () => {
       const checkout = await this.checkoutsRepository.findById(command.id, {
         forUpdate: true,
@@ -45,6 +53,36 @@ export class ConfirmCheckoutHandler implements ICommandHandler<ConfirmCheckoutCo
 
       await this.checkoutsRepository.update(checkout);
 
+      const { id: orderId } = await this.commandBus.execute(
+        new CreateOrderCommand(
+          checkout.getId(),
+          checkout.getUserId(),
+          checkout.getLines().map((line) => ({
+            productId: line.getProductId(),
+            productName: line.getProductName(),
+            productSku: line.getProductSku(),
+            unitPrice: line.getUnitPrice(),
+            quantity: line.getQuantity(),
+          })),
+          checkout.getShippingName(),
+          checkout.getShippingAddress(),
+          checkout.getShippingPhone(),
+          0n,
+          null,
+          command.headers,
+        ),
+      );
+
+      const cart = await this.cartsRepository.findByIdentity(
+        { userId: checkout.getUserId() },
+        { forUpdate: true },
+      );
+
+      if (cart && cart.getItems().length > 0) {
+        cart.clear();
+        await this.cartsRepository.update(cart);
+      }
+
       await this.commandBus.execute(
         new RecordAuditLogCommand(
           recordAuditProps(command.headers, {
@@ -52,12 +90,12 @@ export class ConfirmCheckoutHandler implements ICommandHandler<ConfirmCheckoutCo
             entityType: EntityType.CHECKOUTS,
             entityId: checkout.getId(),
             before: { status: beforeStatus },
-            after: { status: checkout.getStatus() },
+            after: { status: checkout.getStatus(), orderId },
           }),
         ),
       );
 
-      return { id: checkout.getId(), status: checkout.getStatus() };
+      return { id: checkout.getId(), status: checkout.getStatus(), orderId };
     });
   }
 }

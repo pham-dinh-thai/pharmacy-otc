@@ -30,6 +30,17 @@ export class MikroCheckoutLine {
   })
   productId!: string;
 
+  @Property({ fieldName: 'product_name', type: 'string', length: 255 })
+  productName!: string;
+
+  @Property({
+    fieldName: 'product_sku',
+    type: 'string',
+    length: 100,
+    nullable: true,
+  })
+  productSku!: string | null;
+
   @Property({ fieldName: 'unit_price', type: 'bigint' })
   unitPrice!: bigint;
 

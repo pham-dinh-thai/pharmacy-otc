@@ -175,7 +175,7 @@ Form phiếu nhập tìm sản phẩm qua `GET /products?search=...` thay vì b�
 | FR-INV-04 | Kiểm kê/điều chỉnh số lượng theo lô | ✅ |
 | FR-INV-05 | Xem tồn tổng hợp theo sản phẩm qua `GET /inventories` | ✅ |
 | FR-INV-06 | Xem danh sách/chi tiết lô qua `GET /inventories/batches`, `GET /inventories/batches/:id` | ✅ |
-| FR-INV-07 | Gợi ý/chặn xuất theo FEFO | ⬜ |
+| FR-INV-07 | Gợi ý/chặn xuất theo FEFO | ✅ |
 | FR-INV-08 | Tự chuyển lô sang `expired`/`out`, chặn bán hàng hết hạn | ⬜ |
 | FR-INV-09 | Cảnh báo tồn thấp/lô cận hạn | ⬜ |
 | FR-INV-10 | Ghi audit xuất/kiểm kê | ✅ |
@@ -185,21 +185,22 @@ Form phiếu nhập tìm sản phẩm qua `GET /products?search=...` thay vì b�
 - Tồn kho lấy từ `batches`/view `inventories`; `products` không còn cột
   `quantity`. Danh sách sản phẩm hiển thị `stockQuantity` và lọc `inStock` từ
   tồn thực tế.
-- Xuất kho hiện yêu cầu truyền đúng `batchId`; hệ thống chưa tự chọn lô FEFO.
+- Xuất kho thủ công qua `IssueBatchStockCommand` vẫn yêu cầu đúng `batchId`;
+  riêng luồng tạo đơn tự chọn lô FEFO, bỏ qua lô hết hạn, lô `out` và lô hết số lượng.
 - Lô hết hạn/hết số lượng vẫn nằm trong view cho đến khi được kiểm kê hoặc xuất.
 
 ## 12. Orders
 
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
-| FR-ORD-01 | Tạo đơn từ giỏ hàng, backend tự tính giá | ⬜ |
+| FR-ORD-01 | Tạo đơn từ giỏ hàng, backend tự tính giá | ✅ |
 | FR-ORD-02 | Địa chỉ giao, phí giao, ghi chú | ⬜ |
 | FR-ORD-03 | Trạng thái đơn và lịch sử | ⬜ |
-| FR-ORD-04 | Trừ tồn theo lô khi xác nhận đơn | ⬜ |
+| FR-ORD-04 | Trừ tồn theo lô khi xác nhận đơn | ✅ |
 | FR-ORD-05 | Huỷ đơn và hoàn tồn | ⬜ |
 | FR-ORD-06 | Khách xem đơn của mình | ⬜ |
 | FR-ORD-07 | Quản trị xử lý đơn | ⬜ |
-| FR-ORD-08 | Ghi audit | ⬜ |
+| FR-ORD-08 | Ghi audit | ✅ |
 
 ## 13. Expenses
 

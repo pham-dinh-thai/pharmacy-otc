@@ -59,6 +59,8 @@ export class CheckoutMapper {
     return CheckoutLine.fromPersistent({
       id: mikroLine.id,
       productId: mikroLine.productId,
+      productName: mikroLine.productName,
+      productSku: mikroLine.productSku,
       unitPrice: mikroLine.unitPrice,
       quantity: mikroLine.quantity,
     });
@@ -73,6 +75,8 @@ export class CheckoutMapper {
     mikroLine.id = line.getId();
     mikroLine.checkoutId = checkoutId;
     mikroLine.productId = line.getProductId();
+    mikroLine.productName = line.getProductName();
+    mikroLine.productSku = line.getProductSku();
     mikroLine.unitPrice = BigInt(line.getUnitPrice());
     mikroLine.quantity = line.getQuantity();
 
