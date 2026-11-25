@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { IssueBatchStockCommand } from './issue-batch-stock.command';
 import { Inject } from '@nestjs/common';
 import {
@@ -13,12 +13,8 @@ import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import { INVENTORY_STOCK_ISSUED_EVENT } from '../../../domain/events/inventory-stock-issued.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 @CommandHandler(IssueBatchStockCommand)
@@ -27,8 +23,7 @@ export class IssueBatchStockHandler implements ICommandHandler<IssueBatchStockCo
     @Inject(INVENTORIES_REPOSITORY)
     private readonly inventoriesRepository: IInventoriesRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
+    private readonly commandBus: CommandBus,
 
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
@@ -59,24 +54,26 @@ export class IssueBatchStockHandler implements ICommandHandler<IssueBatchStockCo
 
       await this.inventoriesRepository.save(inventory);
 
-      await this.outboxRepository.create({
-        eventType: INVENTORY_STOCK_ISSUED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.INVENTORIES,
-          entityId: batch.getProductId(),
-          before: { quantity: beforeQuantity },
-          after: {
-            productId: batch.getProductId(),
-            batchId: batch.getId(),
-            lotNumber: batch.getLotNumber(),
-            quantity: batch.getQuantity(),
-            unitCost: batch.getUnitCost(),
-            status: batch.getStatus(),
-            expiresAt: batch.getExpiresAt().toISOString(),
-          },
-          metadata: { batchId: batch.getId() },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'issue',
+            entityType: EntityType.INVENTORIES,
+            entityId: batch.getProductId(),
+            before: { quantity: beforeQuantity },
+            after: {
+              productId: batch.getProductId(),
+              batchId: batch.getId(),
+              lotNumber: batch.getLotNumber(),
+              quantity: batch.getQuantity(),
+              unitCost: batch.getUnitCost(),
+              status: batch.getStatus(),
+              expiresAt: batch.getExpiresAt().toISOString(),
+            },
+            metadata: { batchId: batch.getId() },
+          }),
+        ),
+      );
 
       return quantity;
     });

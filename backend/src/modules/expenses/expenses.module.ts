@@ -11,16 +11,11 @@ import { PaySupplierExpenseHandler } from './application/commands/pay-supplier-e
 import { CancelExpenseHandler } from './application/commands/cancel-expense/cancel-expense.handler';
 import { GetExpensesHandler } from './application/queries/get-expenses/get-expenses.handler';
 import { GetExpenseHandler } from './application/queries/get-expense/get-expense.handler';
-import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { SecurityModule } from '../../shared/modules/security/security.module';
 import { ExpensesController } from './presentation/expenses/expenses.controller';
 
 @Module({
-  imports: [
-    MikroOrmModule.forFeature([MikroExpense]),
-    OutBoxModule,
-    SecurityModule,
-  ],
+  imports: [MikroOrmModule.forFeature([MikroExpense]), SecurityModule],
   controllers: [ExpensesController],
   providers: [
     { provide: EXPENSES_REPOSITORY, useClass: MikroExpensesRepository },

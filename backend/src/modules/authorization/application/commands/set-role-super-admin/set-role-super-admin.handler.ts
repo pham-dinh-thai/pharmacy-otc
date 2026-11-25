@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { RoleNotFoundException } from '../../../domain/exceptions/role.exceptions';
 import {
@@ -10,12 +10,8 @@ import {
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import { SetRoleSuperAdminCommand } from './set-role-super-admin.command';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import { SUPER_ADMIN_SET_EVENT } from '../../../domain/events/super-admin-set.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 @CommandHandler(SetRoleSuperAdminCommand)
@@ -24,11 +20,10 @@ export class SetRoleSuperAdminHandler implements ICommandHandler<SetRoleSuperAdm
     @Inject(ROLES_REPOSITORY)
     private readonly rolesRepository: IRolesRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
-
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
+
+    private readonly commandBus: CommandBus,
   ) {}
 
   public async execute(
@@ -51,15 +46,17 @@ export class SetRoleSuperAdminHandler implements ICommandHandler<SetRoleSuperAdm
 
       await this.rolesRepository.update(role);
 
-      await this.outboxRepository.create({
-        eventType: SUPER_ADMIN_SET_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.ROLES,
-          entityId: role.getId(),
-          before: { isSuperAdmin: previousIsSuperAdmin },
-          after: { isSuperAdmin: role.getIsSuperAdmin() },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'set_super_admin',
+            entityType: EntityType.ROLES,
+            entityId: role.getId(),
+            before: { isSuperAdmin: previousIsSuperAdmin },
+            after: { isSuperAdmin: role.getIsSuperAdmin() },
+          }),
+        ),
+      );
 
       return { id: role.getId() };
     });

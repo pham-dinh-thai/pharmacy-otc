@@ -1,4 +1,5 @@
 import { afterEach, jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import { RoleNotFoundException } from '../../../domain/exceptions/role.exceptions';
 import { Test } from '@nestjs/testing';
 import { RestoreRoleHandler } from './restore-role.handler';
@@ -11,10 +12,7 @@ import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
 import { Role } from '../../../domain/role.aggregate';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
@@ -50,7 +48,7 @@ describe('RestoreRoleHandler', () => {
   let rolesRepository: jest.Mocked<
     Pick<IRolesRepository, 'findById' | 'update'>
   >;
-  let outboxRepository: jest.Mocked<Pick<IOutboxRepository, 'create'>>;
+  let commandBus: jest.Mocked<Pick<CommandBus, 'execute'>>;
   let unitOfWork: jest.Mocked<IUnitOfWork>;
 
   beforeEach(async () => {
@@ -59,9 +57,9 @@ describe('RestoreRoleHandler', () => {
       update: jest.fn(),
     } as unknown as jest.Mocked<Pick<IRolesRepository, 'findById' | 'update'>>;
 
-    outboxRepository = {
-      create: jest.fn(),
-    } as unknown as jest.Mocked<Pick<IOutboxRepository, 'create'>>;
+    commandBus = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<Pick<CommandBus, 'execute'>>;
 
     unitOfWork = {
       run: jest.fn(async (callback: () => Promise<unknown>) => callback()),
@@ -70,7 +68,7 @@ describe('RestoreRoleHandler', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         { provide: ROLES_REPOSITORY, useValue: rolesRepository },
-        { provide: OUTBOX_REPOSITORY, useValue: outboxRepository },
+        { provide: CommandBus, useValue: commandBus },
         { provide: UNIT_OF_WORK, useValue: unitOfWork },
         RestoreRoleHandler,
       ],
@@ -91,10 +89,10 @@ describe('RestoreRoleHandler', () => {
     ).rejects.toThrow(RoleNotFoundException);
 
     expect(rolesRepository.update).not.toHaveBeenCalled();
-    expect(outboxRepository.create).not.toHaveBeenCalled();
+    expect(commandBus.execute).not.toHaveBeenCalled();
   });
 
-  it('restores a disabled role and appends an event', async () => {
+  it('restores a disabled role and records an activate audit log', async () => {
     const { role, restore } = disabledRole();
 
     rolesRepository.findById.mockResolvedValue(role);
@@ -103,22 +101,22 @@ describe('RestoreRoleHandler', () => {
 
     expect(restore).toHaveBeenCalledTimes(1);
     expect(rolesRepository.update).toHaveBeenCalledWith(role);
-    expect(outboxRepository.create.mock.calls).toEqual([
-      [
-        {
-          eventType: 'role.restored',
-          payload: {
-            headers,
-            audit: {
-              entityType: EntityType.ROLES,
-              entityId: id,
-              before: { deletedAt },
-              after: { deletedAt: null },
-            },
-          },
-        },
-      ],
-    ]);
+    expect(commandBus.execute).toHaveBeenCalledTimes(1);
+    const auditCommand = commandBus.execute.mock.calls[0][0];
+
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      actorType: 'user',
+      actorLabel: headers.actorLabel,
+      ipAddress: headers.userIp,
+      userAgent: headers.userAgent,
+      action: 'activate',
+      entityType: EntityType.ROLES,
+      entityId: id,
+      before: { deletedAt },
+      after: { deletedAt: null },
+    });
     expect(result).toEqual({ id });
   });
 });

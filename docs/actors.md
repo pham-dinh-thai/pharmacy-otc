@@ -11,7 +11,7 @@
 | **Kế toán/vận hành** | Nội bộ | Ghi nhận và duyệt chi phí, xem báo cáo | 🟡 tạo chi phí; duyệt/báo cáo chưa có API |
 | **Quản trị viên** | Nội bộ | Quản lý người dùng, phân quyền, danh mục | ✅ |
 | **Super Admin** | Nội bộ | Toàn quyền, bỏ qua kiểm tra permission | ✅ |
-| **Hệ thống** | Phần mềm | Outbox relay, audit consumer, refresh token store | ✅ |
+| **Hệ thống** | Phần mềm | CommandBus, ghi audit đồng bộ, refresh token store | ✅ |
 | **PSP/cổng thanh toán** | Bên ngoài | Xử lý thanh toán, gửi IPN | ⬜ thiết kế |
 | **Nhà cung cấp** | Bên ngoài | Cung cấp hàng, không đăng nhập hệ thống | ✅ dữ liệu, không có portal |
 | **Đơn vị vận chuyển** | Bên ngoài | Giao hàng, cập nhật trạng thái | ⬜ thiết kế |
@@ -93,10 +93,11 @@ Lưu ý:
 
 ### Hệ thống
 
-- Outbox relay lấy event chưa xử lý, gọi consumer, đánh dấu đã xử lý trong cùng
-  transaction.
-- Audit consumer ghi `audit_logs` từ event.
-- Hết số lần thử: đánh dấu failed, ghi lỗi.
+- `CommandBus` dispatch `RecordAuditLogCommand` trong cùng transaction với
+  nghiệp vụ; `audit_logs` có ngay sau khi request trả kết quả.
+- Các command có side-effect (`ReceiveStockCommand`, `CreateExpenseCommand`,
+  `DeactivateUserCommand`) cũng chạy trực tiếp trong transaction, không qua event.
+- Lỗi command làm rollback cả transaction; không có hàng đợi retry.
 - Refresh token lưu trong Redis, cookie `httpOnly`.
 
 ## 5. Phân tách trách nhiệm

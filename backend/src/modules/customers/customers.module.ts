@@ -7,7 +7,6 @@ import { CUSTOMERS_REPOSITORY } from './domain/customers.repository';
 import { MikroCustomersRepository } from './infrastructure/repositories/mikro-customers.repository';
 import { CustomersController } from './presentation/customers/customers.controller';
 import { SecurityModule } from '../../shared/modules/security/security.module';
-import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { UsersModule } from '../users/users.module';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { CustomerReadModelFactory } from './application/queries/customer-read-model.factory';
@@ -29,7 +28,6 @@ import { GetMyDeliveryContactHandler } from './application/queries/get-my-delive
       MikroCustomerAddress,
     ]),
     SecurityModule,
-    OutBoxModule,
     UsersModule,
     AuthenticationModule,
   ],

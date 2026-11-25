@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { RoleNotFoundException } from '../../../domain/exceptions/role.exceptions';
 import {
@@ -10,12 +10,8 @@ import {
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import { RestoreRoleCommand } from './restore-role.command';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import { ROLE_RESTORED_EVENT } from '../../../domain/events/role-restored.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 @CommandHandler(RestoreRoleCommand)
@@ -24,11 +20,10 @@ export class RestoreRoleHandler implements ICommandHandler<RestoreRoleCommand> {
     @Inject(ROLES_REPOSITORY)
     private readonly rolesRepository: IRolesRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
-
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
+
+    private readonly commandBus: CommandBus,
   ) {}
 
   public async execute(command: RestoreRoleCommand): Promise<{ id: string }> {
@@ -45,15 +40,17 @@ export class RestoreRoleHandler implements ICommandHandler<RestoreRoleCommand> {
 
       await this.rolesRepository.update(role);
 
-      await this.outboxRepository.create({
-        eventType: ROLE_RESTORED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.ROLES,
-          entityId: role.getId(),
-          before: { deletedAt: previousDeletedAt },
-          after: { deletedAt: role.getDeletedAt() },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'activate',
+            entityType: EntityType.ROLES,
+            entityId: role.getId(),
+            before: { deletedAt: previousDeletedAt },
+            after: { deletedAt: role.getDeletedAt() },
+          }),
+        ),
+      );
 
       return { id: role.getId() };
     });

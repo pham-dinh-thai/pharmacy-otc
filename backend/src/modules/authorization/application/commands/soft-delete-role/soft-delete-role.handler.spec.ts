@@ -10,6 +10,7 @@ import {
   RoleNotFoundException,
   SuperAdminRoleCannotBeDisabledException,
 } from '../../../domain/exceptions/role.exceptions';
+import { CommandBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import { SoftDeleteRoleHandler } from './soft-delete-role.handler';
 import { SoftDeleteRoleCommand } from './soft-delete-role.command';
@@ -21,10 +22,7 @@ import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
 import { Role } from '../../../domain/role.aggregate';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
@@ -57,7 +55,7 @@ describe('SoftDeleteRoleHandler', () => {
   let rolesRepository: jest.Mocked<
     Pick<IRolesRepository, 'findById' | 'update'>
   >;
-  let outboxRepository: jest.Mocked<Pick<IOutboxRepository, 'create'>>;
+  let commandBus: jest.Mocked<Pick<CommandBus, 'execute'>>;
   let unitOfWork: jest.Mocked<IUnitOfWork>;
 
   beforeEach(async () => {
@@ -69,9 +67,9 @@ describe('SoftDeleteRoleHandler', () => {
       update: jest.fn(),
     } as unknown as jest.Mocked<Pick<IRolesRepository, 'findById' | 'update'>>;
 
-    outboxRepository = {
-      create: jest.fn(),
-    } as unknown as jest.Mocked<Pick<IOutboxRepository, 'create'>>;
+    commandBus = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<Pick<CommandBus, 'execute'>>;
 
     unitOfWork = {
       run: jest.fn(async (callback: () => Promise<unknown>) => callback()),
@@ -80,7 +78,7 @@ describe('SoftDeleteRoleHandler', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         { provide: ROLES_REPOSITORY, useValue: rolesRepository },
-        { provide: OUTBOX_REPOSITORY, useValue: outboxRepository },
+        { provide: CommandBus, useValue: commandBus },
         { provide: UNIT_OF_WORK, useValue: unitOfWork },
         SoftDeleteRoleHandler,
       ],
@@ -101,7 +99,7 @@ describe('SoftDeleteRoleHandler', () => {
     ).rejects.toThrow(RoleNotFoundException);
 
     expect(rolesRepository.update).not.toHaveBeenCalled();
-    expect(outboxRepository.create).not.toHaveBeenCalled();
+    expect(commandBus.execute).not.toHaveBeenCalled();
   });
 
   it('refuses to disable a Super Admin', async () => {
@@ -115,10 +113,10 @@ describe('SoftDeleteRoleHandler', () => {
 
     expect(role.isDeleted()).toBe(false);
     expect(rolesRepository.update).not.toHaveBeenCalled();
-    expect(outboxRepository.create).not.toHaveBeenCalled();
+    expect(commandBus.execute).not.toHaveBeenCalled();
   });
 
-  it('disables a regular role and appends an event', async () => {
+  it('disables a regular role and records a deactivate audit log', async () => {
     const role = persistentRole(false);
 
     rolesRepository.findById.mockResolvedValue(role);
@@ -129,30 +127,30 @@ describe('SoftDeleteRoleHandler', () => {
 
     expect(role.isDeleted()).toBe(true);
     expect(rolesRepository.update).toHaveBeenCalledWith(role);
-    expect(outboxRepository.create.mock.calls).toEqual([
-      [
-        {
-          eventType: 'role.disabled',
-          payload: {
-            headers,
-            audit: {
-              entityType: EntityType.ROLES,
-              entityId: id,
-              before: {
-                name: 'manager',
-                isSuperAdmin: false,
-                deletedAt: null,
-              },
-              after: {
-                name: 'manager',
-                isSuperAdmin: false,
-                deletedAt,
-              },
-            },
-          },
-        },
-      ],
-    ]);
+    expect(commandBus.execute).toHaveBeenCalledTimes(1);
+    const auditCommand = commandBus.execute.mock.calls[0][0];
+
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      actorType: 'user',
+      actorLabel: headers.actorLabel,
+      ipAddress: headers.userIp,
+      userAgent: headers.userAgent,
+      action: 'deactivate',
+      entityType: EntityType.ROLES,
+      entityId: id,
+      before: {
+        name: 'manager',
+        isSuperAdmin: false,
+        deletedAt: null,
+      },
+      after: {
+        name: 'manager',
+        isSuperAdmin: false,
+        deletedAt,
+      },
+    });
     expect(result).toEqual({ id });
   });
 });

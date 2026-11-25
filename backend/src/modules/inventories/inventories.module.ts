@@ -10,7 +10,6 @@ import { ReconcileBatchStockHandler } from './application/commands/reconcile-bat
 import { IssueBatchStockHandler } from './application/commands/issue-batch-stock/issue-batch-stock.handler';
 import { IssueStockHandler } from './application/commands/issue-stock/issue-stock.handler';
 import { SecurityModule } from '../../shared/modules/security/security.module';
-import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { GetInventorySummaryHandler } from './application/queries/get-inventory-summary/get-inventory-summary.handler';
 import { GetBatchesHandler } from './application/queries/get-batches/get-batches.handler';
 import { GetBatchHandler } from './application/queries/get-batch/get-batch.handler';
@@ -19,7 +18,6 @@ import { GetBatchHandler } from './application/queries/get-batch/get-batch.handl
   imports: [
     MikroOrmModule.forFeature([MikroBatch, MikroInventory]),
     SecurityModule,
-    OutBoxModule,
   ],
   controllers: [InventoriesController],
   providers: [

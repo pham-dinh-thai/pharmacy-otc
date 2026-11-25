@@ -11,14 +11,12 @@ import { RestoreProductHandler } from './application/commands/restore-product/re
 import { GetProductHandler } from './application/queries/get-product/get-product.handler';
 import { GetProductsHandler } from './application/queries/get-products/get-products.handler';
 import { SecurityModule } from '../../shared/modules/security/security.module';
-import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { CategoriesModule } from '../categories/categories.module';
 
 @Module({
   imports: [
     MikroOrmModule.forFeature([MikroProduct]),
     SecurityModule,
-    OutBoxModule,
     CategoriesModule,
   ],
   providers: [

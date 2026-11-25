@@ -1,16 +1,12 @@
 import { Inject } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import {
-  OUTBOX_REPOSITORY,
-  type IOutboxRepository,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
   UNIT_OF_WORK,
   type IUnitOfWork,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
-import { EXPENSE_SUPPLIER_PAID_EVENT } from '../../../domain/events/expense-supplier-paid.event';
 import { ExpenseNotFoundException } from '../../../domain/exceptions/expense.exceptions';
 import {
   EXPENSES_REPOSITORY,
@@ -25,8 +21,7 @@ export class PaySupplierExpenseHandler implements ICommandHandler<PaySupplierExp
     @Inject(EXPENSES_REPOSITORY)
     private readonly expensesRepository: IExpensesRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
+    private readonly commandBus: CommandBus,
 
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
@@ -48,15 +43,17 @@ export class PaySupplierExpenseHandler implements ICommandHandler<PaySupplierExp
 
       await this.expensesRepository.update(expense);
 
-      await this.outboxRepository.create({
-        eventType: EXPENSE_SUPPLIER_PAID_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.EXPENSES,
-          entityId: expense.getId(),
-          before: { status: previousStatus },
-          after: expenseSnapshot(expense),
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'pay',
+            entityType: EntityType.EXPENSES,
+            entityId: expense.getId(),
+            before: { status: previousStatus },
+            after: expenseSnapshot(expense),
+          }),
+        ),
+      );
 
       return { id: expense.getId() };
     });

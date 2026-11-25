@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { GoodsReceiptNotFoundException } from '../../../domain/exceptions/goods-receipt.exceptions';
 import {
@@ -10,14 +10,10 @@ import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import { CancelGoodsReceiptCommand } from './cancel-goods-receipt.command';
-import { GOODS_RECEIPT_CANCELLED_EVENT } from '../../../domain/events/goods-receipt-cancelled.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
+import { CancelGoodsReceiptCommand } from './cancel-goods-receipt.command';
 
 @CommandHandler(CancelGoodsReceiptCommand)
 export class CancelGoodsReceiptHandler implements ICommandHandler<CancelGoodsReceiptCommand> {
@@ -25,8 +21,7 @@ export class CancelGoodsReceiptHandler implements ICommandHandler<CancelGoodsRec
     @Inject(GOODS_RECEIPTS_REPOSITORY)
     private readonly goodsReceiptsRepository: IGoodsReceiptsRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
+    private readonly commandBus: CommandBus,
 
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
@@ -49,15 +44,17 @@ export class CancelGoodsReceiptHandler implements ICommandHandler<CancelGoodsRec
 
       await this.goodsReceiptsRepository.update(goodsReceipt);
 
-      await this.outboxRepository.create({
-        eventType: GOODS_RECEIPT_CANCELLED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.GOODS_RECEIPTS,
-          entityId: goodsReceipt.getId(),
-          before: { status: previousStatus },
-          after: goodsReceiptSnapshot(goodsReceipt),
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'cancel',
+            entityType: EntityType.GOODS_RECEIPTS,
+            entityId: goodsReceipt.getId(),
+            before: { status: previousStatus },
+            after: goodsReceiptSnapshot(goodsReceipt),
+          }),
+        ),
+      );
 
       return { id: goodsReceipt.getId() };
     });

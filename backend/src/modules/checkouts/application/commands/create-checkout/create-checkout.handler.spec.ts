@@ -1,9 +1,11 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import { systemActorHeaders } from '../../../../../shared/types/actor-headers';
 import type { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { Cart } from '../../../../carts/domain/cart.aggregate';
 import type { ICartsRepository } from '../../../../carts/domain/carts.repository';
-import type { IOutboxRepository } from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import type { CheckoutProductSnapshot } from '../../ports/checkout-catalog.port';
 import type { ICheckoutCatalog } from '../../ports/checkout-catalog.port';
 import type { ICheckoutRepository } from '../../../domain/checkouts.repository';
@@ -19,6 +21,8 @@ const USER_ID = '9f7a1c3e-2b4d-4a61-8f0e-1c2d3e4f5a6b';
 const PRODUCT_ID = '642b3190-9e97-4ce3-8533-894bc879b4fc';
 const OTHER_PRODUCT_ID = '01931f7a-1c3e-7a61-8f0e-1c2d3e4f5a6b';
 const UNIT_PRICE = 25000n;
+
+const headers = systemActorHeaders();
 
 const snapshot = (id: string): CheckoutProductSnapshot => ({
   productId: id,
@@ -48,7 +52,9 @@ const setup = (
   const findByIds = jest
     .fn<ICheckoutCatalog['findByIds']>()
     .mockResolvedValue(catalog);
-  const outboxCreate = jest.fn<IOutboxRepository['create']>();
+  const execute = jest.fn<CommandBus['execute']>().mockResolvedValue({
+    id: 'audit-id',
+  });
   const run = jest.fn<IUnitOfWork['run']>((work) => work());
 
   const handler = new CreateCheckoutHandler(
@@ -56,7 +62,7 @@ const setup = (
     { create: checkoutCreate } as unknown as ICheckoutRepository,
     { findByIdentity } as unknown as ICartsRepository,
     { findByIds },
-    { create: outboxCreate } as unknown as IOutboxRepository,
+    { execute } as unknown as CommandBus,
   );
 
   const command = (productIds: string[] = [PRODUCT_ID]) =>
@@ -66,7 +72,7 @@ const setup = (
       'Nguyen Van A',
       '1 Nguyen Hue',
       '0901234567',
-      systemActorHeaders(),
+      headers,
     );
 
   return {
@@ -75,7 +81,7 @@ const setup = (
     findByIdentity,
     checkoutCreate,
     findByIds,
-    outboxCreate,
+    execute,
     run,
   };
 };
@@ -88,7 +94,7 @@ describe('CreateCheckoutHandler', () => {
       findByIdentity,
       checkoutCreate,
       findByIds,
-      outboxCreate,
+      execute,
       run,
     } = setup();
 
@@ -101,7 +107,21 @@ describe('CreateCheckoutHandler', () => {
     );
     expect(findByIds).toHaveBeenCalledWith([PRODUCT_ID]);
     expect(checkoutCreate).toHaveBeenCalledTimes(1);
-    expect(outboxCreate).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledTimes(1);
+
+    const auditCommand = execute.mock.calls[0][0];
+
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      action: 'create',
+      entityType: EntityType.CHECKOUTS,
+      metadata: {
+        productIds: [PRODUCT_ID],
+        lineCount: 1,
+        amount: (UNIT_PRICE * 3n).toString(),
+      },
+    });
 
     const checkout = checkoutCreate.mock.calls[0][0];
 
@@ -126,27 +146,27 @@ describe('CreateCheckoutHandler', () => {
   });
 
   it('rejects an empty selection', async () => {
-    const { handler, command, checkoutCreate, outboxCreate } = setup();
+    const { handler, command, checkoutCreate, execute } = setup();
 
     await expect(handler.execute(command([]))).rejects.toThrow(
       EmptyCheckoutException,
     );
     expect(checkoutCreate).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('rejects a product that is not in the cart', async () => {
-    const { handler, command, checkoutCreate, outboxCreate } = setup();
+    const { handler, command, checkoutCreate, execute } = setup();
 
     await expect(
       handler.execute(command(['11111111-1111-4111-8111-111111111111'])),
     ).rejects.toThrow(CheckoutProductNotInCartException);
     expect(checkoutCreate).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('rejects a product missing from the catalog', async () => {
-    const { handler, command, checkoutCreate, outboxCreate } = setup(
+    const { handler, command, checkoutCreate, execute } = setup(
       buildCart(),
       new Map(),
     );
@@ -155,6 +175,6 @@ describe('CreateCheckoutHandler', () => {
       CheckoutProductNotFoundException,
     );
     expect(checkoutCreate).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

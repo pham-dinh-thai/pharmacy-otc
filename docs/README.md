@@ -16,7 +16,7 @@ thực phẩm chức năng, mỹ phẩm dược và thiết bị y tế.
 | 4 | [actors.md](actors.md) | Tác nhân hệ thống và quyền tương ứng |
 | 5 | [functional-requirements.md](functional-requirements.md) | Yêu cầu chức năng theo module và trạng thái |
 | 6 | [non-functional-requirements.md](non-functional-requirements.md) | Bảo mật, hiệu năng, độ tin cậy, khả năng bảo trì |
-| 7 | [architecture.md](architecture.md) | Kiến trúc, luồng CQRS, outbox, transaction boundary |
+| 7 | [architecture.md](architecture.md) | Kiến trúc, luồng CQRS, ghi audit đồng bộ, transaction boundary |
 | 8 | [tech-stack.md](tech-stack.md) | Công nghệ, phiên bản, lý do chọn |
 | 9 | [data-model.md](data-model.md) | ERD và mô tả bảng hiện có |
 

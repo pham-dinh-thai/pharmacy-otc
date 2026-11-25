@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateEmployeeCommand } from './create-employee.command';
 import { CreateUserService } from '../../../../users/application/services/create-user.service';
 import {
@@ -13,17 +13,11 @@ import {
   type IEmployeesRepository,
 } from '../../../domain/employees.repository';
 import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { USER_CREATED_EVENT } from '../../../../users/domain/events/user-created.event';
-import { ACCOUNT_SIGNED_UP_EVENT } from '../../../../authentication/domain/events/account-signed-up.event';
-import { EMPLOYEE_CREATED_EVENT } from '../../../domain/events/employee-created.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { AssignableDepartmentValidator } from '../../services/assignable-department.validator';
 
@@ -38,13 +32,12 @@ export class CreateEmployeeHandler implements ICommandHandler<CreateEmployeeComm
     @Inject(EMPLOYEES_REPOSITORY)
     private readonly employeesRepository: IEmployeesRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
-
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
 
     private readonly departmentValidator: AssignableDepartmentValidator,
+
+    private readonly commandBus: CommandBus,
   ) {}
 
   public async execute(
@@ -74,45 +67,51 @@ export class CreateEmployeeHandler implements ICommandHandler<CreateEmployeeComm
       });
       await this.employeesRepository.create(employee);
 
-      await this.outboxRepository.create({
-        eventType: USER_CREATED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.USERS,
-          entityId: user.getId(),
-          after: {
-            firstName: user.getFirstName(),
-            lastName: user.getLastName(),
-            email: user.getEmail(),
-            roleIds: user.getRoleIds(),
-          },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'create',
+            entityType: EntityType.USERS,
+            entityId: user.getId(),
+            after: {
+              firstName: user.getFirstName(),
+              lastName: user.getLastName(),
+              email: user.getEmail(),
+              roleIds: user.getRoleIds(),
+            },
+          }),
+        ),
+      );
 
-      await this.outboxRepository.create({
-        eventType: ACCOUNT_SIGNED_UP_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.ACCOUNTS,
-          entityId: account.getId(),
-          after: {
-            accountId: account.getId(),
-            userId: account.getUserId(),
-          },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'sign_up',
+            entityType: EntityType.ACCOUNTS,
+            entityId: account.getId(),
+            after: {
+              accountId: account.getId(),
+              userId: account.getUserId(),
+            },
+          }),
+        ),
+      );
 
-      await this.outboxRepository.create({
-        eventType: EMPLOYEE_CREATED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.EMPLOYEES,
-          entityId: employee.getId(),
-          after: {
-            userId: employee.getUserId(),
-            departmentId: employee.getDepartmentId(),
-            position: employee.getPosition(),
-            status: employee.getStatus(),
-          },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'create',
+            entityType: EntityType.EMPLOYEES,
+            entityId: employee.getId(),
+            after: {
+              userId: employee.getUserId(),
+              departmentId: employee.getDepartmentId(),
+              position: employee.getPosition(),
+              status: employee.getStatus(),
+            },
+          }),
+        ),
+      );
 
       return { id: employee.getId() };
     });

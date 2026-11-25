@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { SecurityModule } from '../../shared/modules/security/security.module';
-import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { UsersModule } from '../users/users.module';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { DepartmentsModule } from '../departments/departments.module';
@@ -25,7 +24,6 @@ import { GetEmploymentStatusHandler } from './application/queries/get-employment
   imports: [
     MikroOrmModule.forFeature([MikroEmployee]),
     SecurityModule,
-    OutBoxModule,
     UsersModule,
     AuthenticationModule,
     DepartmentsModule,

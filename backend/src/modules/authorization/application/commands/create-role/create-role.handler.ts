@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import {
   type IRolesRepository,
@@ -9,12 +9,8 @@ import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import { ROLE_CREATED_EVENT } from '../../../domain/events/role-created.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { CreateRoleCommand } from './create-role.command';
 
@@ -24,11 +20,10 @@ export class CreateRoleHandler implements ICommandHandler<CreateRoleCommand> {
     @Inject(ROLES_REPOSITORY)
     private readonly rolesRepository: IRolesRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
-
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
+
+    private readonly commandBus: CommandBus,
   ) {}
 
   public execute(command: CreateRoleCommand): Promise<{ id: string }> {
@@ -41,18 +36,20 @@ export class CreateRoleHandler implements ICommandHandler<CreateRoleCommand> {
 
       await this.rolesRepository.create(role);
 
-      await this.outboxRepository.create({
-        eventType: ROLE_CREATED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.ROLES,
-          entityId: role.getId(),
-          after: {
-            name: role.getName(),
-            permissions: role.getPermissions(),
-            isSuperAdmin: role.getIsSuperAdmin(),
-          },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'create',
+            entityType: EntityType.ROLES,
+            entityId: role.getId(),
+            after: {
+              name: role.getName(),
+              permissions: role.getPermissions(),
+              isSuperAdmin: role.getIsSuperAdmin(),
+            },
+          }),
+        ),
+      );
 
       return { id: role.getId() };
     });

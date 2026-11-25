@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import { UserEmailAlreadyExistsException } from '../../../domain/exceptions/user.exceptions';
 import { Test } from '@nestjs/testing';
 import { CreateUserByAdminHandler } from './create-user-by-admin.handler';
@@ -8,12 +9,8 @@ import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
 import { User } from '../../../domain/user.aggregate';
-import { USER_CREATED_EVENT } from '../../../domain/events/user-created.event';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 const headers = {
@@ -27,7 +24,7 @@ const headers = {
 describe('CreateUserByAdminHandler', () => {
   let handler: CreateUserByAdminHandler;
   let createUserService: jest.Mocked<Pick<CreateUserService, 'create'>>;
-  let outboxRepository: jest.Mocked<Pick<IOutboxRepository, 'create'>>;
+  let commandBus: jest.Mocked<Pick<CommandBus, 'execute'>>;
   let unitOfWork: jest.Mocked<IUnitOfWork>;
 
   beforeEach(async () => {
@@ -35,9 +32,9 @@ describe('CreateUserByAdminHandler', () => {
       create: jest.fn(),
     } as unknown as jest.Mocked<Pick<CreateUserService, 'create'>>;
 
-    outboxRepository = {
-      create: jest.fn(),
-    } as unknown as jest.Mocked<Pick<IOutboxRepository, 'create'>>;
+    commandBus = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<Pick<CommandBus, 'execute'>>;
 
     unitOfWork = {
       run: jest.fn(async (callback: () => Promise<unknown>) => callback()),
@@ -46,7 +43,7 @@ describe('CreateUserByAdminHandler', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         { provide: CreateUserService, useValue: createUserService },
-        { provide: OUTBOX_REPOSITORY, useValue: outboxRepository },
+        { provide: CommandBus, useValue: commandBus },
         { provide: UNIT_OF_WORK, useValue: unitOfWork },
         CreateUserByAdminHandler,
       ],
@@ -55,7 +52,7 @@ describe('CreateUserByAdminHandler', () => {
     handler = moduleRef.get(CreateUserByAdminHandler);
   });
 
-  it('creates the user and appends an audit event', async () => {
+  it('creates the user and records an audit log', async () => {
     const user = User.create({
       firstName: 'Jane',
       lastName: 'Doe',
@@ -72,26 +69,30 @@ describe('CreateUserByAdminHandler', () => {
       lastName: 'Doe',
       email: 'jane@example.com',
     });
-    expect(outboxRepository.create).toHaveBeenCalledWith({
-      eventType: USER_CREATED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.USERS,
-          entityId: user.getId(),
-          after: {
-            firstName: 'Jane',
-            lastName: 'Doe',
-            email: 'jane@example.com',
-            roleIds: [],
-          },
-        },
+    expect(commandBus.execute).toHaveBeenCalledTimes(1);
+    const auditCommand = commandBus.execute.mock.calls[0][0];
+
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      actorType: 'user',
+      actorLabel: headers.actorLabel,
+      ipAddress: headers.userIp,
+      userAgent: headers.userAgent,
+      action: 'create',
+      entityType: EntityType.USERS,
+      entityId: user.getId(),
+      after: {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        email: 'jane@example.com',
+        roleIds: [],
       },
     });
     expect(result).toEqual({ id: user.getId() });
   });
 
-  it('does not append an event when creation is rejected', async () => {
+  it('does not record an audit log when creation is rejected', async () => {
     createUserService.create.mockRejectedValue(
       new UserEmailAlreadyExistsException('jane@example.com'),
     );
@@ -107,6 +108,6 @@ describe('CreateUserByAdminHandler', () => {
       ),
     ).rejects.toThrow(UserEmailAlreadyExistsException);
 
-    expect(outboxRepository.create).not.toHaveBeenCalled();
+    expect(commandBus.execute).not.toHaveBeenCalled();
   });
 });

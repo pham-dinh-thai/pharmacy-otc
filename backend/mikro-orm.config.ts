@@ -14,7 +14,6 @@ import { MikroCustomerPhone } from './src/modules/customers/infrastructure/entit
 import { MikroCustomerAddress } from './src/modules/customers/infrastructure/entities/mikro-customer-address.entity';
 import { MikroRole } from './src/modules/authorization/infrastructure/entities/mikro-role.entity';
 import { MikroAuditLog } from './src/modules/audit-logs/infrastructure/entities/mikro-audit-log.entity';
-import { MikroOutBoxEvent } from './src/shared/modules/outbox/infrastructure/mikro-outbox-event.entity';
 import { MikroExpense } from './src/modules/expenses/infrastructure/entities/mikro-expense.entity';
 import { MikroEmployee } from './src/modules/employees/infrastructure/entities/mikro-employee.entity';
 import { MikroDepartment } from './src/modules/departments/infrastructure/entities/mikro-department.entity';
@@ -50,7 +49,6 @@ export default defineConfig({
     MikroCustomerAddress,
     MikroRole,
     MikroAuditLog,
-    MikroOutBoxEvent,
     MikroExpense,
     MikroDepartment,
     MikroEmployee,
@@ -77,7 +75,6 @@ export default defineConfig({
     MikroCustomerAddress,
     MikroRole,
     MikroAuditLog,
-    MikroOutBoxEvent,
     MikroExpense,
     MikroDepartment,
     MikroEmployee,

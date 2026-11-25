@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { SecurityModule } from '../../shared/modules/security/security.module';
-import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { DEPARTMENTS_REPOSITORY } from './domain/departments.repository';
 import { MikroDepartmentsRepository } from './infrastructure/repositories/mikro-departments.repository';
 import { MikroDepartment } from './infrastructure/entities/mikro-department.entity';
@@ -15,11 +14,7 @@ import { GetDepartmentHandler } from './application/queries/get-department/get-d
 
 @Module({
   controllers: [DepartmentsController],
-  imports: [
-    MikroOrmModule.forFeature([MikroDepartment]),
-    SecurityModule,
-    OutBoxModule,
-  ],
+  imports: [MikroOrmModule.forFeature([MikroDepartment]), SecurityModule],
   providers: [
     { provide: DEPARTMENTS_REPOSITORY, useClass: MikroDepartmentsRepository },
     CreateDepartmentHandler,

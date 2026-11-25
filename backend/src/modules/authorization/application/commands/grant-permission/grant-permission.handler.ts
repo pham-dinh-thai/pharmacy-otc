@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { RoleNotFoundException } from '../../../domain/exceptions/role.exceptions';
 import {
@@ -10,12 +10,8 @@ import {
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import { GrantPermissionCommand } from './grant-permission.command';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import { PERMISSION_GRANTED_EVENT } from '../../../domain/events/permission-granted.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 @CommandHandler(GrantPermissionCommand)
@@ -24,11 +20,10 @@ export class GrantPermissionHandler implements ICommandHandler<GrantPermissionCo
     @Inject(ROLES_REPOSITORY)
     private readonly rolesRepository: IRolesRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
-
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
+
+    private readonly commandBus: CommandBus,
   ) {}
 
   public async execute(
@@ -47,16 +42,18 @@ export class GrantPermissionHandler implements ICommandHandler<GrantPermissionCo
 
       await this.rolesRepository.update(role);
 
-      await this.outboxRepository.create({
-        eventType: PERMISSION_GRANTED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.ROLES,
-          entityId: role.getId(),
-          before: { permissions: previousPermissions },
-          after: { permissions: role.getPermissions() },
-          metadata: { permission: command.permission },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'grant_permission',
+            entityType: EntityType.ROLES,
+            entityId: role.getId(),
+            before: { permissions: previousPermissions },
+            after: { permissions: role.getPermissions() },
+            metadata: { permission: command.permission },
+          }),
+        ),
+      );
 
       return { id: role.getId() };
     });

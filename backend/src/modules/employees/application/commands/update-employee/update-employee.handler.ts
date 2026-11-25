@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { EmployeeNotFoundException } from '../../../domain/exceptions/employee.exceptions';
 import { UpdateEmployeeCommand } from './update-employee.command';
 import { UpdateEmployeeResponse } from './update-employee.response';
@@ -8,15 +8,11 @@ import {
   type IEmployeesRepository,
 } from '../../../domain/employees.repository';
 import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { EMPLOYEE_UPDATED_EVENT } from '../../../domain/events/employee-updated.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { AssignableDepartmentValidator } from '../../services/assignable-department.validator';
 import { EmployeeStatusTransitionService } from '../../services/employee-status-transition.service';
@@ -27,14 +23,12 @@ export class UpdateEmployeeHandler implements ICommandHandler<UpdateEmployeeComm
     @Inject(EMPLOYEES_REPOSITORY)
     private readonly employeesRepository: IEmployeesRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
-
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
 
     private readonly departmentValidator: AssignableDepartmentValidator,
     private readonly statusTransition: EmployeeStatusTransitionService,
+    private readonly commandBus: CommandBus,
   ) {}
 
   public execute(
@@ -86,21 +80,23 @@ export class UpdateEmployeeHandler implements ICommandHandler<UpdateEmployeeComm
       await this.employeesRepository.update(employee);
 
       if (assignmentChanged) {
-        await this.outboxRepository.create({
-          eventType: EMPLOYEE_UPDATED_EVENT,
-          payload: auditEventPayload(command.headers, {
-            entityType: EntityType.EMPLOYEES,
-            entityId: employee.getId(),
-            before: {
-              departmentId: previousDepartmentId,
-              position: previousPosition,
-            },
-            after: {
-              departmentId: employee.getDepartmentId(),
-              position: employee.getPosition(),
-            },
-          }),
-        });
+        await this.commandBus.execute(
+          new RecordAuditLogCommand(
+            recordAuditProps(command.headers, {
+              action: 'update',
+              entityType: EntityType.EMPLOYEES,
+              entityId: employee.getId(),
+              before: {
+                departmentId: previousDepartmentId,
+                position: previousPosition,
+              },
+              after: {
+                departmentId: employee.getDepartmentId(),
+                position: employee.getPosition(),
+              },
+            }),
+          ),
+        );
       }
 
       return new UpdateEmployeeResponse(

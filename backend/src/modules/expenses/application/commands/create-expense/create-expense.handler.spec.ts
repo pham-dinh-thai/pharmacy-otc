@@ -1,13 +1,13 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import { InvalidAmountException } from '../../../../../shared/domain/exceptions/value-object.exceptions';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { Expense } from '../../../domain/expense.aggregate';
 import { ExpenseCategory } from '../../../domain/enums/expense-category.enum';
 import { ExpenseStatus } from '../../../domain/enums/expense-status.enum';
 import { PaymentMethod } from '../../../domain/enums/payment-method.enum';
-import { EXPENSE_CREATED_EVENT } from '../../../domain/events/expense-created.event';
-import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { IExpensesRepository } from '../../../domain/expenses.repository';
-import { IOutboxRepository } from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import { CreateExpenseCommand } from './create-expense.command';
 import { CreateExpenseHandler } from './create-expense.handler';
@@ -42,9 +42,9 @@ const setup = () => {
     Promise.resolve(expense),
   );
   const run = jest.fn<IUnitOfWork['run']>((work) => work());
-  const outboxCreate = jest
-    .fn<IOutboxRepository['create']>()
-    .mockResolvedValue(undefined);
+  const execute = jest.fn<CommandBus['execute']>(() =>
+    Promise.resolve({ id: 'audit-id' }),
+  );
 
   const repository: IExpensesRepository = {
     findAll: jest.fn<IExpensesRepository['findAll']>(),
@@ -58,16 +58,16 @@ const setup = () => {
   };
   const handler = new CreateExpenseHandler(
     repository,
-    { create: outboxCreate } as unknown as IOutboxRepository,
+    { execute } as unknown as CommandBus,
     unitOfWork,
   );
 
-  return { handler, create, run, outboxCreate };
+  return { handler, create, run, execute };
 };
 
 describe('CreateExpenseHandler', () => {
-  it('creates an expense inside a unit of work and appends an audit event', async () => {
-    const { handler, create, run, outboxCreate } = setup();
+  it('creates an expense inside a unit of work and records an audit log', async () => {
+    const { handler, create, run, execute } = setup();
 
     const result = await handler.execute(createCommand());
 
@@ -91,37 +91,41 @@ describe('CreateExpenseHandler', () => {
     expect(expense.getNote()).toBe('November rent');
     expect(expense.getCreatedBy()).toBe(CREATED_BY);
 
-    expect(outboxCreate).toHaveBeenCalledWith({
-      eventType: EXPENSE_CREATED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.EXPENSES,
-          entityId: expense.getId(),
-          after: {
-            name: 'Office rent',
-            category: ExpenseCategory.RENT,
-            amount: 5000000,
-            expenseDate: '2026-11-01',
-            supplierId: SUPPLIER_ID,
-            status: ExpenseStatus.PENDING,
-            paymentMethod: PaymentMethod.BANK_TRANSFER,
-            note: 'November rent',
-            createdBy: CREATED_BY,
-          },
-        },
+    expect(execute).toHaveBeenCalledTimes(1);
+    const auditCommand = execute.mock.calls[0][0];
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: CREATED_BY,
+      actorType: 'user',
+      actorLabel: 'admin@example.com',
+      ipAddress: '127.0.0.1',
+      userAgent: 'jest',
+      status: 'success',
+      action: 'create',
+      entityType: EntityType.EXPENSES,
+      entityId: expense.getId(),
+      after: {
+        name: 'Office rent',
+        category: ExpenseCategory.RENT,
+        amount: 5000000,
+        expenseDate: '2026-11-01',
+        supplierId: SUPPLIER_ID,
+        status: ExpenseStatus.PENDING,
+        paymentMethod: PaymentMethod.BANK_TRANSFER,
+        note: 'November rent',
+        createdBy: CREATED_BY,
       },
     });
   });
 
   it('does not persist an expense that violates a domain rule', async () => {
-    const { handler, create, outboxCreate } = setup();
+    const { handler, create, execute } = setup();
 
     await expect(handler.execute(createCommand(-1n))).rejects.toThrow(
       InvalidAmountException,
     );
 
     expect(create).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import { CreateRoleHandler } from './create-role.handler';
 import { CreateRoleCommand } from './create-role.command';
@@ -10,10 +11,7 @@ import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 const headers = {
@@ -27,7 +25,7 @@ const headers = {
 describe('CreateRoleHandler', () => {
   let handler: CreateRoleHandler;
   let rolesRepository: jest.Mocked<Pick<IRolesRepository, 'create'>>;
-  let outboxRepository: jest.Mocked<Pick<IOutboxRepository, 'create'>>;
+  let commandBus: jest.Mocked<Pick<CommandBus, 'execute'>>;
   let unitOfWork: jest.Mocked<IUnitOfWork>;
 
   beforeEach(async () => {
@@ -35,9 +33,9 @@ describe('CreateRoleHandler', () => {
       create: jest.fn(),
     } as unknown as jest.Mocked<Pick<IRolesRepository, 'create'>>;
 
-    outboxRepository = {
-      create: jest.fn(),
-    } as unknown as jest.Mocked<Pick<IOutboxRepository, 'create'>>;
+    commandBus = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<Pick<CommandBus, 'execute'>>;
 
     unitOfWork = {
       run: jest.fn(async (callback: () => Promise<unknown>) => callback()),
@@ -46,7 +44,7 @@ describe('CreateRoleHandler', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         { provide: ROLES_REPOSITORY, useValue: rolesRepository },
-        { provide: OUTBOX_REPOSITORY, useValue: outboxRepository },
+        { provide: CommandBus, useValue: commandBus },
         { provide: UNIT_OF_WORK, useValue: unitOfWork },
         CreateRoleHandler,
       ],
@@ -70,35 +68,36 @@ describe('CreateRoleHandler', () => {
     expect(result).toEqual({ id: role.getId() });
   });
 
-  it('appends a role.created event inside the same unit of work', async () => {
+  it('records a create audit log inside the same unit of work', async () => {
     await handler.execute(
       new CreateRoleCommand('manager', ['orders:read'], false, headers),
     );
 
     const role = rolesRepository.create.mock.calls[0][0];
-    const [createCall] = outboxRepository.create.mock.calls;
 
-    expect(createCall).toEqual([
-      {
-        eventType: 'role.created',
-        payload: {
-          headers,
-          audit: {
-            entityType: EntityType.ROLES,
-            entityId: role.getId(),
-            after: {
-              name: 'manager',
-              permissions: ['orders:read'],
-              isSuperAdmin: false,
-            },
-          },
-        },
+    expect(commandBus.execute).toHaveBeenCalledTimes(1);
+    const auditCommand = commandBus.execute.mock.calls[0][0];
+
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      actorType: 'user',
+      actorLabel: headers.actorLabel,
+      ipAddress: headers.userIp,
+      userAgent: headers.userAgent,
+      action: 'create',
+      entityType: EntityType.ROLES,
+      entityId: role.getId(),
+      after: {
+        name: 'manager',
+        permissions: ['orders:read'],
+        isSuperAdmin: false,
       },
-    ]);
+    });
     expect(unitOfWork.run.mock.calls).toHaveLength(1);
   });
 
-  it('does not append the event when the role write fails', async () => {
+  it('does not record an audit log when the role write fails', async () => {
     rolesRepository.create.mockRejectedValue(new Error('write failed'));
 
     await expect(
@@ -107,6 +106,6 @@ describe('CreateRoleHandler', () => {
       ),
     ).rejects.toThrow('write failed');
 
-    expect(outboxRepository.create.mock.calls).toHaveLength(0);
+    expect(commandBus.execute).not.toHaveBeenCalled();
   });
 });

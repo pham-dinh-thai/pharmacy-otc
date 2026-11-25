@@ -22,7 +22,6 @@ import { RefreshTokenHandler } from './application/commands/refresh-token/refres
 import { GET_USER_BY_ID_PORT } from './application/commands/refresh-token/ports/get-user-by-id-port';
 import { GetUserByIdAdapter } from './infrastructure/adapters/get-user-by-id.adapter';
 import { SecurityModule } from '../../shared/modules/security/security.module';
-import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { ForgotPasswordHandler } from './application/commands/forgot-password/forgot-password.handler';
 import { ChangePasswordHandler } from './application/commands/change-password/change-password.handler';
 import { LogoutHandler } from './application/commands/logout/logout.handler';
@@ -30,11 +29,7 @@ import { GET_EMPLOYMENT_STATUS_PORT } from './application/ports/get-employment-s
 import { GetEmploymentStatusAdapter } from './infrastructure/adapters/get-employment-status.adapter';
 
 @Module({
-  imports: [
-    MikroOrmModule.forFeature([MikroAccount]),
-    SecurityModule,
-    OutBoxModule,
-  ],
+  imports: [MikroOrmModule.forFeature([MikroAccount]), SecurityModule],
   providers: [
     { provide: ACCOUNTS_REPOSITORY, useClass: MikroAccountsRepository },
     { provide: CREATE_USER_PORT, useClass: CreateUserAdapter },

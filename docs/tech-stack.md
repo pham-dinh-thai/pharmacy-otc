@@ -36,7 +36,7 @@
 
 ### PostgreSQL
 
-- Transaction mạnh, phù hợp outbox + audit.
+- Transaction mạnh, ghi nghiệp vụ và audit cùng atomic.
 - Kiểu `bigint`, `jsonb`, `text[]`, `timestamptz`, `date` đúng nhu cầu.
 - Dễ chạy local bằng Docker, có nhiều công cụ backup/restore.
 
@@ -63,7 +63,7 @@
 | `decimal.js` / `decimal` cho tiền | VND là số nguyên; `bigint` đủ và nhanh |
 | Mongoose/MongoDB | Cần transaction và quan hệ chặt |
 | TypeORM/Prisma | Đã chọn MikroORM, tránh trùng lặp |
-| Kafka/RabbitMQ | Outbox trong Postgres đủ cho đồ án |
+| Kafka/RabbitMQ | Không cần broker: command chạy đồng bộ trong transaction |
 | GraphQL | REST đơn giản, ít client |
 | Microservice | Tăng độ phức tạp vận hành không cần thiết |
 | Event sourcing đầy đủ | Không cần replay toàn bộ trạng thái |
@@ -92,12 +92,6 @@ JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
-
-# Outbox relay
-OUTBOX_RELAY_ENABLED=false
-OUTBOX_BATCH_SIZE=50
-OUTBOX_POLL_INTERVAL_MS=1000
-OUTBOX_MAX_ATTEMPTS=5
 ```
 
 Không commit `.env`. Khi triển khai, secret phải lấy từ secret manager/biến môi

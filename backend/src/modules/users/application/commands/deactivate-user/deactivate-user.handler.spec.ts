@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import { DeactivateUserHandler } from './deactivate-user.handler';
 import { DeactivateUserCommand } from './deactivate-user.command';
@@ -8,14 +9,10 @@ import {
 } from '../../../../authentication/domain/accounts.repository';
 import { Account } from '../../../../authentication/domain/account.aggregate';
 import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { USER_DEACTIVATED_EVENT } from '../../../domain/events/user-deactivated.event';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 const headers = {
@@ -45,7 +42,7 @@ describe('DeactivateUserHandler', () => {
   let accountsRepository: jest.Mocked<
     Pick<IAccountsRepository, 'findByUserId' | 'update'>
   >;
-  let outboxRepository: jest.Mocked<Pick<IOutboxRepository, 'create'>>;
+  let commandBus: jest.Mocked<Pick<CommandBus, 'execute'>>;
   let unitOfWork: jest.Mocked<IUnitOfWork>;
 
   beforeEach(async () => {
@@ -55,9 +52,9 @@ describe('DeactivateUserHandler', () => {
     } as unknown as jest.Mocked<
       Pick<IAccountsRepository, 'findByUserId' | 'update'>
     >;
-    outboxRepository = {
-      create: jest.fn(),
-    } as unknown as jest.Mocked<Pick<IOutboxRepository, 'create'>>;
+    commandBus = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<Pick<CommandBus, 'execute'>>;
     unitOfWork = {
       run: jest.fn(async (callback: () => Promise<unknown>) => callback()),
     } as unknown as jest.Mocked<IUnitOfWork>;
@@ -65,7 +62,7 @@ describe('DeactivateUserHandler', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         { provide: ACCOUNTS_REPOSITORY, useValue: accountsRepository },
-        { provide: OUTBOX_REPOSITORY, useValue: outboxRepository },
+        { provide: CommandBus, useValue: commandBus },
         { provide: UNIT_OF_WORK, useValue: unitOfWork },
         DeactivateUserHandler,
       ],
@@ -80,7 +77,7 @@ describe('DeactivateUserHandler', () => {
     await handler.execute(new DeactivateUserCommand(USER_ID, headers));
 
     expect(accountsRepository.update).not.toHaveBeenCalled();
-    expect(outboxRepository.create).not.toHaveBeenCalled();
+    expect(commandBus.execute).not.toHaveBeenCalled();
   });
 
   it('does nothing when the account is already inactive', async () => {
@@ -89,10 +86,10 @@ describe('DeactivateUserHandler', () => {
     await handler.execute(new DeactivateUserCommand(USER_ID, headers));
 
     expect(accountsRepository.update).not.toHaveBeenCalled();
-    expect(outboxRepository.create).not.toHaveBeenCalled();
+    expect(commandBus.execute).not.toHaveBeenCalled();
   });
 
-  it('deactivates the account and appends an audit event', async () => {
+  it('deactivates the account and records an audit log', async () => {
     const account = accountWithStatus(true);
     accountsRepository.findByUserId.mockResolvedValue(account);
 
@@ -102,18 +99,22 @@ describe('DeactivateUserHandler', () => {
 
     expect(account.getIsActive()).toBe(false);
     expect(accountsRepository.update).toHaveBeenCalledWith(account);
-    expect(outboxRepository.create).toHaveBeenCalledWith({
-      eventType: USER_DEACTIVATED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.ACCOUNTS,
-          entityId: ACCOUNT_ID,
-          before: { isActive: true },
-          after: { isActive: false },
-          metadata: { userId: USER_ID },
-        },
-      },
+    expect(commandBus.execute).toHaveBeenCalledTimes(1);
+    const auditCommand = commandBus.execute.mock.calls[0][0];
+
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      actorType: 'user',
+      actorLabel: headers.actorLabel,
+      ipAddress: headers.userIp,
+      userAgent: headers.userAgent,
+      action: 'deactivate',
+      entityType: EntityType.ACCOUNTS,
+      entityId: ACCOUNT_ID,
+      before: { isActive: true },
+      after: { isActive: false },
+      metadata: { userId: USER_ID },
     });
     expect(result).toEqual({ userId: USER_ID });
   });

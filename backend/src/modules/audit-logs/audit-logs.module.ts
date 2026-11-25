@@ -8,15 +8,9 @@ import { RecordAuditLogHandler } from './application/commands/record-audit-log/r
 import { GetAuditLogHandler } from './application/queries/get-audit-log/get-audit-log.handler';
 import { ListAuditLogsHandler } from './application/queries/list-audit-logs/list-audit-logs.handler';
 import { AuditLogsController } from './presentation/audit-logs/audit-logs.controller';
-import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
-import { AuditLogConsumer } from './application/consumers/audit-log.consumer';
 
 @Module({
-  imports: [
-    MikroOrmModule.forFeature([MikroAuditLog]),
-    SecurityModule,
-    OutBoxModule,
-  ],
+  imports: [MikroOrmModule.forFeature([MikroAuditLog]), SecurityModule],
   controllers: [AuditLogsController],
   providers: [
     {
@@ -26,7 +20,6 @@ import { AuditLogConsumer } from './application/consumers/audit-log.consumer';
     RecordAuditLogHandler,
     GetAuditLogHandler,
     ListAuditLogsHandler,
-    AuditLogConsumer,
   ],
   exports: [AUDIT_LOGS_REPOSITORY],
 })

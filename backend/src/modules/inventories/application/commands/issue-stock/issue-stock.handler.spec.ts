@@ -1,11 +1,11 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import type { IOutboxRepository } from '../../../../../shared/modules/outbox/domain/outbox.repository';
+import { CommandBus } from '@nestjs/cqrs';
 import type { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import { systemActorHeaders } from '../../../../../shared/types/actor-headers';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { BatchStatus } from '../../../domain/batch/batch-status.enum';
 import { Batch } from '../../../domain/batch/batch.entity';
-import { INVENTORY_STOCK_ISSUED_EVENT } from '../../../domain/events/inventory-stock-issued.event';
 import {
   InsufficientStockException,
   InvalidStockQuantityException,
@@ -76,9 +76,9 @@ const setup = (inventory: Inventory | null) => {
   );
   const save = jest.fn<Save>((value) => Promise.resolve(value));
   const run = jest.fn<Run>((work) => work());
-  const outboxCreate = jest
-    .fn<IOutboxRepository['create']>()
-    .mockResolvedValue(undefined);
+  const execute = jest.fn<CommandBus['execute']>(() =>
+    Promise.resolve({ id: 'audit-id' }),
+  );
 
   const repository = {
     findByProductId,
@@ -92,18 +92,17 @@ const setup = (inventory: Inventory | null) => {
   const unitOfWork = { run } as unknown as IUnitOfWork;
   const handler = new IssueStockHandler(
     repository,
-    { create: outboxCreate } as unknown as IOutboxRepository,
+    { execute } as unknown as CommandBus,
     unitOfWork,
   );
 
-  return { handler, findByProductId, save, run, outboxCreate };
+  return { handler, findByProductId, save, run, execute };
 };
 
 describe('IssueStockHandler', () => {
-  it('issues FEFO across usable batches and records one outbox event per batch', async () => {
+  it('issues FEFO across usable batches and records one audit log per batch', async () => {
     const inventory = createInventory();
-    const { handler, findByProductId, save, run, outboxCreate } =
-      setup(inventory);
+    const { handler, findByProductId, save, run, execute } = setup(inventory);
 
     const result = await handler.execute(
       new IssueStockCommand(PRODUCT_ID, 7, headers),
@@ -136,56 +135,55 @@ describe('IssueStockHandler', () => {
     expect(quantities.get(OUT_ID)).toBe(10);
     expect(quantities.get(ZERO_ID)).toBe(0);
 
-    expect(outboxCreate).toHaveBeenCalledTimes(2);
-    expect(outboxCreate).toHaveBeenNthCalledWith(1, {
-      eventType: INVENTORY_STOCK_ISSUED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.INVENTORIES,
-          entityId: PRODUCT_ID,
-          before: { quantity: 5 },
-          after: {
-            productId: PRODUCT_ID,
-            batchId: EARLY_ID,
-            lotNumber: `LOT-${EARLY_ID.slice(0, 3)}`,
-            quantity: 0,
-            unitCost: '2500',
-            status: BatchStatus.ACTIVE,
-            expiresAt: EARLY_EXPIRES_AT.toISOString(),
-          },
-          metadata: { batchId: EARLY_ID },
-        },
+    expect(execute).toHaveBeenCalledTimes(2);
+    const auditCommands = execute.mock.calls.map(([command]) => command);
+    expect(auditCommands[0]).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommands[0] as RecordAuditLogCommand).props).toMatchObject({
+      actorId: CREATED_BY,
+      actorType: 'system',
+      actorLabel: headers.actorLabel,
+      ipAddress: headers.userIp,
+      userAgent: headers.userAgent,
+      status: 'success',
+      action: 'issue',
+      entityType: EntityType.INVENTORIES,
+      entityId: PRODUCT_ID,
+      before: { quantity: 5 },
+      after: {
+        productId: PRODUCT_ID,
+        batchId: EARLY_ID,
+        lotNumber: `LOT-${EARLY_ID.slice(0, 3)}`,
+        quantity: 0,
+        unitCost: '2500',
+        status: BatchStatus.ACTIVE,
+        expiresAt: EARLY_EXPIRES_AT.toISOString(),
       },
+      metadata: { batchId: EARLY_ID },
     });
-    expect(outboxCreate).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        eventType: INVENTORY_STOCK_ISSUED_EVENT,
-        payload: {
-          headers,
-          audit: expect.objectContaining({
-            before: { quantity: 5 },
-            after: expect.objectContaining({
-              batchId: LATER_ID,
-              quantity: 3,
-            }),
-          }),
-        },
+    expect(auditCommands[1]).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommands[1] as RecordAuditLogCommand).props).toMatchObject({
+      action: 'issue',
+      entityType: EntityType.INVENTORIES,
+      entityId: PRODUCT_ID,
+      before: { quantity: 5 },
+      after: expect.objectContaining({
+        batchId: LATER_ID,
+        quantity: 3,
       }),
-    );
+      metadata: { batchId: LATER_ID },
+    });
   });
 
   it('rejects issuing more than available usable stock without saving', async () => {
     const inventory = createInventory();
-    const { handler, save, outboxCreate } = setup(inventory);
+    const { handler, save, execute } = setup(inventory);
 
     await expect(
       handler.execute(new IssueStockCommand(PRODUCT_ID, 11, headers)),
     ).rejects.toThrow(InsufficientStockException);
 
     expect(save).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
     expect(
       inventory
         .getBatches()
@@ -195,18 +193,18 @@ describe('IssueStockHandler', () => {
   });
 
   it('throws when inventory does not exist', async () => {
-    const { handler, save, outboxCreate } = setup(null);
+    const { handler, save, execute } = setup(null);
 
     await expect(
       handler.execute(new IssueStockCommand(PRODUCT_ID, 1, headers)),
     ).rejects.toThrow(InventoryNotFoundException);
 
     expect(save).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('rejects a non-positive quantity before touching the repository', async () => {
-    const { handler, findByProductId, save, outboxCreate } =
+    const { handler, findByProductId, save, execute } =
       setup(createInventory());
 
     await expect(
@@ -215,6 +213,6 @@ describe('IssueStockHandler', () => {
 
     expect(findByProductId).not.toHaveBeenCalled();
     expect(save).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

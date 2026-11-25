@@ -1,4 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
+import { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import { DuplicateGoodsReceiptLineException } from '../../../domain/exceptions/goods-receipt.exceptions';
 import {
   FindGoodsReceiptOptions,
@@ -6,15 +10,11 @@ import {
 } from '../../../domain/goods-receipts.repository';
 import { GoodsReceipt } from '../../../domain/goods-receipt.aggregate';
 import { GoodsReceiptStatus } from '../../../domain/goods-receipt-status.enum';
-import { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { IOutboxRepository } from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import {
   CreateGoodsReceiptCommand,
   CreateGoodsReceiptLineProps,
 } from './create-goods-receipt.command';
 import { CreateGoodsReceiptHandler } from './create-goods-receipt.handler';
-import { GOODS_RECEIPT_CREATED_EVENT } from '../../../domain/events/goods-receipt-created.event';
-import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 const SUPPLIER_ID = 'b3d7f2a8-7a0e-4f1c-9c1a-4d3f5e6a7b8c';
 const PRODUCT_ID = '0ca741a6-ce41-4010-8148-f7b2a32aef1c';
@@ -61,9 +61,9 @@ const setup = (sequence = 1) => {
   const create = jest.fn<Create>((receipt) => Promise.resolve(receipt));
   const update = jest.fn<Update>((receipt) => Promise.resolve(receipt));
   const run = jest.fn<Run>((work) => work());
-  const outboxCreate = jest
-    .fn<IOutboxRepository['create']>()
-    .mockResolvedValue(undefined);
+  const execute = jest.fn<CommandBus['execute']>(() =>
+    Promise.resolve({ id: 'audit-id' }),
+  );
 
   const repository: IGoodsReceiptsRepository = {
     nextSequence,
@@ -77,16 +77,16 @@ const setup = (sequence = 1) => {
   };
   const handler = new CreateGoodsReceiptHandler(
     repository,
-    { create: outboxCreate } as unknown as IOutboxRepository,
+    { execute } as unknown as CommandBus,
     unitOfWork,
   );
 
-  return { handler, nextSequence, create, run, outboxCreate };
+  return { handler, nextSequence, create, run, execute };
 };
 
 describe('CreateGoodsReceiptHandler', () => {
   it('creates a pending receipt with a sequence-based code inside a unit of work', async () => {
-    const { handler, nextSequence, create, run, outboxCreate } = setup(7);
+    const { handler, nextSequence, create, run, execute } = setup(7);
 
     const result = await handler.execute(createCommand());
 
@@ -110,33 +110,37 @@ describe('CreateGoodsReceiptHandler', () => {
     expect(created.getStatus()).toBe(GoodsReceiptStatus.PENDING);
     expect(created.getGoodsReceiptLines()).toHaveLength(1);
 
-    expect(outboxCreate).toHaveBeenCalledWith({
-      eventType: GOODS_RECEIPT_CREATED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.GOODS_RECEIPTS,
-          entityId: created.getId(),
-          after: {
-            code: 'GR-0007',
-            supplierId: SUPPLIER_ID,
-            status: GoodsReceiptStatus.PENDING,
-            createdBy: CREATED_BY,
-            confirmedBy: null,
-            confirmedAt: null,
-            cancelledBy: null,
-            cancelledAt: null,
-            lines: created.getGoodsReceiptLines().map((line) => ({
-              id: line.getId(),
-              lotNumber: line.getLotNumber(),
-              productId: line.getProductId(),
-              quantity: line.getQuantity(),
-              unitCost: line.getUnitCost(),
-              expiresAt: line.getExpiresAt().toISOString(),
-              batchId: null,
-            })),
-          },
-        },
+    expect(execute).toHaveBeenCalledTimes(1);
+    const auditCommand = execute.mock.calls[0][0];
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: CREATED_BY,
+      actorType: 'user',
+      actorLabel: 'admin@example.com',
+      ipAddress: '127.0.0.1',
+      userAgent: 'jest',
+      status: 'success',
+      action: 'create',
+      entityType: EntityType.GOODS_RECEIPTS,
+      entityId: created.getId(),
+      after: {
+        code: 'GR-0007',
+        supplierId: SUPPLIER_ID,
+        status: GoodsReceiptStatus.PENDING,
+        createdBy: CREATED_BY,
+        confirmedBy: null,
+        confirmedAt: null,
+        cancelledBy: null,
+        cancelledAt: null,
+        lines: created.getGoodsReceiptLines().map((line) => ({
+          id: line.getId(),
+          lotNumber: line.getLotNumber(),
+          productId: line.getProductId(),
+          quantity: line.getQuantity(),
+          unitCost: line.getUnitCost(),
+          expiresAt: line.getExpiresAt().toISOString(),
+          batchId: null,
+        })),
       },
     });
   });
@@ -161,24 +165,24 @@ describe('CreateGoodsReceiptHandler', () => {
   });
 
   it('rejects duplicated product and lot before saving', async () => {
-    const { handler, create, outboxCreate } = setup();
+    const { handler, create, execute } = setup();
 
     await expect(
       handler.execute(createCommand([buildLine(), buildLine()])),
     ).rejects.toThrow(DuplicateGoodsReceiptLineException);
 
     expect(create).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('rejects a receipt without lines before saving', async () => {
-    const { handler, create, outboxCreate } = setup();
+    const { handler, create, execute } = setup();
 
     await expect(handler.execute(createCommand([]))).rejects.toThrow(
       'Goods receipt must have at least one line',
     );
 
     expect(create).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

@@ -14,11 +14,9 @@ import { RemoveRoleHandler } from './application/commands/remove-role/remove-rol
 import { CreateUserService } from './application/services/create-user.service';
 import { CreateUserByAdminHandler } from './application/commands/create-user-by-admin/create-user-by-admin.handler';
 import { SecurityModule } from '../../shared/modules/security/security.module';
-import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { GetUserRoleIdsHandler } from './application/queries/get-user-role-ids/get-user-role-ids.handler';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { DeactivateUserHandler } from './application/commands/deactivate-user/deactivate-user.handler';
-import { DeactivateUserConsumer } from './application/consumers/deactivate-user.consumer';
 
 @Module({
   controllers: [UsersController],
@@ -26,7 +24,6 @@ import { DeactivateUserConsumer } from './application/consumers/deactivate-user.
     MikroOrmModule.forFeature([MikroUser]),
     AuthorizationModule,
     SecurityModule,
-    OutBoxModule,
     AuthenticationModule,
   ],
   providers: [
@@ -41,7 +38,6 @@ import { DeactivateUserConsumer } from './application/consumers/deactivate-user.
     RemoveRoleHandler,
     GetUserRoleIdsHandler,
     DeactivateUserHandler,
-    DeactivateUserConsumer,
   ],
   exports: [USERS_REPOSITORY, CreateUserService],
 })

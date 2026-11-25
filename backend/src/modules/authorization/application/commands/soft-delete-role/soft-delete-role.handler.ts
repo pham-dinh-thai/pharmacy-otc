@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { RoleNotFoundException } from '../../../domain/exceptions/role.exceptions';
 import {
@@ -10,12 +10,8 @@ import {
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import { SoftDeleteRoleCommand } from './soft-delete-role.command';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import { ROLE_DISABLED_EVENT } from '../../../domain/events/role-disabled.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 @CommandHandler(SoftDeleteRoleCommand)
@@ -24,11 +20,10 @@ export class SoftDeleteRoleHandler implements ICommandHandler<SoftDeleteRoleComm
     @Inject(ROLES_REPOSITORY)
     private readonly rolesRepository: IRolesRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
-
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
+
+    private readonly commandBus: CommandBus,
   ) {}
 
   public async execute(
@@ -48,23 +43,25 @@ export class SoftDeleteRoleHandler implements ICommandHandler<SoftDeleteRoleComm
 
       await this.rolesRepository.update(role);
 
-      await this.outboxRepository.create({
-        eventType: ROLE_DISABLED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.ROLES,
-          entityId: role.getId(),
-          before: {
-            name: previousName,
-            isSuperAdmin: previousIsSuperAdmin,
-            deletedAt: null,
-          },
-          after: {
-            name: role.getName(),
-            isSuperAdmin: role.getIsSuperAdmin(),
-            deletedAt: role.getDeletedAt(),
-          },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'deactivate',
+            entityType: EntityType.ROLES,
+            entityId: role.getId(),
+            before: {
+              name: previousName,
+              isSuperAdmin: previousIsSuperAdmin,
+              deletedAt: null,
+            },
+            after: {
+              name: role.getName(),
+              isSuperAdmin: role.getIsSuperAdmin(),
+              deletedAt: role.getDeletedAt(),
+            },
+          }),
+        ),
+      );
 
       return { id: role.getId() };
     });

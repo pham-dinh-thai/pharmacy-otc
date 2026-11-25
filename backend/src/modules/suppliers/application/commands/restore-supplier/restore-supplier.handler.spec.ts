@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import {
   IUnitOfWork,
@@ -8,16 +9,12 @@ import {
   ISuppliersRepository,
   SUPPLIERS_REPOSITORY,
 } from '../../../domain/suppliers.repository';
-import {
-  IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
 import {
   SupplierNotFoundException,
   SupplierNotDeletedException,
 } from '../../../domain/exceptions/supplier.exceptions';
 import { Supplier } from '../../../domain/supplier.aggregate';
-import { SUPPLIER_RESTORED_EVENT } from '../../../domain/events/supplier-restored.event';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { RestoreSupplierCommand } from './restore-supplier.command';
 import { RestoreSupplierHandler } from './restore-supplier.handler';
@@ -52,7 +49,7 @@ describe('RestoreSupplierHandler', () => {
   let suppliersRepository: jest.Mocked<
     Pick<ISuppliersRepository, 'findByIdIncludingDeleted' | 'update'>
   >;
-  let outboxRepository: jest.Mocked<Pick<IOutboxRepository, 'create'>>;
+  let execute: jest.Mock<CommandBus['execute']>;
   let unitOfWork: jest.Mocked<IUnitOfWork>;
 
   beforeEach(async () => {
@@ -63,9 +60,9 @@ describe('RestoreSupplierHandler', () => {
       Pick<ISuppliersRepository, 'findByIdIncludingDeleted' | 'update'>
     >;
 
-    outboxRepository = {
-      create: jest.fn(),
-    } as unknown as jest.Mocked<Pick<IOutboxRepository, 'create'>>;
+    execute = jest.fn<CommandBus['execute']>(() =>
+      Promise.resolve({ id: 'audit-id' }),
+    );
 
     unitOfWork = {
       run: jest.fn((work: () => Promise<any>) => work()),
@@ -75,7 +72,7 @@ describe('RestoreSupplierHandler', () => {
       providers: [
         RestoreSupplierHandler,
         { provide: SUPPLIERS_REPOSITORY, useValue: suppliersRepository },
-        { provide: OUTBOX_REPOSITORY, useValue: outboxRepository },
+        { provide: CommandBus, useValue: { execute } },
         { provide: UNIT_OF_WORK, useValue: unitOfWork },
       ],
     }).compile();
@@ -91,7 +88,7 @@ describe('RestoreSupplierHandler', () => {
     ).rejects.toThrow(SupplierNotFoundException);
 
     expect(suppliersRepository.update).not.toHaveBeenCalled();
-    expect(outboxRepository.create).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('rejects a supplier that is not deleted', async () => {
@@ -104,10 +101,10 @@ describe('RestoreSupplierHandler', () => {
     ).rejects.toThrow(SupplierNotDeletedException);
 
     expect(suppliersRepository.update).not.toHaveBeenCalled();
-    expect(outboxRepository.create).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
-  it('restores a deleted supplier and appends an audit event', async () => {
+  it('restores a deleted supplier and dispatches an audit command', async () => {
     const supplier = createSupplier(DELETED_AT);
     suppliersRepository.findByIdIncludingDeleted.mockResolvedValue(supplier);
     suppliersRepository.update.mockImplementation((value) =>
@@ -126,17 +123,22 @@ describe('RestoreSupplierHandler', () => {
     expect(suppliersRepository.update).toHaveBeenCalledWith(supplier);
     expect(result).toEqual({ id: SUPPLIER_ID });
 
-    expect(outboxRepository.create).toHaveBeenCalledWith({
-      eventType: SUPPLIER_RESTORED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.SUPPLIERS,
-          entityId: SUPPLIER_ID,
-          before: { deletedAt: DELETED_AT },
-          after: { deletedAt: null },
-        },
-      },
+    expect(execute).toHaveBeenCalledTimes(1);
+
+    const auditCommand = execute.mock.calls[0][0];
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      actorType: headers.actorType,
+      actorLabel: headers.actorLabel,
+      ipAddress: headers.userIp,
+      userAgent: headers.userAgent,
+      action: 'restore',
+      entityType: EntityType.SUPPLIERS,
+      entityId: SUPPLIER_ID,
+      before: { deletedAt: DELETED_AT },
+      after: { deletedAt: null },
+      reason: null,
     });
   });
 });

@@ -130,7 +130,7 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 | FR-CAT-04 | Sửa tên/slug/mô tả; chặn trùng tên hoặc slug | ✅ |
 | FR-CAT-05 | Xoá mềm và khôi phục | ✅ chung permission `categories:delete` |
 | FR-CAT-06 | Liên kết N-N với sản phẩm | ✅ danh sách id sản phẩm hiển thị read-only ở chi tiết; liên kết được chỉnh từ form sản phẩm |
-| FR-CAT-07 | Ghi audit cho tạo/sửa/xoá/khôi phục | ✅ qua outbox, `entityType = categories` |
+| FR-CAT-07 | Ghi audit cho tạo/sửa/xoá/khôi phục | ✅ qua `RecordAuditLogCommand`, `entityType = categories` |
 
 **Phạm vi đã làm:** trang `/categories` có danh sách, lọc, phân trang, tạo, sửa, xoá mềm, khôi phục và chi tiết. Mọi endpoint cần `categories:read/create/update/delete` (Super Admin được bỏ qua). Quan hệ với sản phẩm là N-N qua `product_categories`; để tránh phụ thuộc vòng giữa hai module, form danh mục không sửa trực tiếp danh sách sản phẩm mà hiển thị liên kết hiện có.
 
@@ -170,7 +170,7 @@ Form phiếu nhập tìm sản phẩm qua `GET /products?search=...` thay vì b�
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
 | FR-INV-01 | Mỗi lô có số lô, số lượng, giá nhập, hạn dùng, trạng thái | ✅ |
-| FR-INV-02 | Nhập kho từ phiếu nhập đã xác nhận (consumer outbox) | ✅ |
+| FR-INV-02 | Nhập kho khi xác nhận phiếu, đồng bộ qua `ReceiveStockCommand` trong transaction | ✅ |
 | FR-INV-03 | Xuất kho theo `batchId`, không cho âm | ✅ |
 | FR-INV-04 | Kiểm kê/điều chỉnh số lượng theo lô | ✅ |
 | FR-INV-05 | Xem tồn tổng hợp theo sản phẩm qua `GET /inventories` | ✅ |
@@ -227,12 +227,12 @@ phòng phẩm, khác.
 
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
-| FR-AUD-01 | Ghi audit bất đồng bộ qua outbox, không chặn nghiệp vụ | ✅ |
+| FR-AUD-01 | Ghi audit đồng bộ trong cùng transaction nghiệp vụ, không có relay/polling | ✅ |
 | FR-AUD-02 | Lưu actor, action, entity, before/after, metadata, IP, user-agent | ✅ |
 | FR-AUD-03 | Danh sách có filter actor/entity/action/status/thời gian + phân trang | ✅ |
 | FR-AUD-04 | Xem chi tiết | ✅ |
 | FR-AUD-05 | Không cho sửa/xoá audit | ✅ (chỉ có API đọc) |
-| FR-AUD-06 | Retry khi consumer lỗi, dừng sau N lần | ✅ |
+| FR-AUD-06 | Audit commit/rollback cùng nghiệp vụ, không có retry nền | ✅ |
 
 ## 15. Reports
 
@@ -252,9 +252,9 @@ phòng phẩm, khác.
 | BR-03 | Không xuất quá số lượng còn lại của lô |
 | BR-04 | Phiếu nhập chỉ xác nhận/huỷ khi `pending` |
 | BR-05 | Một phiếu nhập không có dòng trùng `(sản phẩm, số lô)` |
-| BR-06 | Mỗi lần ghi nghiệp vụ quan trọng phát ra outbox event trong cùng transaction |
-| BR-07 | Consumer xử lý event và đánh dấu processed trong cùng transaction |
-| BR-08 | Lỗi consumer được ghi nhận, retry tối đa `OUTBOX_MAX_ATTEMPTS` |
+| BR-06 | Mỗi lần ghi nghiệp vụ quan trọng gọi `RecordAuditLogCommand` trong cùng transaction |
+| BR-07 | Audit và dữ liệu nghiệp vụ commit/rollback cùng nhau |
+| BR-08 | Side-effect (nhập kho, chi phí, vô hiệu hoá user) là command dispatch trực tiếp, không qua event |
 | BR-09 | Endpoint ghi yêu cầu permission cụ thể |
 | BR-10 | Không bán thuốc kê đơn (ràng buộc danh mục) |
 | BR-11 | Không hiển thị/bán lô đã hết hạn (mục tiêu giai đoạn sau) |

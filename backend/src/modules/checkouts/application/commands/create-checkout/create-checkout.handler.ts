@@ -1,17 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import { CARTS_REPOSITORY } from '../../../../carts/domain/carts.repository';
 import type { ICartsRepository } from '../../../../carts/domain/carts.repository';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { CHECKOUT_CATALOG } from '../../ports/checkout-catalog.port';
 import type { ICheckoutCatalog } from '../../ports/checkout-catalog.port';
 import { Checkout } from '../../../domain/checkout.aggregate';
@@ -20,7 +17,6 @@ import {
   CHECKOUTS_REPOSITORY,
   type ICheckoutRepository,
 } from '../../../domain/checkouts.repository';
-import { CHECKOUT_CREATED_AUDIT_EVENT } from '../../../domain/events/checkout-created.event';
 import {
   CheckoutProductNotInCartException,
   CheckoutProductNotFoundException,
@@ -44,8 +40,7 @@ export class CreateCheckoutHandler implements ICommandHandler<CreateCheckoutComm
     @Inject(CHECKOUT_CATALOG)
     private readonly checkoutCatalog: ICheckoutCatalog,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
+    private readonly commandBus: CommandBus,
   ) {}
 
   public async execute(
@@ -64,18 +59,20 @@ export class CreateCheckoutHandler implements ICommandHandler<CreateCheckoutComm
 
       await this.checkoutsRepository.create(checkout);
 
-      await this.outboxRepository.create({
-        eventType: CHECKOUT_CREATED_AUDIT_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.CHECKOUTS,
-          entityId: checkout.getId(),
-          metadata: {
-            productIds: command.productIds,
-            lineCount: lines.length,
-            amount: checkout.getAmount().toString(),
-          },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'create',
+            entityType: EntityType.CHECKOUTS,
+            entityId: checkout.getId(),
+            metadata: {
+              productIds: command.productIds,
+              lineCount: lines.length,
+              amount: checkout.getAmount().toString(),
+            },
+          }),
+        ),
+      );
 
       return { id: checkout.getId() };
     });

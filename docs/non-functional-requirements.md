@@ -28,8 +28,8 @@
 | Mã | Mục tiêu | Ghi chú |
 |---|---|---|
 | NFR-PERF-01 | API đọc đơn giản p95 < 300 ms | Với DB local, dữ liệu demo |
-| NFR-PERF-02 | API ghi p95 < 500 ms (không tính giao hàng/thanh toán) | Transaction + outbox |
-| NFR-PERF-03 | Outbox relay trễ tối đa ~1 giây | `OUTBOX_POLL_INTERVAL_MS=1000` |
+| NFR-PERF-02 | API ghi p95 < 500 ms (không tính giao hàng/thanh toán) | Transaction + audit ghi trong cùng transaction |
+| NFR-PERF-03 | Audit có ngay sau khi API ghi trả kết quả | Ghi trong transaction, không polling |
 | NFR-PERF-04 | Chịu 100 người dùng đồng thời ở mức demo | Mục tiêu, chưa load test |
 | NFR-PERF-05 | Danh sách phải phân trang, tối đa 100 bản ghi/trang | Audit log đã có; sản phẩm chưa |
 | NFR-PERF-06 | Không N+1 query ở luồng đọc chính | Cần kiểm tra khi thêm orders |
@@ -46,9 +46,9 @@
 | Mã | Yêu cầu | Cách đáp ứng | Trạng thái |
 |---|---|---|---|
 | NFR-REL-01 | Nghiệp vụ ghi nằm trong một transaction | `MikroUnitOfWork` | ✅ |
-| NFR-REL-02 | Event và dữ liệu nghiệp vụ commit cùng nhau | Outbox trong cùng transaction | ✅ |
-| NFR-REL-03 | Consumer xử lý lặp không tạo dữ liệu trùng | Batch id sinh trước, `markProcessed` cùng transaction | ✅ |
-| NFR-REL-04 | Lỗi tạm thời được retry | Tối đa `OUTBOX_MAX_ATTEMPTS`, ghi lỗi | ✅ |
+| NFR-REL-02 | Audit và dữ liệu nghiệp vụ commit cùng nhau | `RecordAuditLogCommand` trong cùng transaction | ✅ |
+| NFR-REL-03 | Nhập kho không tạo batch trùng | `batchId` sinh trước, unique `(product_id, lot_number)` | ✅ |
+| NFR-REL-04 | Không có bản ghi audit chờ xử lý | Ghi trực tiếp trong transaction, không retry nền | ✅ |
 | NFR-REL-05 | Không cho tồn kho âm | `StockQuantity.decrease` kiểm tra | ✅ |
 | NFR-REL-06 | Ràng buộc unique ở DB | Email, mã nghiệp vụ, dòng phiếu nhập | ✅ |
 | NFR-REL-07 | Tiền không mất chính xác | `bigint` VND | ✅ |
@@ -58,10 +58,10 @@
 
 **Sự cố đã biết**
 
-- Nếu outbox event không có consumer đăng ký, relay chỉ log cảnh báo và **không**
-  đánh dấu processed; event sẽ được thử lại mỗi vòng.
-- Relay chạy trong cùng process với API; khi tắt app, event còn tồn sẽ chờ lần
-  khởi động sau.
+- Audit nằm trong cùng transaction nên lỗi ghi audit làm cả nghiệp vụ rollback;
+  không có hàng đợi để ghi lại sau.
+- Transaction ghi dài hơn vì kèm audit và command có side-effect; chưa có đo
+  đạc dưới tải cao.
 
 ## 4. Khả năng quan sát
 
@@ -69,10 +69,10 @@
 |---|---|---|
 | NFR-OBS-01 | Log có ngữ cảnh module/actor | 🟡 Nest logger mặc định |
 | NFR-OBS-02 | Log thay đổi nghiệp vụ | ✅ `audit_logs` |
-| NFR-OBS-03 | Log lỗi outbox kèm số lần thử | ✅ |
-| NFR-OBS-04 | Metrics (latency, error rate, queue) | ⬜ |
+| NFR-OBS-03 | Log lỗi khi dispatch command ghi audit | 🟡 Nest logger mặc định |
+| NFR-OBS-04 | Metrics (latency, error rate, transaction duration) | ⬜ |
 | NFR-OBS-05 | Distributed tracing | ⬜ |
-| NFR-OBS-06 | Cảnh báo khi outbox failed/permanent | ⬜ |
+| NFR-OBS-06 | Cảnh báo khi ghi audit thất bại | ⬜ |
 | NFR-OBS-07 | Truy vết request qua `requestId` | 🟡 audit có trường, chưa gắn middleware |
 
 ## 5. Khả năng bảo trì và kiểm thử
@@ -96,7 +96,7 @@
 | NFR-OPS-02 | Cấu hình qua biến môi trường | ✅ `.env.example` |
 | NFR-OPS-03 | Migration tự động khi deploy | ⬜ chạy tay `npm run migration:up` |
 | NFR-OPS-04 | Container hoá API | ⬜ chỉ có hạ tầng |
-| NFR-OPS-05 | Chạy nhiều instance API | 🟡 outbox relay có thể chạy trùng; cần khoá/queue chuyên dụng |
+| NFR-OPS-05 | Chạy nhiều instance API | 🟡 chưa thử nghiệm; ghi nằm trong transaction, không có relay chạy trùng |
 | NFR-OPS-06 | Redis AOF | ✅ `appendonly yes` |
 | NFR-OPS-07 | Dữ liệu Postgres bền vững qua restart | ✅ named volume |
 
@@ -124,7 +124,7 @@
 
 ## 9. Ràng buộc kỹ thuật
 
-- **Một process API** cho demo; outbox relay chạy trong process.
+- **Một process API** cho demo; mọi command ghi chạy trong process.
 - **Không dùng `decimal`/float** cho tiền; mọi phép tính tiền dùng `bigint`.
 - **Không cache** ở phiên bản hiện tại; đọc thẳng PostgreSQL.
 - **Không có frontend** trong repo này; API là backend.
@@ -137,6 +137,6 @@
 |---|---|
 | Bảo mật | Test guard/permission, test login sai, kiểm tra cookie |
 | Toàn vẹn | Test domain (âm kho, trùng lô, trạng thái), test transaction |
-| Outbox | Test relay retry/failed, test consumer idempotent |
+| Audit | Test ghi audit trong cùng transaction, test rollback kèm audit |
 | Hiệu năng | Đo bằng `autocannon`/`k6` trên dữ liệu demo (chưa làm) |
 | Hồi quy | `npm test`, `npm run lint`, `npm run build` trước khi merge |

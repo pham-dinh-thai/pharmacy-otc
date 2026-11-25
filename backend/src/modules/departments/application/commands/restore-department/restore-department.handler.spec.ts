@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import {
   DepartmentNotFoundException,
   DepartmentNotDisabledException,
@@ -8,12 +9,8 @@ import { RestoreDepartmentHandler } from './restore-department.handler';
 import { RestoreDepartmentCommand } from './restore-department.command';
 import { DEPARTMENTS_REPOSITORY } from '../../../domain/departments.repository';
 import { Department } from '../../../domain/department.aggregate';
-import {
-  OUTBOX_REPOSITORY,
-  type IOutboxRepository,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import { UNIT_OF_WORK } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { DEPARTMENT_RESTORED_EVENT } from '../../../domain/events/department-restored.event';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 const headers = {
@@ -42,12 +39,14 @@ describe('RestoreDepartmentHandler', () => {
   let handler: RestoreDepartmentHandler;
   let findById: jest.Mock<(id: string) => Promise<Department | null>>;
   let update: jest.Mock<(department: Department) => Promise<Department>>;
-  let outboxCreate: jest.Mock<IOutboxRepository['create']>;
+  let execute: jest.Mock<CommandBus['execute']>;
 
   beforeEach(async () => {
     findById = jest.fn(() => Promise.resolve(disabledDepartment()));
     update = jest.fn((value) => Promise.resolve(value));
-    outboxCreate = jest.fn<IOutboxRepository['create']>();
+    execute = jest.fn<CommandBus['execute']>().mockResolvedValue({
+      id: 'audit-id',
+    });
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -60,7 +59,7 @@ describe('RestoreDepartmentHandler', () => {
             update,
           },
         },
-        { provide: OUTBOX_REPOSITORY, useValue: { create: outboxCreate } },
+        { provide: CommandBus, useValue: { execute } },
         {
           provide: UNIT_OF_WORK,
           useValue: {
@@ -82,7 +81,7 @@ describe('RestoreDepartmentHandler', () => {
     ).rejects.toThrow(DepartmentNotFoundException);
 
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('restores the department and appends the audit event', async () => {
@@ -97,17 +96,18 @@ describe('RestoreDepartmentHandler', () => {
     expect(result).toEqual({ id: DEPARTMENT_ID });
     expect(update).toHaveBeenCalledTimes(1);
     expect(update.mock.calls[0][0].isDeleted()).toBe(false);
-    expect(outboxCreate).toHaveBeenCalledWith({
-      eventType: DEPARTMENT_RESTORED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.DEPARTMENTS,
-          entityId: DEPARTMENT_ID,
-          before: { name: 'Pharmacy', deletedAt: previousDeletedAt },
-          after: { name: 'Pharmacy', deletedAt: null },
-        },
-      },
+    expect(execute).toHaveBeenCalledTimes(1);
+
+    const auditCommand = execute.mock.calls[0][0];
+
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      action: 'activate',
+      entityType: EntityType.DEPARTMENTS,
+      entityId: DEPARTMENT_ID,
+      before: { name: 'Pharmacy', deletedAt: previousDeletedAt },
+      after: { name: 'Pharmacy', deletedAt: null },
     });
   });
 
@@ -125,6 +125,6 @@ describe('RestoreDepartmentHandler', () => {
     ).rejects.toThrow(DepartmentNotDisabledException);
 
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

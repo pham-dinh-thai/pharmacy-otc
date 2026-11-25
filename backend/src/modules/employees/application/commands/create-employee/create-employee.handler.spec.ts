@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import { InvalidPasswordException } from '../../../../authentication/domain/exceptions/authentication.exceptions';
 import { DepartmentDisabledException } from '../../../../departments/domain/exceptions/department.exceptions';
+import { CommandBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import { CreateEmployeeHandler } from './create-employee.handler';
 import { CreateEmployeeCommand } from './create-employee.command';
@@ -11,18 +12,12 @@ import { Account } from '../../../../authentication/domain/account.aggregate';
 import { EMPLOYEES_REPOSITORY } from '../../../domain/employees.repository';
 import { Employee } from '../../../domain/employee.aggregate';
 import {
-  OUTBOX_REPOSITORY,
-  type IOutboxRepository,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import {
   UNIT_OF_WORK,
   type IUnitOfWork,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import { AssignableDepartmentValidator } from '../../services/assignable-department.validator';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
-import { USER_CREATED_EVENT } from '../../../../users/domain/events/user-created.event';
-import { ACCOUNT_SIGNED_UP_EVENT } from '../../../../authentication/domain/events/account-signed-up.event';
-import { EMPLOYEE_CREATED_EVENT } from '../../../domain/events/employee-created.event';
 import { EmployeeStatus } from '../../../domain/enums/employee-status.enum';
 
 const headers = {
@@ -52,7 +47,7 @@ describe('CreateEmployeeHandler', () => {
   let createUser: jest.Mock<(input: unknown) => Promise<User>>;
   let createAccount: jest.Mock<(account: Account) => Account>;
   let createEmployee: jest.Mock<(employee: Employee) => Promise<Employee>>;
-  let outboxCreate: jest.Mock<IOutboxRepository['create']>;
+  let execute: jest.Mock<(command: unknown) => Promise<unknown>>;
   let validateDepartment: jest.Mock<(id: string) => Promise<void>>;
 
   beforeEach(async () => {
@@ -61,7 +56,7 @@ describe('CreateEmployeeHandler', () => {
     createUser = jest.fn(() => Promise.resolve(user));
     createAccount = jest.fn((account) => account);
     createEmployee = jest.fn((employee) => Promise.resolve(employee));
-    outboxCreate = jest.fn<IOutboxRepository['create']>();
+    execute = jest.fn(() => Promise.resolve({ id: 'audit-id' }));
     validateDepartment = jest.fn(() => Promise.resolve());
 
     const moduleRef = await Test.createTestingModule({
@@ -81,7 +76,7 @@ describe('CreateEmployeeHandler', () => {
             update: jest.fn(),
           },
         },
-        { provide: OUTBOX_REPOSITORY, useValue: { create: outboxCreate } },
+        { provide: CommandBus, useValue: { execute } },
         {
           provide: UNIT_OF_WORK,
           useValue: {
@@ -109,7 +104,7 @@ describe('CreateEmployeeHandler', () => {
     headers,
   );
 
-  it('creates user, account and employee with audit events in one flow', async () => {
+  it('creates user, account and employee with audit commands in one flow', async () => {
     const result = await handler.execute(command);
 
     expect(validateDepartment).toHaveBeenCalledWith(DEPARTMENT_ID);
@@ -132,34 +127,49 @@ describe('CreateEmployeeHandler', () => {
     expect(employee.getPosition()).toBeNull();
     expect(employee.getStatus()).toBe(EmployeeStatus.WORKING);
 
-    expect(outboxCreate).toHaveBeenCalledTimes(3);
-    expect(outboxCreate).toHaveBeenNthCalledWith(1, {
-      eventType: USER_CREATED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.USERS,
-          entityId: USER_ID,
-          after: {
-            firstName: 'Minh',
-            lastName: 'Tran',
-            email: 'minh@example.com',
-            roleIds: [],
-          },
-        },
+    expect(execute).toHaveBeenCalledTimes(3);
+    const [userCommand, accountCommand, employeeCommand] =
+      execute.mock.calls.map(([issuedCommand]) => issuedCommand);
+
+    expect(userCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((userCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      actorType: 'user',
+      actorLabel: headers.actorLabel,
+      ipAddress: headers.userIp,
+      userAgent: headers.userAgent,
+      action: 'create',
+      entityType: EntityType.USERS,
+      entityId: USER_ID,
+      after: {
+        firstName: 'Minh',
+        lastName: 'Tran',
+        email: 'minh@example.com',
+        roleIds: [],
       },
     });
-    expect(outboxCreate.mock.calls[1][0].eventType).toBe(
-      ACCOUNT_SIGNED_UP_EVENT,
-    );
-    expect(outboxCreate.mock.calls[2][0]).toMatchObject({
-      eventType: EMPLOYEE_CREATED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.EMPLOYEES,
-          entityId: employee.getId(),
-        },
+
+    expect(accountCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((accountCommand as RecordAuditLogCommand).props).toMatchObject({
+      action: 'sign_up',
+      entityType: EntityType.ACCOUNTS,
+      entityId: account.getId(),
+      after: {
+        accountId: account.getId(),
+        userId: USER_ID,
+      },
+    });
+
+    expect(employeeCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((employeeCommand as RecordAuditLogCommand).props).toMatchObject({
+      action: 'create',
+      entityType: EntityType.EMPLOYEES,
+      entityId: employee.getId(),
+      after: {
+        userId: USER_ID,
+        departmentId: DEPARTMENT_ID,
+        position: null,
+        status: EmployeeStatus.WORKING,
       },
     });
   });
@@ -174,7 +184,7 @@ describe('CreateEmployeeHandler', () => {
     expect(createUser).not.toHaveBeenCalled();
     expect(createAccount).not.toHaveBeenCalled();
     expect(createEmployee).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('does not create an employee for an invalid password', async () => {
@@ -193,6 +203,6 @@ describe('CreateEmployeeHandler', () => {
     ).rejects.toThrow(InvalidPasswordException);
 
     expect(createEmployee).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

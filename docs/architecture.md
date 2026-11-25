@@ -4,7 +4,8 @@
 
 Backend là một **modular monolith** dùng NestJS, tổ chức theo **CQRS** và
 **Clean Architecture**. Mỗi module nghiệp vụ tự chứa domain, application,
-infrastructure và presentation; giao tiếp qua command/query bus và outbox event.
+infrastructure và presentation; giao tiếp qua command/query bus, ghi audit bằng
+command trong cùng transaction.
 
 ```mermaid
 flowchart LR
@@ -16,10 +17,8 @@ flowchart LR
     App --> Domain[Domain aggregates]
     App --> UoW[Unit of Work]
     UoW --> PG[(PostgreSQL)]
-    App --> Outbox[(outbox_events)]
-    Outbox --> Relay[Outbox Relay]
-    Relay --> Consumers[Audit / Inventory consumers]
-    Consumers --> PG
+    App --> AuditCmd[RecordAuditLogCommand]
+    AuditCmd --> UoW
     API --> Redis[(Redis: refresh token)]
 ```
 
@@ -27,7 +26,7 @@ Thành phần ngoài:
 
 | Thành phần | Vai trò | Trạng thái |
 |---|---|---|
-| PostgreSQL 18 | Dữ liệu nghiệp vụ, outbox, audit | ✅ |
+| PostgreSQL 18 | Dữ liệu nghiệp vụ và audit | ✅ |
 | Redis 8 | Refresh token, AOF bật | ✅ |
 | PSP (VNPay/MoMo) | Thanh toán | ⬜ thiết kế |
 | Đơn vị vận chuyển | Giao hàng | ⬜ thiết kế |
@@ -66,7 +65,6 @@ flowchart TB
     App --> Orders[orders - empty]
     App --> Expenses[expenses]
     App --> Audit[audit-logs]
-    App --> Outbox[shared/outbox]
     App --> UoW[shared/unit-of-work]
     App --> Security[shared/security]
 
@@ -74,12 +72,12 @@ flowchart TB
     AuthN --> Customers
     AuthZ --> Users
     GR --> Inv
-    GR --> Outbox
-    Inv --> Outbox
-    Audit --> Outbox
-    Products --> Outbox
-    Suppliers --> Outbox
-    Expenses --> Outbox
+    GR --> UoW
+    Inv --> UoW
+    Audit --> UoW
+    Products --> UoW
+    Suppliers --> UoW
+    Expenses --> UoW
 ```
 
 | Module | Trách nhiệm |
@@ -91,11 +89,10 @@ flowchart TB
 | `products` | Danh mục sản phẩm |
 | `suppliers` | Nhà cung cấp |
 | `goods-receipts` | Phiếu nhập, dòng phiếu, xác nhận/huỷ |
-| `inventories` | Lô, tồn kho, xuất kho, kiểm kê, consumer nhập kho |
+| `inventories` | Lô, tồn kho, xuất kho, kiểm kê, nhập kho khi xác nhận phiếu |
 | `orders` | Đơn hàng (chưa triển khai) |
 | `expenses` | Chi phí vận hành |
-| `audit-logs` | Ghi và tra cứu audit |
-| `shared/outbox` | Ghi event, relay, registry consumer |
+| `audit-logs` | Ghi audit trong transaction, tra cứu audit |
 | `shared/unit-of-work` | Bọc transaction |
 | `shared/security` | Guard, decorator actor/permission |
 
@@ -113,7 +110,7 @@ sequenceDiagram
     participant H as Handler
     participant UoW as UnitOfWork
     participant Repo as Repository
-    participant OB as OutboxRepo
+    participant Audit as RecordAuditLogCommand
     participant DB as PostgreSQL
 
     C->>Ctrl: POST /goods-receipts + Bearer token
@@ -127,8 +124,8 @@ sequenceDiagram
     UoW->>DB: BEGIN
     H->>Repo: create aggregate
     Repo->>DB: INSERT goods_receipts + lines
-    H->>OB: create(audit event)
-    OB->>DB: INSERT outbox_events
+    H->>Audit: dispatch command(recordAuditProps(...))
+    Audit->>DB: INSERT audit_logs
     UoW->>DB: COMMIT
     H-->>Ctrl: { id, code }
     Ctrl-->>C: 201 JSON
@@ -137,46 +134,40 @@ sequenceDiagram
 Điểm quan trọng:
 
 - **Transaction boundary nằm ở handler**, không ở controller.
-- Outbox event được ghi **cùng transaction** với dữ liệu nghiệp vụ.
+- Audit được ghi **cùng transaction** với dữ liệu nghiệp vụ qua
+  `RecordAuditLogCommand`.
 - Handler trả read model tối thiểu (`{ id }`, `{ id, code }`), không trả aggregate.
 
-## 5. Outbox và audit
+## 5. Ghi audit và command có side-effect
 
 ```mermaid
 sequenceDiagram
-    participant API as Command handler
+    participant H as Command handler
+    participant CB as CommandBus
+    participant UoW as UnitOfWork
     participant DB as PostgreSQL
-    participant Relay as OutboxRelay
-    participant Reg as ConsumerRegistry
-    participant Cons as Consumer
-    participant Audit as AuditLog
 
-    API->>DB: INSERT nghiệp vụ + outbox_events (1 transaction)
-    loop mỗi OUTBOX_POLL_INTERVAL_MS
-        Relay->>DB: SELECT * FROM outbox_events WHERE processed = false
-        Relay->>Reg: get(eventType)
-        Reg-->>Relay: consumer
-        Relay->>DB: BEGIN
-        Relay->>Cons: handle(event)
-        Cons->>Audit: RecordAuditLogCommand
-        Audit->>DB: INSERT audit_logs
-        Relay->>DB: UPDATE outbox_events SET processed = true
-        Relay->>DB: COMMIT
-    end
+    H->>UoW: run(transaction)
+    UoW->>DB: BEGIN
+    H->>CB: RecordAuditLogCommand(recordAuditProps(...))
+    CB->>DB: INSERT audit_logs
+    H->>CB: ReceiveStockCommand / CreateExpenseCommand / DeactivateUserCommand (khi cần)
+    CB->>DB: Cập nhật nghiệp vụ liên quan
+    UoW->>DB: COMMIT
 ```
 
 Đặc tính:
 
-- **At-least-once**: event có thể được xử lý lại nếu commit thất bại.
-- **Idempotent consumer**: ví dụ nhập kho dùng `batchId` sinh trước; nếu replay,
-  batch đã tồn tại thì bỏ qua.
-- **Retry có giới hạn**: ghi `attempts`, `last_error`, `failed_at`; sau
-  `OUTBOX_MAX_ATTEMPTS` thì dừng và log lỗi.
-- **Không có consumer**: relay log cảnh báo, event vẫn pending.
-- **Bật/tắt**: `OUTBOX_RELAY_ENABLED=true` mới chạy. Mặc định trong
-  `.env.example` là `false`.
+- **Cùng transaction**: audit và dữ liệu nghiệp vụ commit/rollback cùng nhau.
+- **Không có relay/polling/retry queue**: command được dispatch trực tiếp trong
+  `IUnitOfWork.run()`; audit có ngay sau khi request trả kết quả.
+- **Side-effect đồng bộ**: nhập kho (`ReceiveStockCommand`), tạo chi phí
+  (`CreateExpenseCommand`) và vô hiệu hoá user (`DeactivateUserCommand`) chạy
+  trong cùng transaction; `EMPLOYEE_RESIGNED_EVENT` cũ đã được thay bằng
+  `DeactivateUserCommand`.
+- **Lỗi là rollback**: không có trạng thái "pending" để xử lý về sau.
 
-Event đang được audit:
+Action đang được ghi audit (truyền vào `recordAuditProps`):
 
 ```
 role.created, permission.granted, role.renamed, permission.revoked,
@@ -203,7 +194,7 @@ expense.created/updated/approved/supplier_paid/paid/cancelled
 - `AuthGuard`: verify JWT, gắn payload vào `request.user`.
 - `PermissionsGuard`: đọc permission yêu cầu từ metadata, query role của user,
   kiểm tra khớp. Super Admin bỏ qua.
-- `@ActorContext()`: gom `actorId`, `email`, IP, user-agent để đưa vào event.
+- `@ActorContext()`: gom `actorId`, `email`, IP, user-agent để đưa vào audit log.
 
 ### Mô hình quyền
 
@@ -225,8 +216,8 @@ phụ thuộc DB.
 | Pessimistic lock | `SELECT ... FOR UPDATE` khi xuất/kiểm kê kho |
 | Tồn kho | Nguồn sự thật là `batches`; `inventories` là view |
 | Hạn dùng | `date` cho `expires_at` |
-| Audit | Append-only, chỉ INSERT qua consumer |
-| Outbox | Cùng DB, cùng transaction với nghiệp vụ |
+| Audit | Append-only, INSERT trực tiếp trong transaction nghiệp vụ |
+| Command có side-effect | Dispatch trong `IUnitOfWork.run()`, cùng transaction |
 
 ## 8. Cấu trúc thư mục
 
@@ -249,7 +240,6 @@ backend/src/
 │   ├── expenses/
 │   └── audit-logs/
 ├── shared/
-│   ├── modules/outbox/
 │   ├── modules/security/
 │   ├── modules/unit-of-work/
 │   ├── types/
@@ -265,7 +255,7 @@ backend/src/
 |---|---|---|---|
 | ADR-01 | Modular monolith thay vì microservice | Phạm vi đồ án, transaction đơn giản | Khó scale độc lập từng module |
 | ADR-02 | CQRS nhẹ (command/query bus), không event sourcing | Đủ tách đọc/ghi, ít phức tạp | Read model phải viết tay |
-| ADR-03 | Outbox trong PostgreSQL | Không cần message broker, đảm bảo atomic | Relay polling, độ trễ ~1s |
+| ADR-03 | Ghi audit và side-effect bằng command trong cùng transaction | Không cần broker hay relay, dữ liệu luôn nhất quán | Transaction ghi dài hơn; lỗi audit làm rollback nghiệp vụ |
 | ADR-04 | Domain không phụ thuộc ORM | Test nhanh, dễ thay hạ tầng | Phải viết mapper thủ công |
 | ADR-05 | `bigint` VND | Chính xác tuyệt đối | Convert `number` ở ranh giới JSON (giới hạn `10^15` < `2^53`) |
 | ADR-06 | Một nhà thuốc, không multi-tenant | Đúng phạm vi | Không tái sử dụng cho SaaS |
@@ -276,9 +266,8 @@ backend/src/
 
 - Thêm module mới: tạo `domain` + `application` + `infrastructure` +
   `presentation`, đăng ký repository token trong module.
-- Thêm event: khai báo event type, ghi outbox trong handler, đăng ký consumer
-  trong `onModuleInit`.
-- Thêm audit: thêm event type vào `AUDITED_EVENT_ACTIONS`.
+- Thêm action audit: khai báo action trong `AUDITED_EVENT_ACTIONS`, gọi
+  `RecordAuditLogCommand` trong handler cùng transaction.
 - Thêm permission: khai báo trong `PERMISSIONS`; guard tự nhận.
 - Thêm read model: query handler trả DTO, không trả aggregate.
 
@@ -291,5 +280,5 @@ backend/src/
 | `products` thiếu SKU/category/unit | Khó quản lý và lọc |
 | Lô hết hạn/hết số lượng chưa tự chuyển trạng thái | Đã chặn khi xuất đơn; vẫn cần job cập nhật trạng thái |
 | Chưa có báo cáo chi phí | Chưa tổng hợp chi phí theo nhóm/thời gian |
-| Outbox relay chạy trong API process | Không phù hợp khi scale ngang |
+| Audit và side-effect ghi trong transaction API | Chưa có cơ chế giãn tải cho khối ghi nặng |
 | Không có rate limit/health check | Thiếu lớp bảo vệ vận hành |
