@@ -1,7 +1,9 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import { systemActorHeaders } from '../../../../../shared/types/actor-headers';
 import type { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import type { IOutboxRepository } from '../../../../../shared/modules/outbox/domain/outbox.repository';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { Customer } from '../../../domain/customer.aggregate';
 import type { ICustomersRepository } from '../../../domain/customers.repository';
 import { CustomerAlreadyDeletedException } from '../../../domain/exceptions/customer.exceptions';
@@ -10,6 +12,8 @@ import { SaveCustomerDeliveryContactCommand } from './save-customer-delivery-con
 import { SaveCustomerDeliveryContactHandler } from './save-customer-delivery-contact.handler';
 
 const USER_ID = '9f7a1c3e-2b4d-4a61-8f0e-1c2d3e4f5a6b';
+
+const headers = systemActorHeaders();
 
 const setup = (existing: Customer | null = null) => {
   const findByUserId = jest
@@ -21,35 +25,32 @@ const setup = (existing: Customer | null = null) => {
   const update = jest.fn<ICustomersRepository['update']>((customer) =>
     Promise.resolve(customer),
   );
-  const outboxCreate = jest.fn<IOutboxRepository['create']>();
+  const execute = jest.fn<CommandBus['execute']>().mockResolvedValue({
+    id: 'audit-id',
+  });
   const run = jest.fn<IUnitOfWork['run']>((work) => work());
 
   const handler = new SaveCustomerDeliveryContactHandler(
     { findByUserId, create, update } as unknown as ICustomersRepository,
-    { create: outboxCreate } as unknown as IOutboxRepository,
+    { execute } as unknown as CommandBus,
     { run } as unknown as IUnitOfWork,
   );
 
   const command = (phone: string | null, address: string | null) =>
-    new SaveCustomerDeliveryContactCommand(
-      USER_ID,
-      phone,
-      address,
-      systemActorHeaders(),
-    );
+    new SaveCustomerDeliveryContactCommand(USER_ID, phone, address, headers);
 
-  return { handler, command, findByUserId, create, update, outboxCreate, run };
+  return { handler, command, findByUserId, create, update, execute, run };
 };
 
 describe('SaveCustomerDeliveryContactHandler', () => {
   it('creates a customer with only a delivery phone', async () => {
-    const { handler, command, create, update, outboxCreate } = setup();
+    const { handler, command, create, update, execute } = setup();
 
     const result = await handler.execute(command('0901234567', null));
 
     expect(create).toHaveBeenCalledTimes(1);
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledTimes(1);
 
     const customer = create.mock.calls[0][0];
     expect(result.id).toBe(customer.getId());
@@ -58,6 +59,18 @@ describe('SaveCustomerDeliveryContactHandler', () => {
       '0901234567',
     ]);
     expect(customer.getAddresses()).toHaveLength(0);
+
+    const auditCommand = execute.mock.calls[0][0];
+
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      action: 'create',
+      entityType: EntityType.CUSTOMERS,
+      entityId: result.id,
+      before: null,
+      after: { phones: ['0901234567'], addresses: [] },
+    });
   });
 
   it('updates only the supplied part and keeps other contacts', async () => {
@@ -69,7 +82,7 @@ describe('SaveCustomerDeliveryContactHandler', () => {
       ],
       addresses: [{ address: '1 Nguyen Hue', isDefault: true }],
     });
-    const { handler, command, create, update } = setup(existing);
+    const { handler, command, create, update, execute } = setup(existing);
 
     await handler.execute(command(null, '2 Le Loi'));
 
@@ -82,17 +95,36 @@ describe('SaveCustomerDeliveryContactHandler', () => {
     expect(existing.getAddresses().map((item) => item.getAddress())).toEqual([
       '2 Le Loi',
     ]);
+    expect(execute).toHaveBeenCalledTimes(1);
+
+    const auditCommand = execute.mock.calls[0][0];
+
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      action: 'update',
+      entityType: EntityType.CUSTOMERS,
+      entityId: existing.getId(),
+      before: {
+        phones: ['0901111111', '0902222222'],
+        addresses: ['1 Nguyen Hue'],
+      },
+      after: {
+        phones: ['0901111111', '0902222222'],
+        addresses: ['2 Le Loi'],
+      },
+    });
   });
 
   it('rejects an empty payload', async () => {
-    const { handler, command, create, update, outboxCreate } = setup();
+    const { handler, command, create, update, execute } = setup();
 
     await expect(handler.execute(command(null, null))).rejects.toThrow(
       CustomerDeliveryContactRequiredException,
     );
     expect(create).not.toHaveBeenCalled();
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('rejects a deleted customer', async () => {

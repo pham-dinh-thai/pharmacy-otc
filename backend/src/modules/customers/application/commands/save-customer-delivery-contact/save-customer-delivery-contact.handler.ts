@@ -1,11 +1,6 @@
 import { Inject } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import {
   type IUnitOfWork,
   UNIT_OF_WORK,
@@ -15,9 +10,9 @@ import {
   CUSTOMERS_REPOSITORY,
   type ICustomersRepository,
 } from '../../../domain/customers.repository';
-import { CUSTOMER_CREATED_EVENT } from '../../../domain/events/customer-created.event';
-import { CUSTOMER_UPDATED_EVENT } from '../../../domain/events/customer-updated.event';
 import { CustomerAlreadyDeletedException } from '../../../domain/exceptions/customer.exceptions';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { SaveCustomerDeliveryContactCommand } from './save-customer-delivery-contact.command';
 
 const snapshot = (customer: Customer) => ({
@@ -31,8 +26,7 @@ export class SaveCustomerDeliveryContactHandler implements ICommandHandler<SaveC
     @Inject(CUSTOMERS_REPOSITORY)
     private readonly customersRepository: ICustomersRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
+    private readonly commandBus: CommandBus,
 
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
@@ -71,15 +65,17 @@ export class SaveCustomerDeliveryContactHandler implements ICommandHandler<SaveC
         ? await this.customersRepository.create(customer)
         : await this.customersRepository.update(customer);
 
-      await this.outboxRepository.create({
-        eventType: isNew ? CUSTOMER_CREATED_EVENT : CUSTOMER_UPDATED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.CUSTOMERS,
-          entityId: saved.getId(),
-          before,
-          after: snapshot(saved),
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: isNew ? 'create' : 'update',
+            entityType: EntityType.CUSTOMERS,
+            entityId: saved.getId(),
+            before,
+            after: snapshot(saved),
+          }),
+        ),
+      );
 
       return { id: saved.getId() };
     });

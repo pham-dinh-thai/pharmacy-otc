@@ -11,14 +11,9 @@ import { RestoreSupplierHandler } from './application/commands/restore-supplier/
 import { GetSupplierHandler } from './application/queries/get-supplier/get-supplier.handler';
 import { GetSuppliersHandler } from './application/queries/get-suppliers/get-suppliers.handler';
 import { SecurityModule } from '../../shared/modules/security/security.module';
-import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 
 @Module({
-  imports: [
-    MikroOrmModule.forFeature([MikroSupplier]),
-    SecurityModule,
-    OutBoxModule,
-  ],
+  imports: [MikroOrmModule.forFeature([MikroSupplier]), SecurityModule],
   controllers: [SuppliersController],
   providers: [
     { provide: SUPPLIERS_REPOSITORY, useClass: MikroSuppliersRepository },

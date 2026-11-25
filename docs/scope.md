@@ -53,7 +53,7 @@ Trong code, bốn nhóm này tương ứng enum `ProductCategory`:
 - Quản lý tồn kho theo lô và hạn dùng.
 - Xuất kho theo lô, kiểm kê/điều chỉnh tồn.
 - Quản lý chi phí vận hành.
-- Ghi nhật ký thao tác (audit) qua outbox.
+- Ghi nhật ký thao tác (audit) trong cùng transaction với nghiệp vụ.
 - Phân quyền theo vai trò.
 
 ### Vận hành ngoài phạm vi (giai đoạn sau)
@@ -76,7 +76,7 @@ Trong code, bốn nhóm này tương ứng enum `ProductCategory`:
 - Nhà cung cấp.
 - Phiếu nhập hàng + lô + tồn kho + xuất/kiểm kê.
 - Chi phí vận hành (tạo).
-- Audit log qua outbox.
+- Audit log ghi đồng bộ trong transaction.
 
 ### Giai đoạn 2 — Danh mục và khách hàng (đang làm)
 

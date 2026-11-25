@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import {
   DepartmentAlreadyDisabledException,
   DepartmentNotFoundException,
@@ -8,12 +9,8 @@ import { SoftDeleteDepartmentHandler } from './soft-delete-department.handler';
 import { SoftDeleteDepartmentCommand } from './soft-delete-department.command';
 import { DEPARTMENTS_REPOSITORY } from '../../../domain/departments.repository';
 import { Department } from '../../../domain/department.aggregate';
-import {
-  OUTBOX_REPOSITORY,
-  type IOutboxRepository,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import { UNIT_OF_WORK } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { DEPARTMENT_DISABLED_EVENT } from '../../../domain/events/department-disabled.event';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 const headers = {
@@ -38,12 +35,14 @@ describe('SoftDeleteDepartmentHandler', () => {
   let handler: SoftDeleteDepartmentHandler;
   let findById: jest.Mock<(id: string) => Promise<Department | null>>;
   let update: jest.Mock<(department: Department) => Promise<Department>>;
-  let outboxCreate: jest.Mock<IOutboxRepository['create']>;
+  let execute: jest.Mock<CommandBus['execute']>;
 
   beforeEach(async () => {
     findById = jest.fn(() => Promise.resolve(department()));
     update = jest.fn((value) => Promise.resolve(value));
-    outboxCreate = jest.fn<IOutboxRepository['create']>();
+    execute = jest.fn<CommandBus['execute']>().mockResolvedValue({
+      id: 'audit-id',
+    });
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -56,7 +55,7 @@ describe('SoftDeleteDepartmentHandler', () => {
             update,
           },
         },
-        { provide: OUTBOX_REPOSITORY, useValue: { create: outboxCreate } },
+        { provide: CommandBus, useValue: { execute } },
         {
           provide: UNIT_OF_WORK,
           useValue: {
@@ -78,7 +77,7 @@ describe('SoftDeleteDepartmentHandler', () => {
     ).rejects.toThrow(DepartmentNotFoundException);
 
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('soft-deletes the department and appends the audit event', async () => {
@@ -89,19 +88,20 @@ describe('SoftDeleteDepartmentHandler', () => {
     expect(result).toEqual({ id: DEPARTMENT_ID });
     expect(update).toHaveBeenCalledTimes(1);
     expect(update.mock.calls[0][0].isDeleted()).toBe(true);
-    expect(outboxCreate).toHaveBeenCalledWith({
-      eventType: DEPARTMENT_DISABLED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.DEPARTMENTS,
-          entityId: DEPARTMENT_ID,
-          before: { name: 'Pharmacy', deletedAt: null },
-          after: {
-            name: 'Pharmacy',
-            deletedAt: update.mock.calls[0][0].getDeletedAt(),
-          },
-        },
+    expect(execute).toHaveBeenCalledTimes(1);
+
+    const auditCommand = execute.mock.calls[0][0];
+
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      action: 'deactivate',
+      entityType: EntityType.DEPARTMENTS,
+      entityId: DEPARTMENT_ID,
+      before: { name: 'Pharmacy', deletedAt: null },
+      after: {
+        name: 'Pharmacy',
+        deletedAt: update.mock.calls[0][0].getDeletedAt(),
       },
     });
   });
@@ -116,6 +116,6 @@ describe('SoftDeleteDepartmentHandler', () => {
     ).rejects.toThrow(DepartmentAlreadyDisabledException);
 
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

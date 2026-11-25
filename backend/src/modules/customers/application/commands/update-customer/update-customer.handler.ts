@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UpdateCustomerCommand } from './update-customer.command';
 import {
   CustomerAlreadyDeletedException,
@@ -16,15 +16,11 @@ import {
 import { UserByIdNotFoundException } from '../../../../users/domain/exceptions/user.exceptions';
 import { UserEmailAlreadyExistsException } from '../../../../users/domain/exceptions/user.exceptions';
 import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { CUSTOMER_UPDATED_EVENT } from '../../../domain/events/customer-updated.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 @CommandHandler(UpdateCustomerCommand)
@@ -36,8 +32,7 @@ export class UpdateCustomerHandler implements ICommandHandler<UpdateCustomerComm
     @Inject(USERS_REPOSITORY)
     private readonly usersRepository: IUsersRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
+    private readonly commandBus: CommandBus,
 
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
@@ -92,23 +87,25 @@ export class UpdateCustomerHandler implements ICommandHandler<UpdateCustomerComm
       customer.update(command.profile);
       await this.customersRepository.update(customer);
 
-      await this.outboxRepository.create({
-        eventType: CUSTOMER_UPDATED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.CUSTOMERS,
-          entityId: customer.getId(),
-          before,
-          after: {
-            firstName: user.getFirstName(),
-            lastName: user.getLastName(),
-            email: user.getEmail(),
-            phones: customer.getPhones().map((phone) => phone.getPhone()),
-            addresses: customer
-              .getAddresses()
-              .map((address) => address.getAddress()),
-          },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'update',
+            entityType: EntityType.CUSTOMERS,
+            entityId: customer.getId(),
+            before,
+            after: {
+              firstName: user.getFirstName(),
+              lastName: user.getLastName(),
+              email: user.getEmail(),
+              phones: customer.getPhones().map((phone) => phone.getPhone()),
+              addresses: customer
+                .getAddresses()
+                .map((address) => address.getAddress()),
+            },
+          }),
+        ),
+      );
 
       return { id: customer.getId() };
     });

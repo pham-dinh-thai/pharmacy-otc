@@ -1,5 +1,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import { InvalidQuantityException } from '../../../../../shared/domain/exceptions/value-object.exceptions';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import {
   BatchNotFoundException,
   InventoryNotFoundException,
@@ -12,11 +15,8 @@ import {
 } from '../../../domain/inventories.repository';
 import { Inventory } from '../../../domain/inventory.aggregate';
 import { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { IOutboxRepository } from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import { ReconcileBatchStockCommand } from './reconcile-batch-stock.command';
 import { ReconcileBatchStockHandler } from './reconcile-batch-stock.handler';
-import { INVENTORY_STOCK_RECONCILED_EVENT } from '../../../domain/events/inventory-stock-reconciled.event';
-import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 const PRODUCT_ID = 'b3d7f2a8-7a0e-4f1c-9c1a-4d3f5e6a7b8c';
 const CREATED_BY = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
@@ -59,9 +59,9 @@ const setup = (inventory: Inventory | null) => {
   );
   const save = jest.fn<Save>((value) => Promise.resolve(value));
   const run = jest.fn<Run>((work) => work());
-  const outboxCreate = jest
-    .fn<IOutboxRepository['create']>()
-    .mockResolvedValue(undefined);
+  const execute = jest.fn<CommandBus['execute']>(() =>
+    Promise.resolve({ id: 'audit-id' }),
+  );
 
   const repository: IInventoriesRepository = {
     findByProductId,
@@ -76,19 +76,18 @@ const setup = (inventory: Inventory | null) => {
   };
   const handler = new ReconcileBatchStockHandler(
     repository,
-    { create: outboxCreate } as unknown as IOutboxRepository,
+    { execute } as unknown as CommandBus,
     unitOfWork,
   );
 
-  return { handler, findByProductId, save, run, outboxCreate };
+  return { handler, findByProductId, save, run, execute };
 };
 
 describe('ReconcileBatchStockHandler', () => {
   it('overwrites stock with counted quantity inside a unit of work', async () => {
     const inventory = createInventory(10);
     const batchId = inventory.getBatches()[0].getId();
-    const { handler, findByProductId, save, run, outboxCreate } =
-      setup(inventory);
+    const { handler, findByProductId, save, run, execute } = setup(inventory);
 
     const result = await handler.execute(
       new ReconcileBatchStockCommand(PRODUCT_ID, batchId, 7, headers),
@@ -106,26 +105,30 @@ describe('ReconcileBatchStockHandler', () => {
       findByProductId.mock.invocationCallOrder[0],
     );
 
-    expect(outboxCreate).toHaveBeenCalledWith({
-      eventType: INVENTORY_STOCK_RECONCILED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.INVENTORIES,
-          entityId: PRODUCT_ID,
-          before: { quantity: 10 },
-          after: {
-            productId: PRODUCT_ID,
-            batchId,
-            lotNumber: 'LOT-001',
-            quantity: 7,
-            unitCost: '2500',
-            status: BatchStatus.ACTIVE,
-            expiresAt: EXPIRES_AT.toISOString(),
-          },
-          metadata: { batchId },
-        },
+    expect(execute).toHaveBeenCalledTimes(1);
+    const auditCommand = execute.mock.calls[0][0];
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: CREATED_BY,
+      actorType: 'user',
+      actorLabel: 'admin@example.com',
+      ipAddress: '127.0.0.1',
+      userAgent: 'jest',
+      status: 'success',
+      action: 'reconcile',
+      entityType: EntityType.INVENTORIES,
+      entityId: PRODUCT_ID,
+      before: { quantity: 10 },
+      after: {
+        productId: PRODUCT_ID,
+        batchId,
+        lotNumber: 'LOT-001',
+        quantity: 7,
+        unitCost: '2500',
+        status: BatchStatus.ACTIVE,
+        expiresAt: EXPIRES_AT.toISOString(),
       },
+      metadata: { batchId },
     });
   });
 
@@ -144,7 +147,7 @@ describe('ReconcileBatchStockHandler', () => {
   });
 
   it('throws NotFoundException when inventory does not exist', async () => {
-    const { handler, save, outboxCreate } = setup(null);
+    const { handler, save, execute } = setup(null);
 
     await expect(
       handler.execute(
@@ -158,12 +161,12 @@ describe('ReconcileBatchStockHandler', () => {
     ).rejects.toThrow(InventoryNotFoundException);
 
     expect(save).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('throws NotFoundException when the batch does not exist', async () => {
     const inventory = createInventory(10);
-    const { handler, save, outboxCreate } = setup(inventory);
+    const { handler, save, execute } = setup(inventory);
 
     await expect(
       handler.execute(
@@ -177,13 +180,13 @@ describe('ReconcileBatchStockHandler', () => {
     ).rejects.toThrow(BatchNotFoundException);
 
     expect(save).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('rejects negative counted quantity and does not save', async () => {
     const inventory = createInventory(10);
     const batchId = inventory.getBatches()[0].getId();
-    const { handler, save, outboxCreate } = setup(inventory);
+    const { handler, save, execute } = setup(inventory);
 
     await expect(
       handler.execute(
@@ -193,6 +196,6 @@ describe('ReconcileBatchStockHandler', () => {
 
     expect(inventory.getBatches()[0].getQuantity()).toBe(10);
     expect(save).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

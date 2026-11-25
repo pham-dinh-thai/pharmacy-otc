@@ -41,3 +41,12 @@ export class CheckoutNotFoundException extends DomainException {
     super(`Checkout with id "${id}" is not found`, 'CHECKOUT_NOT_FOUND');
   }
 }
+
+export class InvalidCheckoutProductNameException extends DomainException {
+  public constructor() {
+    super(
+      'Checkout line product name is required',
+      'CHECKOUT_INVALID_PRODUCT_NAME',
+    );
+  }
+}

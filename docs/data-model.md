@@ -9,8 +9,7 @@
   `Migration20261114000000_money_to_bigint`.
 - Không xoá cứng dữ liệu nghiệp vụ quan trọng; dùng cờ xoá mềm (`deleted_at`),
   trạng thái (`cancelled`) hoặc bảng audit.
-- `audit_logs` là **append-only**.
-- `outbox_events` nằm cùng DB để ghi atomic với nghiệp vụ.
+- `audit_logs` là **append-only**, được ghi trong cùng transaction với nghiệp vụ.
 - Sai khác giữa domain và DB được xử lý ở domain; DB giữ ràng buộc tối thiểu.
 
 ## 2. ERD hiện tại
@@ -28,7 +27,6 @@ erDiagram
     batches ||--o{ goods_receipt_lines : "batch_id (logical)"
     suppliers ||--o{ expenses : "paid to (optional)"
     users ||--o{ audit_logs : "actor"
-    outbox_events ||--o{ audit_logs : "sourceEventId (metadata)"
 
     users {
         uuid id PK
@@ -164,16 +162,6 @@ erDiagram
         varchar error_message
     }
 
-    outbox_events {
-        int id PK "serial"
-        varchar event_type
-        jsonb payload
-        timestamptz created_at
-        boolean processed
-        int attempts
-        text last_error
-        timestamptz failed_at
-    }
 ```
 
 > `batches` → `goods_receipt_lines.batch_id` là quan hệ logic, **không có FK**
@@ -350,7 +338,7 @@ Ràng buộc: unique `(product_id, lot_number)`.
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
 | `id` | uuid PK | |
-| `occurred_at` | timestamptz | Thời điểm event |
+| `occurred_at` | timestamptz | Thời điểm ghi nhận |
 | `actor_id` | uuid nullable | Index |
 | `actor_type` | text | `user`, `system` |
 | `actor_label` | varchar nullable | Email/label |
@@ -364,19 +352,6 @@ Ràng buộc: unique `(product_id, lot_number)`.
 | `reason`, `error_code`, `error_message` | nullable | |
 
 Index: `(entity_type, entity_id)`, `(actor_id)`, `(occurred_at)`.
-
-### `outbox_events`
-
-| Cột | Kiểu | Ghi chú |
-|---|---|---|
-| `id` | serial PK | |
-| `event_type` | varchar | Tên event |
-| `payload` | jsonb | Dữ liệu + audit info |
-| `created_at` | timestamptz | |
-| `processed` | boolean | Mặc định `false` |
-| `attempts` | int | Số lần thử |
-| `last_error` | text nullable | |
-| `failed_at` | timestamptz nullable | Đánh dấu thất bại vĩnh viễn |
 
 ### `mikro_orm_migrations`
 
@@ -416,7 +391,7 @@ lô đọc qua `GET /api/inventories/batches` và `GET /api/inventories/batches/
 | `products` → `goods_receipt_lines` | 1-n | FK |
 | `products` → `batches` | 1-n | FK |
 | `suppliers` → `expenses` | 1-n optional | FK, set null |
-| `outbox_events` → `audit_logs` | 1-n logic | Qua `metadata.sourceEventId` |
+| `users` → `audit_logs` | 1-n logic | `actor_id`, tra cứu theo actor |
 
 Ràng buộc DB đáng chú ý:
 

@@ -15,15 +15,10 @@ import { RestoreRoleHandler } from './application/commands/restore-role/restore-
 import { GetRoleHandler } from './application/queries/get-role/get-role.handler';
 import { ListRolesHandler } from './application/queries/list-roles/list-roles.handler';
 import { SecurityModule } from '../../shared/modules/security/security.module';
-import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { GetActorPermissionsHandler } from './application/queries/get-actor-permissions/get-actor-permissions.handler';
 
 @Module({
-  imports: [
-    MikroOrmModule.forFeature([MikroRole]),
-    SecurityModule,
-    OutBoxModule,
-  ],
+  imports: [MikroOrmModule.forFeature([MikroRole]), SecurityModule],
   controllers: [RolesController, PermissionsController],
   providers: [
     { provide: ROLES_REPOSITORY, useClass: MikroRolesRepository },

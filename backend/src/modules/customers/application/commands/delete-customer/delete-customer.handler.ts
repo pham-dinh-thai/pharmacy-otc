@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { DeleteCustomerCommand } from './delete-customer.command';
 import {
   CustomerAlreadyDeletedException,
@@ -10,15 +10,11 @@ import {
   type ICustomersRepository,
 } from '../../../domain/customers.repository';
 import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { CUSTOMER_DELETED_EVENT } from '../../../domain/events/customer-deleted.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 @CommandHandler(DeleteCustomerCommand)
@@ -27,8 +23,7 @@ export class DeleteCustomerHandler implements ICommandHandler<DeleteCustomerComm
     @Inject(CUSTOMERS_REPOSITORY)
     private readonly customersRepository: ICustomersRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
+    private readonly commandBus: CommandBus,
 
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
@@ -53,15 +48,17 @@ export class DeleteCustomerHandler implements ICommandHandler<DeleteCustomerComm
       customer.softDelete();
       await this.customersRepository.update(customer);
 
-      await this.outboxRepository.create({
-        eventType: CUSTOMER_DELETED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.CUSTOMERS,
-          entityId: customer.getId(),
-          before: { deletedAt: null },
-          after: { deletedAt: customer.getDeletedAt() },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'delete',
+            entityType: EntityType.CUSTOMERS,
+            entityId: customer.getId(),
+            before: { deletedAt: null },
+            after: { deletedAt: customer.getDeletedAt() },
+          }),
+        ),
+      );
 
       return { id: customer.getId() };
     });

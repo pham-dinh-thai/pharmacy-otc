@@ -1,4 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import { InvalidSupplierPhoneException } from '../../../domain/exceptions/supplier.exceptions';
 import {
   ISuppliersRepository,
@@ -7,11 +8,10 @@ import {
 } from '../../../domain/suppliers.repository';
 import { Supplier } from '../../../domain/supplier.aggregate';
 import { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { IOutboxRepository } from '../../../../../shared/modules/outbox/domain/outbox.repository';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { CreateSupplierCommand } from './create-supplier.command';
 import { CreateSupplierHandler } from './create-supplier.handler';
-import { SUPPLIER_CREATED_EVENT } from '../../../domain/events/supplier-created.event';
-import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 type FindPage = (filters?: FindSuppliersFilters) => Promise<SupplierPage>;
 type FindById = (id: string) => Promise<Supplier | null>;
@@ -44,9 +44,9 @@ const setup = (sequence = 7) => {
   const nextSequence = jest.fn<NextSequence>(() => Promise.resolve(sequence));
   const create = jest.fn<Create>((supplier) => Promise.resolve(supplier));
   const run = jest.fn<Run>((work) => work());
-  const outboxCreate = jest
-    .fn<IOutboxRepository['create']>()
-    .mockResolvedValue(undefined);
+  const execute = jest.fn<CommandBus['execute']>(() =>
+    Promise.resolve({ id: 'audit-id' }),
+  );
 
   const repository: ISuppliersRepository = {
     findPage: jest.fn<FindPage>(),
@@ -61,16 +61,16 @@ const setup = (sequence = 7) => {
   };
   const handler = new CreateSupplierHandler(
     repository,
-    { create: outboxCreate } as unknown as IOutboxRepository,
+    { execute } as unknown as CommandBus,
     unitOfWork,
   );
 
-  return { handler, nextSequence, create, run, outboxCreate };
+  return { handler, nextSequence, create, run, execute };
 };
 
 describe('CreateSupplierHandler', () => {
   it('creates a supplier inside a unit of work and saves it', async () => {
-    const { handler, nextSequence, create, run, outboxCreate } = setup(7);
+    const { handler, nextSequence, create, run, execute } = setup(7);
 
     const result = await handler.execute(createCommand());
 
@@ -94,23 +94,29 @@ describe('CreateSupplierHandler', () => {
     expect(created.getAddress()).toBe('12 Nguyễn Huệ');
     expect(created.getTaxCode()).toBe('0312345678');
 
-    expect(outboxCreate).toHaveBeenCalledWith({
-      eventType: SUPPLIER_CREATED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.SUPPLIERS,
-          entityId: created.getId(),
-          after: {
-            code: 'SUP-0007',
-            name: 'Công ty TNHH ABC',
-            phone: '0901234567',
-            email: 'contact@abc.vn',
-            address: '12 Nguyễn Huệ',
-            taxCode: '0312345678',
-          },
-        },
+    expect(execute).toHaveBeenCalledTimes(1);
+
+    const auditCommand = execute.mock.calls[0][0];
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      actorType: headers.actorType,
+      actorLabel: headers.actorLabel,
+      ipAddress: headers.userIp,
+      userAgent: headers.userAgent,
+      action: 'create',
+      entityType: EntityType.SUPPLIERS,
+      entityId: created.getId(),
+      before: null,
+      after: {
+        code: 'SUP-0007',
+        name: 'Công ty TNHH ABC',
+        phone: '0901234567',
+        email: 'contact@abc.vn',
+        address: '12 Nguyễn Huệ',
+        taxCode: '0312345678',
       },
+      reason: null,
     });
   });
 
@@ -123,13 +129,13 @@ describe('CreateSupplierHandler', () => {
   });
 
   it('does not save when the phone is invalid', async () => {
-    const { handler, create, outboxCreate } = setup();
+    const { handler, create, execute } = setup();
 
     await expect(handler.execute(createCommand('0123456789'))).rejects.toThrow(
       InvalidSupplierPhoneException,
     );
 
     expect(create).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

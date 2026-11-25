@@ -131,7 +131,7 @@ phụ thuộc vào việc bán thật nhiều SKU.
 - Có **ràng buộc thực tế** buộc phải thiết kế đúng: tiền là số nguyên VND, tồn
   kho không được âm, không bán hàng hết hạn.
 - Có **phạm vi rõ ràng** để không sa vào bài toán kê đơn, bảo hiểm, bệnh án.
-- Phù hợp để trình bày cả **backend** (CQRS, transaction, outbox) và **sản phẩm**
+- Phù hợp để trình bày cả **backend** (CQRS, transaction, ghi audit đồng bộ) và **sản phẩm**
   (persona, hành trình, phạm vi).
 
 ## 11. Giới hạn của đồ án

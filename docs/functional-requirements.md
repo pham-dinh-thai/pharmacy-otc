@@ -130,7 +130,7 @@ chưa đăng nhập được. Cần bổ sung luồng mời/đặt mật khẩu.
 | FR-CAT-04 | Sửa tên/slug/mô tả; chặn trùng tên hoặc slug | ✅ |
 | FR-CAT-05 | Xoá mềm và khôi phục | ✅ chung permission `categories:delete` |
 | FR-CAT-06 | Liên kết N-N với sản phẩm | ✅ danh sách id sản phẩm hiển thị read-only ở chi tiết; liên kết được chỉnh từ form sản phẩm |
-| FR-CAT-07 | Ghi audit cho tạo/sửa/xoá/khôi phục | ✅ qua outbox, `entityType = categories` |
+| FR-CAT-07 | Ghi audit cho tạo/sửa/xoá/khôi phục | ✅ qua `RecordAuditLogCommand`, `entityType = categories` |
 
 **Phạm vi đã làm:** trang `/categories` có danh sách, lọc, phân trang, tạo, sửa, xoá mềm, khôi phục và chi tiết. Mọi endpoint cần `categories:read/create/update/delete` (Super Admin được bỏ qua). Quan hệ với sản phẩm là N-N qua `product_categories`; để tránh phụ thuộc vòng giữa hai module, form danh mục không sửa trực tiếp danh sách sản phẩm mà hiển thị liên kết hiện có.
 
@@ -170,12 +170,12 @@ Form phiếu nhập tìm sản phẩm qua `GET /products?search=...` thay vì b�
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
 | FR-INV-01 | Mỗi lô có số lô, số lượng, giá nhập, hạn dùng, trạng thái | ✅ |
-| FR-INV-02 | Nhập kho từ phiếu nhập đã xác nhận (consumer outbox) | ✅ |
+| FR-INV-02 | Nhập kho khi xác nhận phiếu, đồng bộ qua `ReceiveStockCommand` trong transaction | ✅ |
 | FR-INV-03 | Xuất kho theo `batchId`, không cho âm | ✅ |
 | FR-INV-04 | Kiểm kê/điều chỉnh số lượng theo lô | ✅ |
 | FR-INV-05 | Xem tồn tổng hợp theo sản phẩm qua `GET /inventories` | ✅ |
 | FR-INV-06 | Xem danh sách/chi tiết lô qua `GET /inventories/batches`, `GET /inventories/batches/:id` | ✅ |
-| FR-INV-07 | Gợi ý/chặn xuất theo FEFO | ⬜ |
+| FR-INV-07 | Gợi ý/chặn xuất theo FEFO | ✅ |
 | FR-INV-08 | Tự chuyển lô sang `expired`/`out`, chặn bán hàng hết hạn | ⬜ |
 | FR-INV-09 | Cảnh báo tồn thấp/lô cận hạn | ⬜ |
 | FR-INV-10 | Ghi audit xuất/kiểm kê | ✅ |
@@ -185,21 +185,22 @@ Form phiếu nhập tìm sản phẩm qua `GET /products?search=...` thay vì b�
 - Tồn kho lấy từ `batches`/view `inventories`; `products` không còn cột
   `quantity`. Danh sách sản phẩm hiển thị `stockQuantity` và lọc `inStock` từ
   tồn thực tế.
-- Xuất kho hiện yêu cầu truyền đúng `batchId`; hệ thống chưa tự chọn lô FEFO.
+- Xuất kho thủ công qua `IssueBatchStockCommand` vẫn yêu cầu đúng `batchId`;
+  riêng luồng tạo đơn tự chọn lô FEFO, bỏ qua lô hết hạn, lô `out` và lô hết số lượng.
 - Lô hết hạn/hết số lượng vẫn nằm trong view cho đến khi được kiểm kê hoặc xuất.
 
 ## 12. Orders
 
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
-| FR-ORD-01 | Tạo đơn từ giỏ hàng, backend tự tính giá | ⬜ |
+| FR-ORD-01 | Tạo đơn từ giỏ hàng, backend tự tính giá | ✅ |
 | FR-ORD-02 | Địa chỉ giao, phí giao, ghi chú | ⬜ |
 | FR-ORD-03 | Trạng thái đơn và lịch sử | ⬜ |
-| FR-ORD-04 | Trừ tồn theo lô khi xác nhận đơn | ⬜ |
+| FR-ORD-04 | Trừ tồn theo lô khi xác nhận đơn | ✅ |
 | FR-ORD-05 | Huỷ đơn và hoàn tồn | ⬜ |
 | FR-ORD-06 | Khách xem đơn của mình | ⬜ |
 | FR-ORD-07 | Quản trị xử lý đơn | ⬜ |
-| FR-ORD-08 | Ghi audit | ⬜ |
+| FR-ORD-08 | Ghi audit | ✅ |
 
 ## 13. Expenses
 
@@ -226,12 +227,12 @@ phòng phẩm, khác.
 
 | Mã | Yêu cầu | Trạng thái |
 |---|---|---|
-| FR-AUD-01 | Ghi audit bất đồng bộ qua outbox, không chặn nghiệp vụ | ✅ |
+| FR-AUD-01 | Ghi audit đồng bộ trong cùng transaction nghiệp vụ, không có relay/polling | ✅ |
 | FR-AUD-02 | Lưu actor, action, entity, before/after, metadata, IP, user-agent | ✅ |
 | FR-AUD-03 | Danh sách có filter actor/entity/action/status/thời gian + phân trang | ✅ |
 | FR-AUD-04 | Xem chi tiết | ✅ |
 | FR-AUD-05 | Không cho sửa/xoá audit | ✅ (chỉ có API đọc) |
-| FR-AUD-06 | Retry khi consumer lỗi, dừng sau N lần | ✅ |
+| FR-AUD-06 | Audit commit/rollback cùng nghiệp vụ, không có retry nền | ✅ |
 
 ## 15. Reports
 
@@ -251,9 +252,9 @@ phòng phẩm, khác.
 | BR-03 | Không xuất quá số lượng còn lại của lô |
 | BR-04 | Phiếu nhập chỉ xác nhận/huỷ khi `pending` |
 | BR-05 | Một phiếu nhập không có dòng trùng `(sản phẩm, số lô)` |
-| BR-06 | Mỗi lần ghi nghiệp vụ quan trọng phát ra outbox event trong cùng transaction |
-| BR-07 | Consumer xử lý event và đánh dấu processed trong cùng transaction |
-| BR-08 | Lỗi consumer được ghi nhận, retry tối đa `OUTBOX_MAX_ATTEMPTS` |
+| BR-06 | Mỗi lần ghi nghiệp vụ quan trọng gọi `RecordAuditLogCommand` trong cùng transaction |
+| BR-07 | Audit và dữ liệu nghiệp vụ commit/rollback cùng nhau |
+| BR-08 | Side-effect (nhập kho, chi phí, vô hiệu hoá user) là command dispatch trực tiếp, không qua event |
 | BR-09 | Endpoint ghi yêu cầu permission cụ thể |
 | BR-10 | Không bán thuốc kê đơn (ràng buộc danh mục) |
 | BR-11 | Không hiển thị/bán lô đã hết hạn (mục tiêu giai đoạn sau) |

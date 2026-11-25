@@ -1,20 +1,17 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { IOutboxRepository } from '../../../../shared/modules/outbox/domain/outbox.repository';
+import { CommandBus } from '@nestjs/cqrs';
 import { IUnitOfWork } from '../../../../shared/modules/unit-of-work/unit-of-work';
+import { RecordAuditLogCommand } from '../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { EntityType } from '../../../audit-logs/domain/enums/entity-type.enum';
 import { Expense } from '../../domain/expense.aggregate';
 import { ExpenseCategory } from '../../domain/enums/expense-category.enum';
 import { ExpenseStatus } from '../../domain/enums/expense-status.enum';
 import { PaymentMethod } from '../../domain/enums/payment-method.enum';
-import { EXPENSE_APPROVED_EVENT } from '../../domain/events/expense-approved.event';
-import { EXPENSE_CANCELLED_EVENT } from '../../domain/events/expense-cancelled.event';
-import { EXPENSE_PAID_EVENT } from '../../domain/events/expense-paid.event';
-import { EXPENSE_SUPPLIER_PAID_EVENT } from '../../domain/events/expense-supplier-paid.event';
 import {
   ExpenseInvalidStatusException,
   ExpenseNotFoundException,
 } from '../../domain/exceptions/expense.exceptions';
 import { IExpensesRepository } from '../../domain/expenses.repository';
-import { EntityType } from '../../../audit-logs/domain/enums/entity-type.enum';
 import { ApproveExpenseCommand } from './approve-expense/approve-expense.command';
 import { ApproveExpenseHandler } from './approve-expense/approve-expense.handler';
 import { CancelExpenseCommand } from './cancel-expense/cancel-expense.command';
@@ -59,9 +56,9 @@ const setup = (current: Expense | null) => {
   const update = jest
     .fn<(value: Expense) => Promise<Expense>>()
     .mockImplementation((value) => Promise.resolve(value));
-  const outboxCreate = jest
-    .fn<IOutboxRepository['create']>()
-    .mockResolvedValue(undefined);
+  const execute = jest.fn<CommandBus['execute']>(() =>
+    Promise.resolve({ id: 'audit-id' }),
+  );
   const run = jest.fn<IUnitOfWork['run']>((work) => work());
 
   const repository: IExpensesRepository = {
@@ -71,18 +68,18 @@ const setup = (current: Expense | null) => {
     create: jest.fn<IExpensesRepository['create']>(),
     update,
   };
-  const outbox = { create: outboxCreate } as unknown as IOutboxRepository;
+  const commandBus = { execute } as unknown as CommandBus;
   const unitOfWork: IUnitOfWork = {
     run: run as unknown as IUnitOfWork['run'],
   };
 
   return {
     repository,
-    outbox,
+    commandBus,
     unitOfWork,
     findById,
     update,
-    outboxCreate,
+    execute,
   };
 };
 
@@ -92,11 +89,11 @@ describe('Expense workflow handlers', () => {
       label: 'approve',
       from: ExpenseStatus.PENDING,
       to: ExpenseStatus.APPROVED,
-      event: EXPENSE_APPROVED_EVENT,
+      action: 'approve',
       createHandler: (deps: ReturnType<typeof setup>) =>
         new ApproveExpenseHandler(
           deps.repository,
-          deps.outbox,
+          deps.commandBus,
           deps.unitOfWork,
         ),
       command: new ApproveExpenseCommand(ID, headers),
@@ -105,11 +102,11 @@ describe('Expense workflow handlers', () => {
       label: 'pay supplier',
       from: ExpenseStatus.APPROVED,
       to: ExpenseStatus.SUPPLIER_PAID,
-      event: EXPENSE_SUPPLIER_PAID_EVENT,
+      action: 'pay',
       createHandler: (deps: ReturnType<typeof setup>) =>
         new PaySupplierExpenseHandler(
           deps.repository,
-          deps.outbox,
+          deps.commandBus,
           deps.unitOfWork,
         ),
       command: new PaySupplierExpenseCommand(ID, headers),
@@ -118,18 +115,26 @@ describe('Expense workflow handlers', () => {
       label: 'pay',
       from: ExpenseStatus.SUPPLIER_PAID,
       to: ExpenseStatus.PAID,
-      event: EXPENSE_PAID_EVENT,
+      action: 'pay',
       createHandler: (deps: ReturnType<typeof setup>) =>
-        new PayExpenseHandler(deps.repository, deps.outbox, deps.unitOfWork),
+        new PayExpenseHandler(
+          deps.repository,
+          deps.commandBus,
+          deps.unitOfWork,
+        ),
       command: new PayExpenseCommand(ID, headers),
     },
     {
       label: 'cancel',
       from: ExpenseStatus.PENDING,
       to: ExpenseStatus.CANCELLED,
-      event: EXPENSE_CANCELLED_EVENT,
+      action: 'cancel',
       createHandler: (deps: ReturnType<typeof setup>) =>
-        new CancelExpenseHandler(deps.repository, deps.outbox, deps.unitOfWork),
+        new CancelExpenseHandler(
+          deps.repository,
+          deps.commandBus,
+          deps.unitOfWork,
+        ),
       command: new CancelExpenseCommand(ID, headers),
     },
   ])('transitions an expense with $label', async (scenario) => {
@@ -146,17 +151,22 @@ describe('Expense workflow handlers', () => {
     expect(deps.findById).toHaveBeenCalledWith(ID, { forUpdate: true });
     expect(deps.update).toHaveBeenCalledTimes(1);
     expect(deps.update.mock.calls[0][0].getStatus()).toBe(scenario.to);
-    expect(deps.outboxCreate).toHaveBeenCalledWith({
-      eventType: scenario.event,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.EXPENSES,
-          entityId: ID,
-          before: { status: scenario.from },
-          after: expect.objectContaining({ status: scenario.to }),
-        },
-      },
+    expect(deps.execute).toHaveBeenCalledTimes(1);
+
+    const auditCommand = deps.execute.mock.calls[0][0];
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      actorType: 'user',
+      actorLabel: 'admin@example.com',
+      ipAddress: '127.0.0.1',
+      userAgent: 'jest',
+      status: 'success',
+      action: scenario.action,
+      entityType: EntityType.EXPENSES,
+      entityId: ID,
+      before: { status: scenario.from },
+      after: expect.objectContaining({ status: scenario.to }),
     });
   });
 
@@ -167,7 +177,7 @@ describe('Expense workflow handlers', () => {
       createHandler: (deps: ReturnType<typeof setup>) =>
         new ApproveExpenseHandler(
           deps.repository,
-          deps.outbox,
+          deps.commandBus,
           deps.unitOfWork,
         ),
       command: new ApproveExpenseCommand(ID, headers),
@@ -178,7 +188,7 @@ describe('Expense workflow handlers', () => {
       createHandler: (deps: ReturnType<typeof setup>) =>
         new PaySupplierExpenseHandler(
           deps.repository,
-          deps.outbox,
+          deps.commandBus,
           deps.unitOfWork,
         ),
       command: new PaySupplierExpenseCommand(ID, headers),
@@ -187,21 +197,33 @@ describe('Expense workflow handlers', () => {
       label: 'pay an approved expense before paying the supplier',
       current: ExpenseStatus.APPROVED,
       createHandler: (deps: ReturnType<typeof setup>) =>
-        new PayExpenseHandler(deps.repository, deps.outbox, deps.unitOfWork),
+        new PayExpenseHandler(
+          deps.repository,
+          deps.commandBus,
+          deps.unitOfWork,
+        ),
       command: new PayExpenseCommand(ID, headers),
     },
     {
       label: 'cancel an expense paid to the supplier',
       current: ExpenseStatus.SUPPLIER_PAID,
       createHandler: (deps: ReturnType<typeof setup>) =>
-        new CancelExpenseHandler(deps.repository, deps.outbox, deps.unitOfWork),
+        new CancelExpenseHandler(
+          deps.repository,
+          deps.commandBus,
+          deps.unitOfWork,
+        ),
       command: new CancelExpenseCommand(ID, headers),
     },
     {
       label: 'cancel a paid expense',
       current: ExpenseStatus.PAID,
       createHandler: (deps: ReturnType<typeof setup>) =>
-        new CancelExpenseHandler(deps.repository, deps.outbox, deps.unitOfWork),
+        new CancelExpenseHandler(
+          deps.repository,
+          deps.commandBus,
+          deps.unitOfWork,
+        ),
       command: new CancelExpenseCommand(ID, headers),
     },
   ])('rejects an attempt to $label', async (scenario) => {
@@ -217,14 +239,14 @@ describe('Expense workflow handlers', () => {
     ).rejects.toThrow(ExpenseInvalidStatusException);
 
     expect(deps.update).not.toHaveBeenCalled();
-    expect(deps.outboxCreate).not.toHaveBeenCalled();
+    expect(deps.execute).not.toHaveBeenCalled();
   });
 
   it('throws a domain 404 when the expense does not exist', async () => {
     const deps = setup(null);
     const handler = new PayExpenseHandler(
       deps.repository,
-      deps.outbox,
+      deps.commandBus,
       deps.unitOfWork,
     );
 

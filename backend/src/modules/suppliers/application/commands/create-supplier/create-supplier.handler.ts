@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateSupplierCommand } from './create-supplier.command';
 import { Inject } from '@nestjs/common';
 import {
@@ -10,12 +10,8 @@ import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import { SUPPLIER_CREATED_EVENT } from '../../../domain/events/supplier-created.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 @CommandHandler(CreateSupplierCommand)
@@ -24,8 +20,7 @@ export class CreateSupplierHandler implements ICommandHandler<CreateSupplierComm
     @Inject(SUPPLIERS_REPOSITORY)
     private readonly suppliersRepository: ISuppliersRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
+    private readonly commandBus: CommandBus,
 
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
@@ -46,21 +41,23 @@ export class CreateSupplierHandler implements ICommandHandler<CreateSupplierComm
 
       await this.suppliersRepository.create(supplier);
 
-      await this.outboxRepository.create({
-        eventType: SUPPLIER_CREATED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.SUPPLIERS,
-          entityId: supplier.getId(),
-          after: {
-            code: supplier.getCode(),
-            name: supplier.getName(),
-            phone: supplier.getPhone(),
-            email: supplier.getEmail(),
-            address: supplier.getAddress(),
-            taxCode: supplier.getTaxCode(),
-          },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'create',
+            entityType: EntityType.SUPPLIERS,
+            entityId: supplier.getId(),
+            after: {
+              code: supplier.getCode(),
+              name: supplier.getName(),
+              phone: supplier.getPhone(),
+              email: supplier.getEmail(),
+              address: supplier.getAddress(),
+              taxCode: supplier.getTaxCode(),
+            },
+          }),
+        ),
+      );
 
       return { id: supplier.getId() };
     });

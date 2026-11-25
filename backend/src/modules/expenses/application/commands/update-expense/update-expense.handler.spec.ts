@@ -1,14 +1,14 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { IOutboxRepository } from '../../../../../shared/modules/outbox/domain/outbox.repository';
+import { CommandBus } from '@nestjs/cqrs';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import { Expense } from '../../../domain/expense.aggregate';
 import { ExpenseCategory } from '../../../domain/enums/expense-category.enum';
 import { ExpenseStatus } from '../../../domain/enums/expense-status.enum';
 import { PaymentMethod } from '../../../domain/enums/payment-method.enum';
-import { EXPENSE_UPDATED_EVENT } from '../../../domain/events/expense-updated.event';
 import { ExpenseInvalidStatusException } from '../../../domain/exceptions/expense.exceptions';
 import { IExpensesRepository } from '../../../domain/expenses.repository';
-import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { UpdateExpenseCommand } from './update-expense.command';
 import { UpdateExpenseHandler } from './update-expense.handler';
 
@@ -60,9 +60,9 @@ const setup = (current: Expense | null) => {
   const update = jest
     .fn<(value: Expense) => Promise<Expense>>()
     .mockImplementation((value) => Promise.resolve(value));
-  const outboxCreate = jest
-    .fn<IOutboxRepository['create']>()
-    .mockResolvedValue(undefined);
+  const execute = jest.fn<CommandBus['execute']>(() =>
+    Promise.resolve({ id: 'audit-id' }),
+  );
   const run = jest.fn<IUnitOfWork['run']>((work) => work());
 
   const repository: IExpensesRepository = {
@@ -77,16 +77,16 @@ const setup = (current: Expense | null) => {
   };
   const handler = new UpdateExpenseHandler(
     repository,
-    { create: outboxCreate } as unknown as IOutboxRepository,
+    { execute } as unknown as CommandBus,
     unitOfWork,
   );
 
-  return { handler, findById, update, outboxCreate, run };
+  return { handler, findById, update, execute, run };
 };
 
 describe('UpdateExpenseHandler', () => {
   it('updates a pending expense and records before/after audit data', async () => {
-    const { handler, findById, update, outboxCreate, run } = setup(
+    const { handler, findById, update, execute, run } = setup(
       expense(ExpenseStatus.PENDING),
     );
 
@@ -103,36 +103,38 @@ describe('UpdateExpenseHandler', () => {
     expect(saved.getCategory()).toBe(ExpenseCategory.UTILITIES);
     expect(saved.getStatus()).toBe(ExpenseStatus.PENDING);
 
-    expect(outboxCreate).toHaveBeenCalledWith({
-      eventType: EXPENSE_UPDATED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.EXPENSES,
-          entityId: ID,
-          before: expect.objectContaining({
-            name: 'Office rent',
-            amount: 5000000,
-          }),
-          after: expect.objectContaining({
-            name: 'Updated rent',
-            amount: 6000000,
-          }),
-        },
-      },
+    expect(execute).toHaveBeenCalledTimes(1);
+    const auditCommand = execute.mock.calls[0][0];
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      actorType: 'user',
+      actorLabel: 'admin@example.com',
+      ipAddress: '127.0.0.1',
+      userAgent: 'jest',
+      status: 'success',
+      action: 'update',
+      entityType: EntityType.EXPENSES,
+      entityId: ID,
+      before: expect.objectContaining({
+        name: 'Office rent',
+        amount: 5000000,
+      }),
+      after: expect.objectContaining({
+        name: 'Updated rent',
+        amount: 6000000,
+      }),
     });
   });
 
   it('rejects updates to a paid expense', async () => {
-    const { handler, update, outboxCreate } = setup(
-      expense(ExpenseStatus.PAID),
-    );
+    const { handler, update, execute } = setup(expense(ExpenseStatus.PAID));
 
     await expect(handler.execute(command())).rejects.toThrow(
       ExpenseInvalidStatusException,
     );
 
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

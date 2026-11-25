@@ -1,4 +1,8 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
+import { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import {
   GoodsReceiptNotFoundException,
   GoodsReceiptNotPendingException,
@@ -10,12 +14,8 @@ import {
 import { GoodsReceipt } from '../../../domain/goods-receipt.aggregate';
 import { GoodsReceiptLine } from '../../../domain/goods-receipt-line.entity';
 import { GoodsReceiptStatus } from '../../../domain/goods-receipt-status.enum';
-import { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { IOutboxRepository } from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import { CancelGoodsReceiptCommand } from './cancel-goods-receipt.command';
 import { CancelGoodsReceiptHandler } from './cancel-goods-receipt.handler';
-import { GOODS_RECEIPT_CANCELLED_EVENT } from '../../../domain/events/goods-receipt-cancelled.event';
-import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 const RECEIPT_ID = 'b3d7f2a8-7a0e-4f1c-9c1a-4d3f5e6a7b8c';
 const SUPPLIER_ID = '0ca741a6-ce41-4010-8148-f7b2a32aef1c';
@@ -63,9 +63,9 @@ const setup = (receipt: GoodsReceipt | null) => {
   const create = jest.fn<Create>((value) => Promise.resolve(value));
   const nextSequence = jest.fn<NextSequence>(() => Promise.resolve(1));
   const run = jest.fn<Run>((work) => work());
-  const outboxCreate = jest
-    .fn<IOutboxRepository['create']>()
-    .mockResolvedValue(undefined);
+  const execute = jest.fn<CommandBus['execute']>(() =>
+    Promise.resolve({ id: 'audit-id' }),
+  );
 
   const repository: IGoodsReceiptsRepository = {
     nextSequence,
@@ -79,11 +79,11 @@ const setup = (receipt: GoodsReceipt | null) => {
   };
   const handler = new CancelGoodsReceiptHandler(
     repository,
-    { create: outboxCreate } as unknown as IOutboxRepository,
+    { execute } as unknown as CommandBus,
     unitOfWork,
   );
 
-  return { handler, findById, update, run, outboxCreate };
+  return { handler, findById, update, run, execute };
 };
 
 describe('CancelGoodsReceiptHandler', () => {
@@ -93,7 +93,7 @@ describe('CancelGoodsReceiptHandler', () => {
 
   it('cancels a pending receipt and records the audit fields', async () => {
     const receipt = createReceipt();
-    const { handler, findById, update, run, outboxCreate } = setup(receipt);
+    const { handler, findById, update, run, execute } = setup(receipt);
 
     const result = await handler.execute(
       new CancelGoodsReceiptCommand(RECEIPT_ID, CANCELLED_BY, headers),
@@ -110,40 +110,44 @@ describe('CancelGoodsReceiptHandler', () => {
     expect(cancelled.getCancelledBy()).toBe(CANCELLED_BY);
     expect(cancelled.getCancelledAt()).toBeInstanceOf(Date);
 
-    expect(outboxCreate).toHaveBeenCalledWith({
-      eventType: GOODS_RECEIPT_CANCELLED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.GOODS_RECEIPTS,
-          entityId: receipt.getId(),
-          before: { status: GoodsReceiptStatus.PENDING },
-          after: {
-            code: receipt.getCode(),
-            supplierId: SUPPLIER_ID,
-            status: GoodsReceiptStatus.CANCELLED,
-            createdBy: CREATED_BY,
-            confirmedBy: null,
-            confirmedAt: null,
-            cancelledBy: CANCELLED_BY,
-            cancelledAt: receipt.getCancelledAt()?.toISOString(),
-            lines: receipt.getGoodsReceiptLines().map((item) => ({
-              id: item.getId(),
-              lotNumber: item.getLotNumber(),
-              productId: item.getProductId(),
-              quantity: item.getQuantity(),
-              unitCost: item.getUnitCost(),
-              expiresAt: item.getExpiresAt().toISOString(),
-              batchId: item.getBatchId(),
-            })),
-          },
-        },
+    expect(execute).toHaveBeenCalledTimes(1);
+    const auditCommand = execute.mock.calls[0][0];
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: CANCELLED_BY,
+      actorType: 'user',
+      actorLabel: 'admin@example.com',
+      ipAddress: '127.0.0.1',
+      userAgent: 'jest',
+      status: 'success',
+      action: 'cancel',
+      entityType: EntityType.GOODS_RECEIPTS,
+      entityId: receipt.getId(),
+      before: { status: GoodsReceiptStatus.PENDING },
+      after: {
+        code: receipt.getCode(),
+        supplierId: SUPPLIER_ID,
+        status: GoodsReceiptStatus.CANCELLED,
+        createdBy: CREATED_BY,
+        confirmedBy: null,
+        confirmedAt: null,
+        cancelledBy: CANCELLED_BY,
+        cancelledAt: receipt.getCancelledAt()?.toISOString(),
+        lines: receipt.getGoodsReceiptLines().map((item) => ({
+          id: item.getId(),
+          lotNumber: item.getLotNumber(),
+          productId: item.getProductId(),
+          quantity: item.getQuantity(),
+          unitCost: item.getUnitCost(),
+          expiresAt: item.getExpiresAt().toISOString(),
+          batchId: item.getBatchId(),
+        })),
       },
     });
   });
 
   it('rejects an unknown receipt', async () => {
-    const { handler, update, outboxCreate } = setup(null);
+    const { handler, update, execute } = setup(null);
 
     await expect(
       handler.execute(
@@ -152,14 +156,14 @@ describe('CancelGoodsReceiptHandler', () => {
     ).rejects.toThrow(GoodsReceiptNotFoundException);
 
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('rejects cancelling a confirmed receipt', async () => {
     const receipt = createReceipt();
     receipt.confirm(CREATED_BY);
 
-    const { handler, update, outboxCreate } = setup(receipt);
+    const { handler, update, execute } = setup(receipt);
 
     await expect(
       handler.execute(
@@ -168,6 +172,6 @@ describe('CancelGoodsReceiptHandler', () => {
     ).rejects.toThrow(GoodsReceiptNotPendingException);
 
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

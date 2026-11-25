@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CreateCustomerByAdminCommand } from './create-customer-by-admin.command';
 import { CreateUserService } from '../../../../users/application/services/create-user.service';
 import {
@@ -13,17 +13,11 @@ import {
   type ICustomersRepository,
 } from '../../../domain/customers.repository';
 import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { USER_CREATED_EVENT } from '../../../../users/domain/events/user-created.event';
-import { ACCOUNT_SIGNED_UP_EVENT } from '../../../../authentication/domain/events/account-signed-up.event';
-import { CUSTOMER_CREATED_EVENT } from '../../../domain/events/customer-created.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 @CommandHandler(CreateCustomerByAdminCommand)
@@ -37,8 +31,7 @@ export class CreateCustomerByAdminHandler implements ICommandHandler<CreateCusto
     @Inject(CUSTOMERS_REPOSITORY)
     private readonly customersRepository: ICustomersRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
+    private readonly commandBus: CommandBus,
 
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
@@ -67,46 +60,52 @@ export class CreateCustomerByAdminHandler implements ICommandHandler<CreateCusto
       });
       await this.customersRepository.create(customer);
 
-      await this.outboxRepository.create({
-        eventType: USER_CREATED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.USERS,
-          entityId: user.getId(),
-          after: {
-            firstName: user.getFirstName(),
-            lastName: user.getLastName(),
-            email: user.getEmail(),
-            roleIds: user.getRoleIds(),
-          },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'create',
+            entityType: EntityType.USERS,
+            entityId: user.getId(),
+            after: {
+              firstName: user.getFirstName(),
+              lastName: user.getLastName(),
+              email: user.getEmail(),
+              roleIds: user.getRoleIds(),
+            },
+          }),
+        ),
+      );
 
-      await this.outboxRepository.create({
-        eventType: ACCOUNT_SIGNED_UP_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.ACCOUNTS,
-          entityId: account.getId(),
-          after: {
-            accountId: account.getId(),
-            userId: account.getUserId(),
-          },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'sign_up',
+            entityType: EntityType.ACCOUNTS,
+            entityId: account.getId(),
+            after: {
+              accountId: account.getId(),
+              userId: account.getUserId(),
+            },
+          }),
+        ),
+      );
 
-      await this.outboxRepository.create({
-        eventType: CUSTOMER_CREATED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.CUSTOMERS,
-          entityId: customer.getId(),
-          after: {
-            userId: customer.getUserId(),
-            phones: customer.getPhones().map((phone) => phone.getPhone()),
-            addresses: customer
-              .getAddresses()
-              .map((address) => address.getAddress()),
-          },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'create',
+            entityType: EntityType.CUSTOMERS,
+            entityId: customer.getId(),
+            after: {
+              userId: customer.getUserId(),
+              phones: customer.getPhones().map((phone) => phone.getPhone()),
+              addresses: customer
+                .getAddresses()
+                .map((address) => address.getAddress()),
+            },
+          }),
+        ),
+      );
 
       return { id: customer.getId() };
     });

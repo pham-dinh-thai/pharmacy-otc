@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { LoginCommand } from './login.command';
 import { Inject } from '@nestjs/common';
 import {
@@ -26,12 +26,8 @@ import {
   type IRefreshTokenStorePort,
   REFRESH_TOKEN_STORE_PORT,
 } from '../../ports/refresh-token-store.port';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import { ACCOUNT_SIGNED_IN_EVENT } from '../../../domain/events/account-signed-in.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { ActorType } from '../../../../audit-logs/domain/enums/actor-type.enum';
 import { EmployeeStatus } from '../../../../employees/domain/enums/employee-status.enum';
@@ -63,8 +59,7 @@ export class LoginHandler implements ICommandHandler<LoginCommand> {
     @Inject(REFRESH_TOKEN_STORE_PORT)
     private readonly refreshTokenStorePort: IRefreshTokenStorePort,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
+    private readonly commandBus: CommandBus,
   ) {}
 
   public async execute(command: LoginCommand): Promise<{
@@ -128,26 +123,28 @@ export class LoginHandler implements ICommandHandler<LoginCommand> {
       7 * 24 * 60 * 60,
     );
 
-    await this.outboxRepository.create({
-      eventType: ACCOUNT_SIGNED_IN_EVENT,
-      payload: auditEventPayload(
-        {
-          actorId: sub,
-          actorType: ActorType.USER,
-          actorLabel: user.email,
-          userIp: command.ip,
-          userAgent: command.userAgent,
-        },
-        {
-          entityType: EntityType.ACCOUNTS,
-          entityId: account.getId(),
-          after: {
-            accountId: account.getId(),
-            userId: account.getUserId(),
+    await this.commandBus.execute(
+      new RecordAuditLogCommand(
+        recordAuditProps(
+          {
+            actorId: sub,
+            actorType: ActorType.USER,
+            actorLabel: user.email,
+            userIp: command.ip,
+            userAgent: command.userAgent,
           },
-        },
+          {
+            action: 'sign_in',
+            entityType: EntityType.ACCOUNTS,
+            entityId: account.getId(),
+            after: {
+              accountId: account.getId(),
+              userId: account.getUserId(),
+            },
+          },
+        ),
       ),
-    });
+    );
 
     return { accessToken, refreshToken, mustChangePassword };
   }

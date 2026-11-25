@@ -1,14 +1,13 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import { CreateCustomerByAdminHandler } from './create-customer-by-admin.handler';
 import { CreateCustomerByAdminCommand } from './create-customer-by-admin.command';
 import { Customer } from '../../../domain/customer.aggregate';
 import { CustomerGender } from '../../../domain/enums/customer-gender.enum';
 import { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
-import { USER_CREATED_EVENT } from '../../../../users/domain/events/user-created.event';
-import { ACCOUNT_SIGNED_UP_EVENT } from '../../../../authentication/domain/events/account-signed-up.event';
 import { Account } from '../../../../authentication/domain/account.aggregate';
-import { CUSTOMER_CREATED_EVENT } from '../../../domain/events/customer-created.event';
 
 const headers = {
   actorId: '7d0d2c55-9a9d-4c7d-9f6a-3f7f5a1b2c3d',
@@ -50,21 +49,16 @@ const setup = () => {
   const customerCreate = jest.fn<(customer: Customer) => Promise<Customer>>(
     (customer) => Promise.resolve(customer),
   );
-  const outboxCreate = jest
-    .fn<
-      (event: {
-        eventType: string;
-        payload: { audit: { entityType: EntityType; entityId: string } };
-      }) => Promise<void>
-    >()
-    .mockResolvedValue(undefined);
+  const execute = jest.fn<CommandBus['execute']>().mockResolvedValue({
+    id: 'audit-id',
+  });
   const run = jest.fn(async (work: () => Promise<unknown>) => work());
 
   const handler = new CreateCustomerByAdminHandler(
     { create: createUser } as never,
     { create: accountCreate } as never,
     { create: customerCreate } as never,
-    { create: outboxCreate } as never,
+    { execute } as unknown as CommandBus,
     { run } as unknown as IUnitOfWork,
   );
 
@@ -72,15 +66,14 @@ const setup = () => {
     handler,
     accountCreate,
     customerCreate,
-    outboxCreate,
+    execute,
     run,
   };
 };
 
 describe('CreateCustomerByAdminHandler', () => {
   it('creates user, account and customer in one transaction', async () => {
-    const { handler, accountCreate, customerCreate, outboxCreate, run } =
-      setup();
+    const { handler, accountCreate, customerCreate, execute, run } = setup();
 
     const result = await handler.execute(command());
 
@@ -99,13 +92,31 @@ describe('CreateCustomerByAdminHandler', () => {
     expect(customer.getPhones()[0].getPhone()).toBe('0901234567');
     expect(customer.getAddresses()[0].getAddress()).toBe('12 Nguyễn Huệ');
 
-    expect(outboxCreate.mock.calls.map((call) => call[0].eventType)).toEqual([
-      USER_CREATED_EVENT,
-      ACCOUNT_SIGNED_UP_EVENT,
-      CUSTOMER_CREATED_EVENT,
+    const commands = execute.mock.calls.map(([issuedCommand]) => issuedCommand);
+
+    expect(commands).toHaveLength(3);
+    expect(
+      commands.every(
+        (issuedCommand) => issuedCommand instanceof RecordAuditLogCommand,
+      ),
+    ).toBe(true);
+
+    const auditCommands = commands as RecordAuditLogCommand[];
+
+    expect(auditCommands.map(({ props }) => props.action)).toEqual([
+      'create',
+      'sign_up',
+      'create',
     ]);
-    expect(outboxCreate.mock.calls[2][0].payload.audit.entityType).toBe(
+    expect(auditCommands.map(({ props }) => props.entityType)).toEqual([
+      EntityType.USERS,
+      EntityType.ACCOUNTS,
       EntityType.CUSTOMERS,
-    );
+    ]);
+    expect(auditCommands.map(({ props }) => props.entityId)).toEqual([
+      'user-id',
+      account.getId(),
+      customer.getId(),
+    ]);
   });
 });

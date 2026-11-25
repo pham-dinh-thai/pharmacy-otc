@@ -1,4 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import { DeleteCustomerHandler } from './delete-customer.handler';
 import { DeleteCustomerCommand } from './delete-customer.command';
 import { Customer } from '../../../domain/customer.aggregate';
@@ -8,7 +9,8 @@ import {
   CustomerNotFoundException,
 } from '../../../domain/exceptions/customer.exceptions';
 import { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { CUSTOMER_DELETED_EVENT } from '../../../domain/events/customer-deleted.event';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 const headers = {
   actorId: '7d0d2c55-9a9d-4c7d-9f6a-3f7f5a1b2c3d',
@@ -36,22 +38,22 @@ const setup = (customer: Customer | null = makeCustomer()) => {
       Promise.resolve(value),
     ),
   };
-  const outboxCreate = jest
-    .fn<(event: { eventType: string }) => Promise<void>>()
-    .mockResolvedValue(undefined);
+  const execute = jest.fn<CommandBus['execute']>().mockResolvedValue({
+    id: 'audit-id',
+  });
   const run = jest.fn(async (work: () => Promise<unknown>) => work());
   const handler = new DeleteCustomerHandler(
     repository as never,
-    { create: outboxCreate } as never,
+    { execute } as unknown as CommandBus,
     { run } as unknown as IUnitOfWork,
   );
 
-  return { handler, repository, outboxCreate, run };
+  return { handler, repository, execute, run };
 };
 
 describe('DeleteCustomerHandler', () => {
   it('soft deletes the customer and writes a delete audit event', async () => {
-    const { handler, repository, outboxCreate, run } = setup();
+    const { handler, repository, execute, run } = setup();
 
     const result = await handler.execute(
       new DeleteCustomerCommand('customer-id', headers),
@@ -64,9 +66,20 @@ describe('DeleteCustomerHandler', () => {
 
     expect(customer.isDeleted()).toBe(true);
     expect(result.id).toBe(customer.getId());
-    expect(outboxCreate.mock.calls[0][0].eventType).toBe(
-      CUSTOMER_DELETED_EVENT,
-    );
+
+    expect(execute).toHaveBeenCalledTimes(1);
+
+    const auditCommand = execute.mock.calls[0][0];
+
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      action: 'delete',
+      entityType: EntityType.CUSTOMERS,
+      entityId: result.id,
+      before: { deletedAt: null },
+      after: { deletedAt: customer.getDeletedAt() },
+    });
   });
 
   it('rejects a missing or already deleted customer', async () => {
@@ -88,7 +101,7 @@ describe('DeleteCustomerHandler', () => {
       ),
     ).rejects.toThrow(CustomerAlreadyDeletedException);
 
-    expect(missing.outboxCreate).not.toHaveBeenCalled();
-    expect(deleted.outboxCreate).not.toHaveBeenCalled();
+    expect(missing.execute).not.toHaveBeenCalled();
+    expect(deleted.execute).not.toHaveBeenCalled();
   });
 });

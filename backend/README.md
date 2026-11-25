@@ -12,7 +12,7 @@ src/
       application/     # command, query, handler
       infrastructure/  # MikroORM entity, repository implementation
       presentation/    # controller, request DTO
-  shared/          # unit of work, outbox, security, value objects
+  shared/          # unit of work, security, value objects
   migrations/      # MikroORM migrations
 ```
 

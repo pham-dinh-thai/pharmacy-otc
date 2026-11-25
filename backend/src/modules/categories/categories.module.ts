@@ -12,13 +12,11 @@ import { DeleteCategoryHandler } from './application/commands/delete-category/de
 import { RestoreCategoryHandler } from './application/commands/restore-category/restore-category.handler';
 import { CategoriesController } from './presentation/categories/categories.controller';
 import { SecurityModule } from '../../shared/modules/security/security.module';
-import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 
 @Module({
   imports: [
     MikroOrmModule.forFeature([MikroCategory, MikroProductCategory]),
     SecurityModule,
-    OutBoxModule,
   ],
   controllers: [CategoriesController],
   providers: [

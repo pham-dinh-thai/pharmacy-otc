@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import {
   RoleDisabledException,
@@ -17,13 +17,9 @@ import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import { AssignRoleCommand } from './assign-role.command';
-import { USER_ROLE_ASSIGNED_EVENT } from '../../../domain/events/user-role-assigned.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 @CommandHandler(AssignRoleCommand)
@@ -35,11 +31,10 @@ export class AssignRoleHandler implements ICommandHandler<AssignRoleCommand> {
     @Inject(ROLES_REPOSITORY)
     private readonly rolesRepository: IRolesRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
-
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
+
+    private readonly commandBus: CommandBus,
   ) {}
 
   public async execute(
@@ -68,16 +63,18 @@ export class AssignRoleHandler implements ICommandHandler<AssignRoleCommand> {
 
       await this.usersRepository.update(user);
 
-      await this.outboxRepository.create({
-        eventType: USER_ROLE_ASSIGNED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.USERS,
-          entityId: user.getId(),
-          before: { roleIds: previousRoleIds },
-          after: { roleIds: user.getRoleIds() },
-          metadata: { roleId: role.getId() },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'assign_role',
+            entityType: EntityType.USERS,
+            entityId: user.getId(),
+            before: { roleIds: previousRoleIds },
+            after: { roleIds: user.getRoleIds() },
+            metadata: { roleId: role.getId() },
+          }),
+        ),
+      );
 
       return { id: user.getId(), roleIds: user.getRoleIds() };
     });

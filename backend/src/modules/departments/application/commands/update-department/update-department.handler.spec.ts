@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import {
   DepartmentDisabledException,
   DepartmentNotFoundException,
@@ -8,12 +9,8 @@ import { UpdateDepartmentHandler } from './update-department.handler';
 import { UpdateDepartmentCommand } from './update-department.command';
 import { DEPARTMENTS_REPOSITORY } from '../../../domain/departments.repository';
 import { Department } from '../../../domain/department.aggregate';
-import {
-  OUTBOX_REPOSITORY,
-  type IOutboxRepository,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import { UNIT_OF_WORK } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { DEPARTMENT_UPDATED_EVENT } from '../../../domain/events/department-updated.event';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 const headers = {
@@ -38,12 +35,14 @@ describe('UpdateDepartmentHandler', () => {
   let handler: UpdateDepartmentHandler;
   let findById: jest.Mock<(id: string) => Promise<Department | null>>;
   let update: jest.Mock<(department: Department) => Promise<Department>>;
-  let outboxCreate: jest.Mock<IOutboxRepository['create']>;
+  let execute: jest.Mock<CommandBus['execute']>;
 
   beforeEach(async () => {
     findById = jest.fn(() => Promise.resolve(department()));
     update = jest.fn((value) => Promise.resolve(value));
-    outboxCreate = jest.fn<IOutboxRepository['create']>();
+    execute = jest.fn<CommandBus['execute']>().mockResolvedValue({
+      id: 'audit-id',
+    });
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -56,7 +55,7 @@ describe('UpdateDepartmentHandler', () => {
             update,
           },
         },
-        { provide: OUTBOX_REPOSITORY, useValue: { create: outboxCreate } },
+        { provide: CommandBus, useValue: { execute } },
         {
           provide: UNIT_OF_WORK,
           useValue: {
@@ -80,7 +79,7 @@ describe('UpdateDepartmentHandler', () => {
     ).rejects.toThrow(DepartmentNotFoundException);
 
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('renames the department and appends the audit event', async () => {
@@ -90,17 +89,18 @@ describe('UpdateDepartmentHandler', () => {
 
     expect(result).toEqual({ id: DEPARTMENT_ID, name: 'New' });
     expect(update).toHaveBeenCalledTimes(1);
-    expect(outboxCreate).toHaveBeenCalledWith({
-      eventType: DEPARTMENT_UPDATED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.DEPARTMENTS,
-          entityId: DEPARTMENT_ID,
-          before: { name: 'Old' },
-          after: { name: 'New' },
-        },
-      },
+    expect(execute).toHaveBeenCalledTimes(1);
+
+    const auditCommand = execute.mock.calls[0][0];
+
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      action: 'update',
+      entityType: EntityType.DEPARTMENTS,
+      entityId: DEPARTMENT_ID,
+      before: { name: 'Old' },
+      after: { name: 'New' },
     });
   });
 
@@ -116,6 +116,6 @@ describe('UpdateDepartmentHandler', () => {
     ).rejects.toThrow(DepartmentDisabledException);
 
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

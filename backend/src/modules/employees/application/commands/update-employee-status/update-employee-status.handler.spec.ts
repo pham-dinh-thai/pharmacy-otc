@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import { EmployeeNotFoundException } from '../../../domain/exceptions/employee.exceptions';
+import { CommandBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import { UpdateEmployeeStatusHandler } from './update-employee-status.handler';
 import { UpdateEmployeeStatusCommand } from './update-employee-status.command';
@@ -10,16 +11,12 @@ import {
 import { Employee } from '../../../domain/employee.aggregate';
 import { EmployeeStatus } from '../../../domain/enums/employee-status.enum';
 import { EmployeePosition } from '../../../domain/enums/employee-position.enum';
-import { EMPLOYEE_STATUS_CHANGED_EVENT } from '../../../domain/events/employee-status-changed.event';
-import { EMPLOYEE_RESIGNED_EVENT } from '../../../domain/events/employee-resigned.event';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { DeactivateUserCommand } from '../../../../users/application/commands/deactivate-user/deactivate-user.command';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { EmployeeStatusTransitionService } from '../../services/employee-status-transition.service';
 
@@ -50,7 +47,7 @@ describe('UpdateEmployeeStatusHandler', () => {
   let employeesRepository: jest.Mocked<
     Pick<IEmployeesRepository, 'findById' | 'update'>
   >;
-  let outboxRepository: jest.Mocked<Pick<IOutboxRepository, 'create'>>;
+  let commandBus: jest.Mocked<Pick<CommandBus, 'execute'>>;
   let unitOfWork: jest.Mocked<IUnitOfWork>;
 
   beforeEach(async () => {
@@ -60,9 +57,9 @@ describe('UpdateEmployeeStatusHandler', () => {
     } as unknown as jest.Mocked<
       Pick<IEmployeesRepository, 'findById' | 'update'>
     >;
-    outboxRepository = {
-      create: jest.fn(),
-    } as unknown as jest.Mocked<Pick<IOutboxRepository, 'create'>>;
+    commandBus = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<Pick<CommandBus, 'execute'>>;
     unitOfWork = {
       run: jest.fn(async (callback: () => Promise<unknown>) => callback()),
     } as unknown as jest.Mocked<IUnitOfWork>;
@@ -70,7 +67,7 @@ describe('UpdateEmployeeStatusHandler', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         { provide: EMPLOYEES_REPOSITORY, useValue: employeesRepository },
-        { provide: OUTBOX_REPOSITORY, useValue: outboxRepository },
+        { provide: CommandBus, useValue: commandBus },
         { provide: UNIT_OF_WORK, useValue: unitOfWork },
         EmployeeStatusTransitionService,
         UpdateEmployeeStatusHandler,
@@ -94,7 +91,7 @@ describe('UpdateEmployeeStatusHandler', () => {
     ).rejects.toThrow(EmployeeNotFoundException);
 
     expect(employeesRepository.update).not.toHaveBeenCalled();
-    expect(outboxRepository.create).not.toHaveBeenCalled();
+    expect(commandBus.execute).not.toHaveBeenCalled();
   });
 
   it('does nothing when the status is unchanged', async () => {
@@ -110,10 +107,10 @@ describe('UpdateEmployeeStatusHandler', () => {
     );
 
     expect(employeesRepository.update).not.toHaveBeenCalled();
-    expect(outboxRepository.create).not.toHaveBeenCalled();
+    expect(commandBus.execute).not.toHaveBeenCalled();
   });
 
-  it('appends audit and deactivation events when employee resigns', async () => {
+  it('records audit and deactivation commands when employee resigns', async () => {
     const employee = employeeWithStatus(EmployeeStatus.WORKING);
     employeesRepository.findById.mockResolvedValue(employee);
 
@@ -127,26 +124,28 @@ describe('UpdateEmployeeStatusHandler', () => {
 
     expect(employee.getStatus()).toBe(EmployeeStatus.RESIGNED);
     expect(employeesRepository.update).toHaveBeenCalledWith(employee);
-    expect(outboxRepository.create).toHaveBeenCalledTimes(2);
-    expect(outboxRepository.create).toHaveBeenNthCalledWith(1, {
-      eventType: EMPLOYEE_STATUS_CHANGED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.EMPLOYEES,
-          entityId: EMPLOYEE_ID,
-          before: { status: EmployeeStatus.WORKING },
-          after: { status: EmployeeStatus.RESIGNED },
-        },
-      },
+    expect(commandBus.execute).toHaveBeenCalledTimes(2);
+    const [auditCommand, deactivateCommand] = commandBus.execute.mock.calls.map(
+      ([issuedCommand]) => issuedCommand,
+    );
+
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      actorType: 'user',
+      actorLabel: headers.actorLabel,
+      ipAddress: headers.userIp,
+      userAgent: headers.userAgent,
+      action: 'update',
+      entityType: EntityType.EMPLOYEES,
+      entityId: EMPLOYEE_ID,
+      before: { status: EmployeeStatus.WORKING },
+      after: { status: EmployeeStatus.RESIGNED },
     });
-    expect(outboxRepository.create).toHaveBeenNthCalledWith(2, {
-      eventType: EMPLOYEE_RESIGNED_EVENT,
-      payload: {
-        employeeId: EMPLOYEE_ID,
-        userId: USER_ID,
-        headers,
-      },
+    expect(deactivateCommand).toBeInstanceOf(DeactivateUserCommand);
+    expect(deactivateCommand).toMatchObject({
+      userId: USER_ID,
+      headers,
     });
     expect(result).toEqual({
       id: EMPLOYEE_ID,
@@ -154,7 +153,7 @@ describe('UpdateEmployeeStatusHandler', () => {
     });
   });
 
-  it('appends only the audit event for non-resignation statuses', async () => {
+  it('records only the audit log for non-resignation statuses', async () => {
     const employee = employeeWithStatus(EmployeeStatus.WORKING);
     employeesRepository.findById.mockResolvedValue(employee);
 
@@ -167,18 +166,21 @@ describe('UpdateEmployeeStatusHandler', () => {
     );
 
     expect(employee.getStatus()).toBe(EmployeeStatus.PREGNANT);
-    expect(outboxRepository.create).toHaveBeenCalledTimes(1);
-    expect(outboxRepository.create).toHaveBeenCalledWith({
-      eventType: EMPLOYEE_STATUS_CHANGED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.EMPLOYEES,
-          entityId: EMPLOYEE_ID,
-          before: { status: EmployeeStatus.WORKING },
-          after: { status: EmployeeStatus.PREGNANT },
-        },
-      },
+    expect(commandBus.execute).toHaveBeenCalledTimes(1);
+    const auditCommand = commandBus.execute.mock.calls[0][0];
+
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      actorType: 'user',
+      actorLabel: headers.actorLabel,
+      ipAddress: headers.userIp,
+      userAgent: headers.userAgent,
+      action: 'update',
+      entityType: EntityType.EMPLOYEES,
+      entityId: EMPLOYEE_ID,
+      before: { status: EmployeeStatus.WORKING },
+      after: { status: EmployeeStatus.PREGNANT },
     });
   });
 });

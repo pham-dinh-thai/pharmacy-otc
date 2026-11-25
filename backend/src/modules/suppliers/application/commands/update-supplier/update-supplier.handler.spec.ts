@@ -1,4 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import {
   InvalidSupplierPhoneException,
   SupplierNotFoundException,
@@ -10,11 +11,10 @@ import {
 } from '../../../domain/suppliers.repository';
 import { Supplier } from '../../../domain/supplier.aggregate';
 import { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { IOutboxRepository } from '../../../../../shared/modules/outbox/domain/outbox.repository';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { UpdateSupplierCommand } from './update-supplier.command';
 import { UpdateSupplierHandler } from './update-supplier.handler';
-import { SUPPLIER_UPDATED_EVENT } from '../../../domain/events/supplier-updated.event';
-import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 type FindPage = (filters?: FindSuppliersFilters) => Promise<SupplierPage>;
 type FindById = (id: string) => Promise<Supplier | null>;
@@ -63,9 +63,9 @@ const setup = (supplier: Supplier | null = createSupplier()) => {
   const nextSequence = jest.fn<NextSequence>(() => Promise.resolve(1));
   const update = jest.fn<Update>((saved) => Promise.resolve(saved));
   const run = jest.fn<Run>((work) => work());
-  const outboxCreate = jest
-    .fn<IOutboxRepository['create']>()
-    .mockResolvedValue(undefined);
+  const execute = jest.fn<CommandBus['execute']>(() =>
+    Promise.resolve({ id: 'audit-id' }),
+  );
 
   const repository: ISuppliersRepository = {
     findPage: jest.fn<FindPage>(),
@@ -80,16 +80,16 @@ const setup = (supplier: Supplier | null = createSupplier()) => {
   };
   const handler = new UpdateSupplierHandler(
     repository,
-    { create: outboxCreate } as unknown as IOutboxRepository,
+    { execute } as unknown as CommandBus,
     unitOfWork,
   );
 
-  return { handler, findById, update, run, outboxCreate };
+  return { handler, findById, update, run, execute };
 };
 
 describe('UpdateSupplierHandler', () => {
   it('updates the supplier inside a unit of work and returns the new values', async () => {
-    const { handler, findById, update, run, outboxCreate } = setup();
+    const { handler, findById, update, run, execute } = setup();
 
     const result = await handler.execute(createCommand());
 
@@ -118,29 +118,34 @@ describe('UpdateSupplierHandler', () => {
     expect(saved.getAddress()).toBe('99 Lê Lợi');
     expect(saved.getTaxCode()).toBe('0312345678');
 
-    expect(outboxCreate).toHaveBeenCalledWith({
-      eventType: SUPPLIER_UPDATED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.SUPPLIERS,
-          entityId: SUPPLIER_ID,
-          before: {
-            name: 'Công ty TNHH ABC',
-            phone: '0901234567',
-            email: 'old@abc.vn',
-            address: '12 Nguyễn Huệ',
-            taxCode: '0311111111',
-          },
-          after: {
-            name: 'Công ty TNHH ABC (mới)',
-            phone: '02838223344',
-            email: 'new@abc.vn',
-            address: '99 Lê Lợi',
-            taxCode: '0312345678',
-          },
-        },
+    expect(execute).toHaveBeenCalledTimes(1);
+
+    const auditCommand = execute.mock.calls[0][0];
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      actorType: headers.actorType,
+      actorLabel: headers.actorLabel,
+      ipAddress: headers.userIp,
+      userAgent: headers.userAgent,
+      action: 'update',
+      entityType: EntityType.SUPPLIERS,
+      entityId: SUPPLIER_ID,
+      before: {
+        name: 'Công ty TNHH ABC',
+        phone: '0901234567',
+        email: 'old@abc.vn',
+        address: '12 Nguyễn Huệ',
+        taxCode: '0311111111',
       },
+      after: {
+        name: 'Công ty TNHH ABC (mới)',
+        phone: '02838223344',
+        email: 'new@abc.vn',
+        address: '99 Lê Lợi',
+        taxCode: '0312345678',
+      },
+      reason: null,
     });
   });
 
@@ -154,24 +159,24 @@ describe('UpdateSupplierHandler', () => {
   });
 
   it('throws NotFoundException and does not save when the supplier is missing', async () => {
-    const { handler, update, outboxCreate } = setup(null);
+    const { handler, update, execute } = setup(null);
 
     await expect(handler.execute(createCommand())).rejects.toThrow(
       SupplierNotFoundException,
     );
 
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('does not save when the phone is invalid', async () => {
-    const { handler, update, outboxCreate } = setup();
+    const { handler, update, execute } = setup();
 
     await expect(handler.execute(createCommand('0123456789'))).rejects.toThrow(
       InvalidSupplierPhoneException,
     );
 
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

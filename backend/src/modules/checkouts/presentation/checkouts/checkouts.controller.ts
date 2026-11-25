@@ -42,7 +42,7 @@ export class CheckoutsController {
   public async confirm(
     @Param('id', new ParseUUIDPipe()) id: string,
     @ActorContext() headers: ActorHeaders,
-  ): Promise<{ id: string; status: CheckoutStatus }> {
+  ): Promise<{ id: string; status: CheckoutStatus; orderId: string }> {
     return this.commandBus.execute(new ConfirmCheckoutCommand(id, headers));
   }
 }

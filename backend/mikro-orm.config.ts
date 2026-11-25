@@ -14,7 +14,6 @@ import { MikroCustomerPhone } from './src/modules/customers/infrastructure/entit
 import { MikroCustomerAddress } from './src/modules/customers/infrastructure/entities/mikro-customer-address.entity';
 import { MikroRole } from './src/modules/authorization/infrastructure/entities/mikro-role.entity';
 import { MikroAuditLog } from './src/modules/audit-logs/infrastructure/entities/mikro-audit-log.entity';
-import { MikroOutBoxEvent } from './src/shared/modules/outbox/infrastructure/mikro-outbox-event.entity';
 import { MikroExpense } from './src/modules/expenses/infrastructure/entities/mikro-expense.entity';
 import { MikroEmployee } from './src/modules/employees/infrastructure/entities/mikro-employee.entity';
 import { MikroDepartment } from './src/modules/departments/infrastructure/entities/mikro-department.entity';
@@ -24,6 +23,8 @@ import { MikroCart } from './src/modules/carts/infrastructure/entities/mikro-car
 import { MikroCartItem } from './src/modules/carts/infrastructure/entities/mikro-cart-item.entity';
 import { MikroCheckout } from './src/modules/checkouts/infrastructure/entities/mikro-checkout.entity';
 import { MikroCheckoutLine } from './src/modules/checkouts/infrastructure/entities/mikro-checkout-line.entity';
+import { MikroOrder } from './src/modules/orders/infrastructure/entities/mikro-order.entity';
+import { MikroOrderLine } from './src/modules/orders/infrastructure/entities/mikro-order-line.entity';
 
 dotenv.config({ path: path.resolve('../.env') });
 
@@ -48,7 +49,6 @@ export default defineConfig({
     MikroCustomerAddress,
     MikroRole,
     MikroAuditLog,
-    MikroOutBoxEvent,
     MikroExpense,
     MikroDepartment,
     MikroEmployee,
@@ -58,6 +58,8 @@ export default defineConfig({
     MikroCartItem,
     MikroCheckout,
     MikroCheckoutLine,
+    MikroOrder,
+    MikroOrderLine,
   ],
   entitiesTs: [
     MikroProduct,
@@ -73,7 +75,6 @@ export default defineConfig({
     MikroCustomerAddress,
     MikroRole,
     MikroAuditLog,
-    MikroOutBoxEvent,
     MikroExpense,
     MikroDepartment,
     MikroEmployee,
@@ -83,6 +84,8 @@ export default defineConfig({
     MikroCartItem,
     MikroCheckout,
     MikroCheckoutLine,
+    MikroOrder,
+    MikroOrderLine,
   ],
 
   debug: process.env.NODE_ENV !== 'production',

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { CommandBus } from '@nestjs/cqrs';
 import { InvalidAmountException } from '../../../../../shared/domain/exceptions/value-object.exceptions';
 import { Product } from '../../../domain/product.aggregate';
 import {
@@ -7,9 +8,8 @@ import {
 } from '../../../domain/exceptions/product.exceptions';
 import { CreateProductCommand } from './create-product.command';
 import { CreateProductHandler } from './create-product.handler';
-import { type IOutboxRepository } from '../../../../../shared/modules/outbox/domain/outbox.repository';
 import { type IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import { PRODUCT_CREATED_EVENT } from '../../../domain/events/product-created.event';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 const CATEGORY_ID = '9b781a20-0ab6-494a-9bfd-e475e07c7a17';
@@ -26,7 +26,7 @@ describe('CreateProductHandler', () => {
   let create: jest.Mock<(product: Product) => Promise<void>>;
   let findActiveByIds: jest.Mock<(ids: string[]) => Promise<string[]>>;
   let existsBySku: jest.Mock<(sku: string) => Promise<boolean>>;
-  let outboxCreate: jest.Mock<IOutboxRepository['create']>;
+  let execute: jest.Mock<CommandBus['execute']>;
   let unitOfWork: IUnitOfWork;
   let handler: CreateProductHandler;
 
@@ -43,9 +43,9 @@ describe('CreateProductHandler', () => {
       .fn<(sku: string) => Promise<boolean>>()
       .mockResolvedValue(false);
 
-    outboxCreate = jest
-      .fn<IOutboxRepository['create']>()
-      .mockResolvedValue(undefined);
+    execute = jest.fn<CommandBus['execute']>(() =>
+      Promise.resolve({ id: 'audit-id' }),
+    );
 
     unitOfWork = {
       run: async (callback) => callback(),
@@ -64,12 +64,12 @@ describe('CreateProductHandler', () => {
         update: jest.fn(),
       } as unknown as never,
       { findActiveByIds } as unknown as never,
-      { create: outboxCreate } as unknown as IOutboxRepository,
+      { execute } as unknown as CommandBus,
       unitOfWork,
     );
   });
 
-  it('creates a product, links active categories and appends an audit event', async () => {
+  it('creates a product, links active categories and dispatches an audit command', async () => {
     const result = await handler.execute(
       new CreateProductCommand('Coffee', '12500', [CATEGORY_ID], headers),
     );
@@ -85,25 +85,31 @@ describe('CreateProductHandler', () => {
     expect(product.getUnitPrice()).toBe('12500');
     expect(product.getCategoryIds()).toEqual([CATEGORY_ID]);
 
-    expect(outboxCreate).toHaveBeenCalledWith({
-      eventType: PRODUCT_CREATED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.PRODUCTS,
-          entityId: product.getId(),
-          after: {
-            name: 'Coffee',
-            unitPrice: '12500',
-            sku: null,
-            unit: null,
-            description: null,
-            imageUrl: null,
-            warning: null,
-            categoryIds: [CATEGORY_ID],
-          },
-        },
+    expect(execute).toHaveBeenCalledTimes(1);
+
+    const auditCommand = execute.mock.calls[0][0];
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      actorType: headers.actorType,
+      actorLabel: headers.actorLabel,
+      ipAddress: headers.userIp,
+      userAgent: headers.userAgent,
+      action: 'create',
+      entityType: EntityType.PRODUCTS,
+      entityId: product.getId(),
+      before: null,
+      after: {
+        name: 'Coffee',
+        unitPrice: '12500',
+        sku: null,
+        unit: null,
+        description: null,
+        imageUrl: null,
+        warning: null,
+        categoryIds: [CATEGORY_ID],
       },
+      reason: null,
     });
   });
 
@@ -121,7 +127,7 @@ describe('CreateProductHandler', () => {
 
     expect(existsBySku).toHaveBeenCalledWith('OTC-001');
     expect(create).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('rejects a product that references a missing or deleted category', async () => {
@@ -134,7 +140,7 @@ describe('CreateProductHandler', () => {
     ).rejects.toThrow(ProductCategoryNotFoundException);
 
     expect(create).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('does not persist a product that violates a domain rule', async () => {
@@ -145,6 +151,6 @@ describe('CreateProductHandler', () => {
     ).rejects.toThrow(InvalidAmountException);
 
     expect(create).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

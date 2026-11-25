@@ -18,7 +18,7 @@ Hệ thống bán thuốc không kê đơn (OTC) — đồ án demo backend vớ
 | [docs/actors.md](docs/actors.md) | Tác nhân và phân quyền |
 | [docs/functional-requirements.md](docs/functional-requirements.md) | Yêu cầu chức năng theo module |
 | [docs/non-functional-requirements.md](docs/non-functional-requirements.md) | Bảo mật, hiệu năng, độ tin cậy |
-| [docs/architecture.md](docs/architecture.md) | Kiến trúc, CQRS, outbox, transaction |
+| [docs/architecture.md](docs/architecture.md) | Kiến trúc, CQRS, ghi audit đồng bộ, transaction |
 | [docs/tech-stack.md](docs/tech-stack.md) | Công nghệ và lý do chọn |
 | [docs/data-model.md](docs/data-model.md) | ERD và mô tả bảng |
 
@@ -36,7 +36,7 @@ Hệ thống bán thuốc không kê đơn (OTC) — đồ án demo backend vớ
 | `inventories` | 🟡 | Lô, tồn kho, xuất/kiểm kê; chưa có API đọc tồn |
 | `orders` | ⬜ | Chưa triển khai |
 | `expenses` | ✅ | Tạo/list/detail/sửa lúc chờ duyệt, duyệt/trả NCC/chi/huỷ phiếu chi |
-| `audit-logs` | ✅ | Ghi qua outbox, tra cứu theo actor/entity/thời gian |
+| `audit-logs` | ✅ | Ghi trong cùng transaction nghiệp vụ, tra cứu theo actor/entity/thời gian |
 | `reports` | ⬜ | Chưa triển khai |
 
 Thanh toán và ledger mới ở mức thiết kế, xem `docs/payment` và `docs/ledger`.
@@ -46,7 +46,7 @@ Thanh toán và ledger mới ở mức thiết kế, xem `docs/payment` và `doc
 - **NestJS + CQRS**: mỗi use case là một command/query handler.
 - **Clean Architecture**: mỗi module chia `domain` / `application` / `infrastructure` / `presentation`.
 - **MikroORM + PostgreSQL**: entity `Mikro*` ở tầng infrastructure, domain không phụ thuộc ORM.
-- **Outbox pattern**: ghi audit event cùng transaction với nghiệp vụ, relay xử lý bất đồng bộ.
+- **Ghi audit đồng bộ**: `RecordAuditLogCommand` được dispatch trong cùng transaction với nghiệp vụ.
 - **Unit of Work**: gom thao tác ghi vào một transaction.
 - **Money dạng bigint VND**: không dùng số thực cho tiền tệ.
 - **RBAC**: permission theo `resource:action`, Super Admin bỏ qua kiểm tra.
@@ -79,16 +79,11 @@ Repo **không chứa seeder/tài khoản mặc định**. Sau khi migrate DB r�
 tài khoản quản trị một lần bằng công cụ DB hoặc script chạy ngoài repo, rồi gán
 role Super Admin. Không commit thông tin đăng nhập vào repository.
 
-### Outbox relay
+### Ghi audit
 
-Mặc định relay tắt. Bật bằng biến môi trường:
-
-```dotenv
-OUTBOX_RELAY_ENABLED=true
-```
-
-Nếu tắt, nghiệp vụ vẫn ghi event vào `outbox_events`, nhưng audit/inventory
-consumer sẽ chưa xử lý cho đến khi bật relay.
+Audit được ghi trong cùng transaction với nghiệp vụ qua
+`RecordAuditLogCommand`; không có relay hay hàng đợi cần bật. Nếu transaction
+rollback thì cả dữ liệu nghiệp vụ lẫn audit đều không được lưu.
 
 ## Kiểm thử
 

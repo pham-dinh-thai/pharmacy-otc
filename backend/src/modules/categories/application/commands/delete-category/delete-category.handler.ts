@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import {
   CATEGORIES_REPOSITORY,
   type ICategoriesRepository,
@@ -9,12 +9,8 @@ import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import { CATEGORY_DELETED_EVENT } from '../../../domain/events/category-deleted.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { DeleteCategoryCommand } from './delete-category.command';
 
@@ -24,8 +20,7 @@ export class DeleteCategoryHandler implements ICommandHandler<DeleteCategoryComm
     @Inject(CATEGORIES_REPOSITORY)
     private readonly categoriesRepository: ICategoriesRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
+    private readonly commandBus: CommandBus,
 
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
@@ -45,15 +40,17 @@ export class DeleteCategoryHandler implements ICommandHandler<DeleteCategoryComm
 
       await this.categoriesRepository.update(category);
 
-      await this.outboxRepository.create({
-        eventType: CATEGORY_DELETED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.CATEGORIES,
-          entityId: category.getId(),
-          before: { deletedAt: null },
-          after: { deletedAt: category.getDeletedAt() },
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'delete',
+            entityType: EntityType.CATEGORIES,
+            entityId: category.getId(),
+            before: { deletedAt: null },
+            after: { deletedAt: category.getDeletedAt() },
+          }),
+        ),
+      );
 
       return { id: category.getId() };
     });

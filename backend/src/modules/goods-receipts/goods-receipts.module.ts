@@ -11,14 +11,12 @@ import { CancelGoodsReceiptHandler } from './application/commands/cancel-goods-r
 import { GetGoodsReceiptsHandler } from './application/queries/get-goods-receipts/get-goods-receipts.handler';
 import { GetGoodsReceiptHandler } from './application/queries/get-goods-receipt/get-goods-receipt.handler';
 import { SecurityModule } from '../../shared/modules/security/security.module';
-import { OutBoxModule } from '../../shared/modules/outbox/outbox.module';
 import { SuppliersModule } from '../suppliers/suppliers.module';
 
 @Module({
   imports: [
     MikroOrmModule.forFeature([MikroGoodsReceipt, MikroGoodsReceiptLine]),
     SecurityModule,
-    OutBoxModule,
     SuppliersModule,
   ],
   controllers: [GoodsReceiptsController],

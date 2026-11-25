@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import { EmployeeNotFoundException } from '../../../domain/exceptions/employee.exceptions';
 import { DepartmentDisabledException } from '../../../../departments/domain/exceptions/department.exceptions';
+import { CommandBus } from '@nestjs/cqrs';
 import { Test } from '@nestjs/testing';
 import { UpdateEmployeeHandler } from './update-employee.handler';
 import { UpdateEmployeeCommand } from './update-employee.command';
@@ -9,18 +10,13 @@ import { Employee } from '../../../domain/employee.aggregate';
 import { EmployeeStatus } from '../../../domain/enums/employee-status.enum';
 import { EmployeePosition } from '../../../domain/enums/employee-position.enum';
 import {
-  OUTBOX_REPOSITORY,
-  type IOutboxRepository,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import {
   UNIT_OF_WORK,
   type IUnitOfWork,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import { AssignableDepartmentValidator } from '../../services/assignable-department.validator';
 import { EmployeeStatusTransitionService } from '../../services/employee-status-transition.service';
-import { EMPLOYEE_UPDATED_EVENT } from '../../../domain/events/employee-updated.event';
-import { EMPLOYEE_STATUS_CHANGED_EVENT } from '../../../domain/events/employee-status-changed.event';
-import { EMPLOYEE_RESIGNED_EVENT } from '../../../domain/events/employee-resigned.event';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { DeactivateUserCommand } from '../../../../users/application/commands/deactivate-user/deactivate-user.command';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 
 const headers = {
@@ -51,7 +47,7 @@ describe('UpdateEmployeeHandler', () => {
   let handler: UpdateEmployeeHandler;
   let findById: jest.Mock<(id: string) => Promise<Employee | null>>;
   let update: jest.Mock<(employee: Employee) => Promise<void>>;
-  let outboxCreate: jest.Mock<IOutboxRepository['create']>;
+  let execute: jest.Mock<(command: unknown) => Promise<unknown>>;
   let validateDepartment: jest.Mock<(id: string) => Promise<void>>;
 
   beforeEach(async () => {
@@ -59,7 +55,7 @@ describe('UpdateEmployeeHandler', () => {
       Promise.resolve(employeeWithStatus(EmployeeStatus.WORKING)),
     );
     update = jest.fn(() => Promise.resolve());
-    outboxCreate = jest.fn<IOutboxRepository['create']>();
+    execute = jest.fn(() => Promise.resolve({ id: 'audit-id' }));
     validateDepartment = jest.fn(() => Promise.resolve());
 
     const moduleRef = await Test.createTestingModule({
@@ -74,7 +70,7 @@ describe('UpdateEmployeeHandler', () => {
             update,
           },
         },
-        { provide: OUTBOX_REPOSITORY, useValue: { create: outboxCreate } },
+        { provide: CommandBus, useValue: { execute } },
         {
           provide: UNIT_OF_WORK,
           useValue: {
@@ -109,10 +105,10 @@ describe('UpdateEmployeeHandler', () => {
     ).rejects.toThrow(EmployeeNotFoundException);
 
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
-  it('updates assignment and appends an employee.updated audit event', async () => {
+  it('updates assignment and records an employee update audit log', async () => {
     const result = await handler.execute(
       new UpdateEmployeeCommand(
         EMPLOYEE_ID,
@@ -125,23 +121,26 @@ describe('UpdateEmployeeHandler', () => {
 
     expect(validateDepartment).toHaveBeenCalledWith(NEXT_DEPARTMENT_ID);
     expect(update).toHaveBeenCalledTimes(1);
-    expect(outboxCreate).toHaveBeenCalledTimes(1);
-    expect(outboxCreate).toHaveBeenCalledWith({
-      eventType: EMPLOYEE_UPDATED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.EMPLOYEES,
-          entityId: EMPLOYEE_ID,
-          before: {
-            departmentId: DEPARTMENT_ID,
-            position: EmployeePosition.PHARMACIST,
-          },
-          after: {
-            departmentId: NEXT_DEPARTMENT_ID,
-            position: EmployeePosition.MANAGER,
-          },
-        },
+    expect(execute).toHaveBeenCalledTimes(1);
+    const auditCommand = execute.mock.calls[0][0];
+
+    expect(auditCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((auditCommand as RecordAuditLogCommand).props).toMatchObject({
+      actorId: headers.actorId,
+      actorType: 'user',
+      actorLabel: headers.actorLabel,
+      ipAddress: headers.userIp,
+      userAgent: headers.userAgent,
+      action: 'update',
+      entityType: EntityType.EMPLOYEES,
+      entityId: EMPLOYEE_ID,
+      before: {
+        departmentId: DEPARTMENT_ID,
+        position: EmployeePosition.PHARMACIST,
+      },
+      after: {
+        departmentId: NEXT_DEPARTMENT_ID,
+        position: EmployeePosition.MANAGER,
       },
     });
     expect(result).toMatchObject({
@@ -164,22 +163,23 @@ describe('UpdateEmployeeHandler', () => {
     );
 
     expect(update).toHaveBeenCalledTimes(1);
-    expect(outboxCreate).toHaveBeenCalledTimes(2);
-    expect(outboxCreate).toHaveBeenNthCalledWith(1, {
-      eventType: EMPLOYEE_STATUS_CHANGED_EVENT,
-      payload: {
-        headers,
-        audit: {
-          entityType: EntityType.EMPLOYEES,
-          entityId: EMPLOYEE_ID,
-          before: { status: EmployeeStatus.WORKING },
-          after: { status: EmployeeStatus.RESIGNED },
-        },
-      },
+    expect(execute).toHaveBeenCalledTimes(2);
+    const [statusCommand, deactivateCommand] = execute.mock.calls.map(
+      ([issuedCommand]) => issuedCommand,
+    );
+
+    expect(statusCommand).toBeInstanceOf(RecordAuditLogCommand);
+    expect((statusCommand as RecordAuditLogCommand).props).toMatchObject({
+      action: 'update',
+      entityType: EntityType.EMPLOYEES,
+      entityId: EMPLOYEE_ID,
+      before: { status: EmployeeStatus.WORKING },
+      after: { status: EmployeeStatus.RESIGNED },
     });
-    expect(outboxCreate).toHaveBeenNthCalledWith(2, {
-      eventType: EMPLOYEE_RESIGNED_EVENT,
-      payload: { employeeId: EMPLOYEE_ID, userId: USER_ID, headers },
+    expect(deactivateCommand).toBeInstanceOf(DeactivateUserCommand);
+    expect(deactivateCommand).toMatchObject({
+      userId: USER_ID,
+      headers,
     });
     expect(result.status).toBe(EmployeeStatus.RESIGNED);
   });
@@ -197,7 +197,7 @@ describe('UpdateEmployeeHandler', () => {
 
     expect(result.position).toBe(EmployeePosition.PHARMACIST);
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 
   it('rejects a disabled department without changing the employee', async () => {
@@ -216,6 +216,6 @@ describe('UpdateEmployeeHandler', () => {
     ).rejects.toThrow(DepartmentDisabledException);
 
     expect(update).not.toHaveBeenCalled();
-    expect(outboxCreate).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

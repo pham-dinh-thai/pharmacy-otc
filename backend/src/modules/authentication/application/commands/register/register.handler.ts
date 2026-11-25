@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RegisterCommand } from './register.command';
 import { Account } from '../../../domain/account.aggregate';
 import { Inject } from '@nestjs/common';
@@ -18,13 +18,8 @@ import {
   CREATE_CUSTOMER_PORT,
   type ICreateCustomerPort,
 } from './ports/create-customer.port';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import { ACCOUNT_SIGNED_UP_EVENT } from '../../../domain/events/account-signed-up.event';
-import { CUSTOMER_CREATED_EVENT } from '../../../../customers/domain/events/customer-created.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
 import { ActorType } from '../../../../audit-logs/domain/enums/actor-type.enum';
 
@@ -40,11 +35,10 @@ export class RegisterHandler implements ICommandHandler<RegisterCommand> {
     @Inject(CREATE_CUSTOMER_PORT)
     private readonly createCustomerPort: ICreateCustomerPort,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
-
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
+
+    private readonly commandBus: CommandBus,
   ) {}
 
   public async execute(command: RegisterCommand): Promise<void> {
@@ -67,46 +61,50 @@ export class RegisterHandler implements ICommandHandler<RegisterCommand> {
 
       this.accountsRepository.create(account);
 
-      await this.outboxRepository.create({
-        eventType: ACCOUNT_SIGNED_UP_EVENT,
-        payload: auditEventPayload(
-          {
-            actorId: user.id,
-            actorType: ActorType.USER,
-            actorLabel: command.email,
-            userIp: command.ip,
-            userAgent: command.userAgent,
-          },
-          {
-            entityType: EntityType.ACCOUNTS,
-            entityId: account.getId(),
-            after: {
-              accountId: account.getId(),
-              userId: account.getUserId(),
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(
+            {
+              actorId: user.id,
+              actorType: ActorType.USER,
+              actorLabel: command.email,
+              userIp: command.ip,
+              userAgent: command.userAgent,
             },
-          },
+            {
+              action: 'sign_up',
+              entityType: EntityType.ACCOUNTS,
+              entityId: account.getId(),
+              after: {
+                accountId: account.getId(),
+                userId: account.getUserId(),
+              },
+            },
+          ),
         ),
-      });
+      );
 
-      await this.outboxRepository.create({
-        eventType: CUSTOMER_CREATED_EVENT,
-        payload: auditEventPayload(
-          {
-            actorId: user.id,
-            actorType: ActorType.USER,
-            actorLabel: command.email,
-            userIp: command.ip,
-            userAgent: command.userAgent,
-          },
-          {
-            entityType: EntityType.CUSTOMERS,
-            entityId: customer.id,
-            after: {
-              userId: user.id,
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(
+            {
+              actorId: user.id,
+              actorType: ActorType.USER,
+              actorLabel: command.email,
+              userIp: command.ip,
+              userAgent: command.userAgent,
             },
-          },
+            {
+              action: 'create',
+              entityType: EntityType.CUSTOMERS,
+              entityId: customer.id,
+              after: {
+                userId: user.id,
+              },
+            },
+          ),
         ),
-      });
+      );
     });
   }
 }

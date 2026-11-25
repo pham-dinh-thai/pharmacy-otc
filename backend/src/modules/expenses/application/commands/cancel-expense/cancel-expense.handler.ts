@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { ExpenseNotFoundException } from '../../../domain/exceptions/expense.exceptions';
 import {
@@ -10,14 +10,10 @@ import {
   type IUnitOfWork,
   UNIT_OF_WORK,
 } from '../../../../../shared/modules/unit-of-work/unit-of-work';
-import {
-  type IOutboxRepository,
-  OUTBOX_REPOSITORY,
-} from '../../../../../shared/modules/outbox/domain/outbox.repository';
-import { CancelExpenseCommand } from './cancel-expense.command';
-import { EXPENSE_CANCELLED_EVENT } from '../../../domain/events/expense-cancelled.event';
-import { auditEventPayload } from '../../../../audit-logs/domain/events/audit-event.payload';
+import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
+import { recordAuditProps } from '../../../../audit-logs/application/record-audit-log-props';
 import { EntityType } from '../../../../audit-logs/domain/enums/entity-type.enum';
+import { CancelExpenseCommand } from './cancel-expense.command';
 
 @CommandHandler(CancelExpenseCommand)
 export class CancelExpenseHandler implements ICommandHandler<CancelExpenseCommand> {
@@ -25,8 +21,7 @@ export class CancelExpenseHandler implements ICommandHandler<CancelExpenseComman
     @Inject(EXPENSES_REPOSITORY)
     private readonly expensesRepository: IExpensesRepository,
 
-    @Inject(OUTBOX_REPOSITORY)
-    private readonly outboxRepository: IOutboxRepository,
+    private readonly commandBus: CommandBus,
 
     @Inject(UNIT_OF_WORK)
     private readonly unitOfWork: IUnitOfWork,
@@ -48,15 +43,17 @@ export class CancelExpenseHandler implements ICommandHandler<CancelExpenseComman
 
       await this.expensesRepository.update(expense);
 
-      await this.outboxRepository.create({
-        eventType: EXPENSE_CANCELLED_EVENT,
-        payload: auditEventPayload(command.headers, {
-          entityType: EntityType.EXPENSES,
-          entityId: expense.getId(),
-          before: { status: previousStatus },
-          after: expenseSnapshot(expense),
-        }),
-      });
+      await this.commandBus.execute(
+        new RecordAuditLogCommand(
+          recordAuditProps(command.headers, {
+            action: 'cancel',
+            entityType: EntityType.EXPENSES,
+            entityId: expense.getId(),
+            before: { status: previousStatus },
+            after: expenseSnapshot(expense),
+          }),
+        ),
+      );
 
       return { id: expense.getId() };
     });
