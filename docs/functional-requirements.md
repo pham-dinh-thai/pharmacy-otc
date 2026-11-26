@@ -21,7 +21,7 @@
 | Suppliers | ✅ | Tạo/list/sửa/xoá/khôi phục |
 | Goods receipts | ✅ | Tạo/list/detail/xác nhận/huỷ; UI phiếu nhập đầy đủ |
 | Inventories | ✅ | Xem tồn tổng hợp, danh sách/chi tiết lô, xuất và kiểm kê theo lô |
-| Orders | ⬜ | Module rỗng |
+| Orders | 🟡 | Tạo đơn từ checkout + trừ kho FEFO; khách xem/lọc đơn, huỷ đơn hoàn tồn đúng lô và mua lại vào giỏ; chưa có luồng xử lý của admin |
 | Expenses | ✅ | Tạo/list/detail/sửa lúc `pending`/duyệt/chi/huỷ; UI `/expenses` |
 | Audit logs | ✅ | List/filter + detail |
 | Reports | ⬜ | Chỉ có permission |
@@ -197,10 +197,11 @@ Form phiếu nhập tìm sản phẩm qua `GET /products?search=...` thay vì b�
 | FR-ORD-02 | Địa chỉ giao, phí giao, ghi chú | ⬜ |
 | FR-ORD-03 | Trạng thái đơn và lịch sử | ⬜ |
 | FR-ORD-04 | Trừ tồn theo lô khi xác nhận đơn | ✅ |
-| FR-ORD-05 | Huỷ đơn và hoàn tồn | ⬜ |
-| FR-ORD-06 | Khách xem đơn của mình | ⬜ |
+| FR-ORD-05 | Huỷ đơn và hoàn tồn | ✅ `PATCH /orders/:id/cancel` hoàn đúng lô đã xuất, chỉ cho `pending`/`confirmed`, ghi audit trong cùng UoW |
+| FR-ORD-06 | Khách xem đơn của mình | ✅ `GET /orders` lấy `userId` từ auth, lọc theo 6 trạng thái, phân trang cursor keyset `createdAt + id` cho infinite scroll; `GET /orders/:id` xem chi tiết; UI `/orders` và `/orders/[id]` |
 | FR-ORD-07 | Quản trị xử lý đơn | ⬜ |
 | FR-ORD-08 | Ghi audit | ✅ |
+| FR-ORD-09 | Khách mua lại đơn | ✅ `POST /orders/:id/reorder` thêm lại toàn bộ sản phẩm vào giỏ của người dùng hiện tại |
 
 ## 13. Expenses
 

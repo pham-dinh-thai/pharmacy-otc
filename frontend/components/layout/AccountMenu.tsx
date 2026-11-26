@@ -86,6 +86,14 @@ export function AccountMenu() {
           </Link>
 
           <Link
+            href="/orders"
+            onClick={() => setOpen(false)}
+            className={ITEM_CLASS}
+          >
+            Đơn hàng của tôi
+          </Link>
+
+          <Link
             href="/account/password"
             onClick={() => setOpen(false)}
             className={ITEM_CLASS}

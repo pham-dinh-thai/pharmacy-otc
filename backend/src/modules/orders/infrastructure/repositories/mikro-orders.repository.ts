@@ -26,7 +26,7 @@ export class MikroOrdersRepository implements IOrdersRepository {
   public constructor(private readonly entityManager: EntityManager) {}
 
   public async findPage(filters: FindOrdersFilters = {}): Promise<OrderPage> {
-    const where: FilterQuery<MikroOrder> = {
+    const baseWhere: FilterQuery<MikroOrder> = {
       ...(filters.userId ? { userId: filters.userId } : {}),
       ...(filters.checkoutId ? { checkoutId: filters.checkoutId } : {}),
       ...(filters.status && filters.status !== 'all'
@@ -37,21 +37,38 @@ export class MikroOrdersRepository implements IOrdersRepository {
         : {}),
     };
 
-    const [rows, total] = await this.entityManager.findAndCount(
-      MikroOrder,
-      where,
-      {
-        orderBy: { createdAt: 'desc', id: 'desc' },
-        ...(filters.limit !== undefined ? { limit: filters.limit } : {}),
-        ...(filters.offset !== undefined ? { offset: filters.offset } : {}),
-      },
-    );
+    const cursor = filters.before;
+    const where: FilterQuery<MikroOrder> = cursor
+      ? {
+          $and: [
+            baseWhere,
+            {
+              $or: [
+                { createdAt: { $lt: cursor.createdAt } },
+                {
+                  createdAt: cursor.createdAt,
+                  id: { $lt: cursor.id },
+                },
+              ],
+            },
+          ],
+        }
+      : baseWhere;
 
-    if (rows.length === 0) return { items: [], total };
+    const limit = filters.limit ?? 20;
+    const rows = await this.entityManager.find(MikroOrder, where, {
+      orderBy: { createdAt: 'desc', id: 'desc' },
+      limit: limit + 1,
+    });
+
+    const hasMore = rows.length > limit;
+    const pageRows = hasMore ? rows.slice(0, limit) : rows;
+
+    if (pageRows.length === 0) return { items: [], hasMore: false };
 
     const mikroLines = await this.entityManager.find(
       MikroOrderLine,
-      { orderId: { $in: rows.map((row) => row.id) } },
+      { orderId: { $in: pageRows.map((row) => row.id) } },
       { orderBy: { id: 'asc' } },
     );
 
@@ -64,10 +81,10 @@ export class MikroOrdersRepository implements IOrdersRepository {
     }
 
     return {
-      items: rows.map((row) =>
+      items: pageRows.map((row) =>
         OrderMapper.toDomain(row, linesByOrder.get(row.id) ?? []),
       ),
-      total,
+      hasMore,
     };
   }
 

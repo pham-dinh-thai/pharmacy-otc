@@ -82,6 +82,14 @@ export class Batch {
     this.updatedAt = new Date();
   }
 
+  public receive(quantity: number): void {
+    StockQuantity.assertPositive(quantity, 'Return quantity');
+
+    this.quantity = this.quantity.increase(quantity);
+
+    this.updatedAt = new Date();
+  }
+
   public reconcile(countedQuantity: number): void {
     this.quantity = StockQuantity.create(countedQuantity);
 

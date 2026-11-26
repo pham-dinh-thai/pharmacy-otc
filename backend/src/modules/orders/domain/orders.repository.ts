@@ -6,18 +6,23 @@ export type FindOrderOptions = {
   forUpdate?: boolean;
 };
 
+export type OrderCursor = {
+  createdAt: Date;
+  id: string;
+};
+
 export type FindOrdersFilters = {
   userId?: string;
   checkoutId?: string;
   status?: OrderStatus | 'all';
   paymentStatus?: OrderPaymentStatus | 'all';
   limit?: number;
-  offset?: number;
+  before?: OrderCursor;
 };
 
 export type OrderPage = {
   items: Order[];
-  total: number;
+  hasMore: boolean;
 };
 
 export interface IOrdersRepository {

@@ -3,6 +3,7 @@ import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { SecurityModule } from '../../shared/modules/security/security.module';
 import { StorefrontModule } from '../storefront/storefront.module';
 import { AddCartItemHandler } from './application/commands/add-cart-item/add-cart-item.handler';
+import { AddCartItemsHandler } from './application/commands/add-cart-items/add-cart-items.handler';
 import { ClearCartHandler } from './application/commands/clear-cart/clear-cart.handler';
 import { DeductCartItemsHandler } from './application/commands/deduct-cart-items/deduct-cart-items.handler';
 import { RemoveCartItemHandler } from './application/commands/remove-cart-item/remove-cart-item.handler';
@@ -29,6 +30,7 @@ import { CartsController } from './presentation/carts/carts.controller';
     { provide: CART_CATALOG, useClass: StorefrontCartCatalogAdapter },
     CartIdentityResolver,
     AddCartItemHandler,
+    AddCartItemsHandler,
     SetCartItemQuantityHandler,
     RemoveCartItemHandler,
     ClearCartHandler,

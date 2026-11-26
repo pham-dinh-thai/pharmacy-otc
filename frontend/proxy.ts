@@ -81,5 +81,6 @@ export const config = {
     '/employees/:path*',
     '/account/:path*',
     '/checkout/:path*',
+    '/orders/:path*',
   ],
 };

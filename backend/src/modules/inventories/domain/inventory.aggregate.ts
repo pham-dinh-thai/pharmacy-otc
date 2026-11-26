@@ -58,6 +58,16 @@ export class Inventory {
     return batch.getQuantity();
   }
 
+  public returnStock(batchId: string, quantity: number): number {
+    const batch = this.findBatchById(batchId);
+
+    batch.receive(quantity);
+
+    this.updatedBatches.push(batch);
+
+    return batch.getQuantity();
+  }
+
   public reconcileStock(batchId: string, countedQuantity: number): number {
     const batch = this.findBatchById(batchId);
 
