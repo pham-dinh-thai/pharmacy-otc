@@ -481,6 +481,12 @@ function DonePanel({
           Tiếp tục mua sắm
         </Link>
         <Link
+          href="/orders"
+          className="border border-rule px-5 py-2.5 text-[13px] font-semibold hover:border-ink"
+        >
+          Xem đơn hàng của tôi
+        </Link>
+        <Link
           href="/cart"
           className="border border-rule px-5 py-2.5 text-[13px] font-semibold hover:border-ink"
         >

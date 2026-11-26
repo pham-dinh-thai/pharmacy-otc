@@ -3,21 +3,33 @@ import Link from 'next/link';
 import { CartClient } from '@/components/cart/CartClient';
 import { Container } from '@/components/layout/Container';
 import { StorefrontShell } from '@/components/layout/StorefrontShell';
+import { FormMessage } from '@/components/roles/FormMessage';
+import { first } from '@/lib/list-filters';
 import { fetchStorefrontCategories } from '@/lib/storefront';
 
 export const metadata = {
   title: 'Giỏ hàng | PharmaOTC',
 };
 
-export default function CartPage() {
+export default function CartPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ updated?: string | string[] }>;
+}) {
   return (
     <Suspense fallback={<CartPageFallback />}>
-      <CartRoute />
+      <CartRoute searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function CartRoute() {
+async function CartRoute({
+  searchParams,
+}: {
+  searchParams: Promise<{ updated?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const updated = first(params.updated);
   const categories = await fetchStorefrontCategories();
 
   return (
@@ -42,6 +54,15 @@ async function CartRoute() {
             Kiểm tra sản phẩm và số lượng trước khi thanh toán.
           </p>
         </div>
+
+        {updated === 'reordered' && (
+          <div className="mt-6">
+            <FormMessage
+              tone="success"
+              message="Đã thêm các sản phẩm từ đơn hàng vào giỏ hàng."
+            />
+          </div>
+        )}
 
         <CartClient />
       </Container>
