@@ -1,4 +1,4 @@
-import { InvalidIdException } from '../domain/exceptions/value-object.exceptions';
+import { InvalidIdException } from '../exceptions/value-object.exceptions';
 import { Id } from './id.value-object';
 
 const UUID_V4 = '9f7a1c3e-2b4d-4a61-8f0e-1c2d3e4f5a6b';

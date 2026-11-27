@@ -1,5 +1,5 @@
 import { InvalidAuditLogException } from './exceptions/audit-log.exceptions';
-import { Id } from '../../../shared/value-objects/id.value-object';
+import { Id } from '../../../shared/domain/value-objects/id.value-object';
 import { ActorType } from './enums/actor-type.enum';
 import { AuditStatus } from './enums/audit-status.enum';
 import { EntityType } from './enums/entity-type.enum';

@@ -1,7 +1,7 @@
 import { ProductIdRequiredException } from '../../../shared/domain/exceptions/value-object.exceptions';
-import { Id } from '../../../shared/value-objects/id.value-object';
-import { Money } from '../../../shared/value-objects/money.value-object';
-import { Quantity } from '../../../shared/value-objects/quantity.value-object';
+import { Id } from '../../../shared/domain/value-objects/id.value-object';
+import { Money } from '../../../shared/domain/value-objects/money.value-object';
+import { Quantity } from '../../../shared/domain/value-objects/quantity.value-object';
 import {
   InvalidOrderLineQuantityException,
   InvalidOrderProductNameException,

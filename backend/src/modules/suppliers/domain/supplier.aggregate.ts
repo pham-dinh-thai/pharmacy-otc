@@ -2,7 +2,7 @@ import {
   SupplierAlreadyDeletedException,
   SupplierNotDeletedException,
 } from './exceptions/supplier.exceptions';
-import { Id } from '../../../shared/value-objects/id.value-object';
+import { Id } from '../../../shared/domain/value-objects/id.value-object';
 import { SupplierCode } from './value-objects/supplier-code.value-object';
 import { SupplierPhone } from './value-objects/supplier-phone.value-object';
 

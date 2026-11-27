@@ -25,6 +25,7 @@ import { MikroCheckout } from './src/modules/checkouts/infrastructure/entities/m
 import { MikroCheckoutLine } from './src/modules/checkouts/infrastructure/entities/mikro-checkout-line.entity';
 import { MikroOrder } from './src/modules/orders/infrastructure/entities/mikro-order.entity';
 import { MikroOrderLine } from './src/modules/orders/infrastructure/entities/mikro-order-line.entity';
+import { MikroPayment } from './src/modules/payments/infrastructure/entities/mikro-payment.entity';
 
 dotenv.config({ path: path.resolve('../.env') });
 
@@ -60,6 +61,7 @@ export default defineConfig({
     MikroCheckoutLine,
     MikroOrder,
     MikroOrderLine,
+    MikroPayment,
   ],
   entitiesTs: [
     MikroProduct,
@@ -86,6 +88,7 @@ export default defineConfig({
     MikroCheckoutLine,
     MikroOrder,
     MikroOrderLine,
+    MikroPayment,
   ],
 
   debug: process.env.NODE_ENV !== 'production',

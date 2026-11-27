@@ -55,6 +55,7 @@ export class CreateCheckoutHandler implements ICommandHandler<CreateCheckoutComm
         shippingName: command.shippingName,
         shippingAddress: command.shippingAddress,
         shippingPhone: command.shippingPhone,
+        paymentMethod: command.paymentMethod,
       });
 
       await this.checkoutsRepository.create(checkout);
@@ -69,6 +70,7 @@ export class CreateCheckoutHandler implements ICommandHandler<CreateCheckoutComm
               productIds: command.productIds,
               lineCount: lines.length,
               amount: checkout.getAmount().toString(),
+              paymentMethod: checkout.getPaymentMethod(),
             },
           }),
         ),

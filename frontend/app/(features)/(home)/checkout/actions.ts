@@ -4,7 +4,12 @@ import { redirect } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/account';
 import { authFetch } from '@/lib/auth';
 
-type CheckoutErrorCode = 'missing' | 'cart' | 'server';
+type EditErrorCode =
+  | 'checkout'
+  | 'expired'
+  | 'missing'
+  | 'status'
+  | 'server';
 type ConfirmErrorCode =
   | 'checkout'
   | 'expired'
@@ -15,16 +20,16 @@ type ConfirmErrorCode =
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function checkoutPath(
-  productIds: string[],
-  error?: CheckoutErrorCode,
-): string {
-  const params = new URLSearchParams();
-  for (const id of productIds) params.append('item', id);
+const PAYMENT_METHODS = ['cod', 'sepay', 'zalopay', 'vietqr'] as const;
+const MAX_NAME_LENGTH = 255;
+const MAX_ADDRESS_LENGTH = 500;
+const MAX_PHONE_LENGTH = 20;
+
+function editPath(checkoutId: string, error?: EditErrorCode): string {
+  const params = new URLSearchParams({ edit: checkoutId });
   if (error) params.set('error', error);
 
-  const query = params.toString();
-  return query ? `/checkout?${query}` : '/checkout';
+  return `/checkout?${params.toString()}`;
 }
 
 function confirmPath(checkoutId: string, error?: ConfirmErrorCode): string {
@@ -34,78 +39,88 @@ function confirmPath(checkoutId: string, error?: ConfirmErrorCode): string {
   return `/checkout?${params.toString()}`;
 }
 
-export async function createCheckoutAction(formData: FormData): Promise<void> {
-  const productIds = formData
-    .getAll('productIds')
-    .map((value) => String(value).trim())
-    .filter(Boolean);
-  const shippingName = String(formData.get('shippingName') ?? '').trim();
-  const shippingAddress = String(formData.get('shippingAddress') ?? '').trim();
-  const shippingPhone = String(formData.get('shippingPhone') ?? '').trim();
+function readDetails(formData: FormData): {
+  shippingName: string;
+  shippingAddress: string;
+  shippingPhone: string;
+  paymentMethod: string;
+} {
+  return {
+    shippingName: String(formData.get('shippingName') ?? '').trim(),
+    shippingAddress: String(formData.get('shippingAddress') ?? '').trim(),
+    shippingPhone: String(formData.get('shippingPhone') ?? '').trim(),
+    paymentMethod: String(formData.get('paymentMethod') ?? '').trim(),
+  };
+}
 
-  // Server Action là entry point công khai: phải tự kiểm tra auth, không chỉ
-  // dựa vào việc form chỉ được render cho user đã đăng nhập.
+function validDetails(details: ReturnType<typeof readDetails>): boolean {
+  return (
+    Boolean(details.shippingName) &&
+    details.shippingName.length <= MAX_NAME_LENGTH &&
+    Boolean(details.shippingAddress) &&
+    details.shippingAddress.length <= MAX_ADDRESS_LENGTH &&
+    Boolean(details.shippingPhone) &&
+    details.shippingPhone.length <= MAX_PHONE_LENGTH &&
+    (PAYMENT_METHODS as readonly string[]).includes(details.paymentMethod)
+  );
+}
+
+export async function updateCheckoutAction(formData: FormData): Promise<void> {
+  const checkoutId = String(formData.get('checkoutId') ?? '').trim();
+  const details = readDetails(formData);
+
   const user = await fetchCurrentUser();
   if (!user) {
-    redirect(
-      `/login?next=${encodeURIComponent(checkoutPath(productIds))}`,
-    );
+    redirect(`/login?next=${encodeURIComponent(editPath(checkoutId))}`);
   }
 
-  if (
-    productIds.length === 0 ||
-    !shippingName ||
-    !shippingAddress ||
-    !shippingPhone
-  ) {
-    redirect(checkoutPath(productIds, 'missing'));
+  if (!UUID_PATTERN.test(checkoutId)) {
+    redirect(editPath(checkoutId, 'checkout'));
+  }
+
+  if (!validDetails(details)) {
+    redirect(editPath(checkoutId, 'missing'));
   }
 
   let response: Response;
   try {
-    response = await authFetch('/checkouts', {
-      method: 'POST',
+    response = await authFetch(`/checkouts/${encodeURIComponent(checkoutId)}`, {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        productIds,
-        shippingName,
-        shippingAddress,
-        shippingPhone,
-      }),
+      body: JSON.stringify(details),
     });
   } catch {
-    redirect(checkoutPath(productIds, 'server'));
+    redirect(editPath(checkoutId, 'server'));
   }
 
   if (response.status === 401) {
-    redirect(
-      `/login?next=${encodeURIComponent(checkoutPath(productIds))}`,
-    );
+    redirect(`/login?next=${encodeURIComponent(editPath(checkoutId))}`);
   }
 
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as {
       code?: string;
     };
-    const isCartError = [
-      'CHECKOUT_NO_ITEMS',
-      'CHECKOUT_PRODUCT_NOT_IN_CART',
-      'CHECKOUT_PRODUCT_NOT_FOUND',
-    ].includes(body.code ?? '');
+    const code = body.code ?? '';
 
-    redirect(checkoutPath(productIds, isCartError ? 'cart' : 'server'));
+    const error: EditErrorCode =
+      code === 'CHECKOUT_NOT_FOUND'
+        ? 'checkout'
+        : code === 'CHECKOUT_EXPIRED'
+          ? 'expired'
+          : code === 'CAN_NOT_UPDATE_CHECKOUT_STATUS'
+            ? 'status'
+            : 'server';
+
+    redirect(editPath(checkoutId, error));
   }
 
-  const { id } = (await response.json()) as { id: string };
-  if (typeof id !== 'string' || !UUID_PATTERN.test(id)) {
-    redirect(checkoutPath(productIds, 'server'));
-  }
-
-  redirect(confirmPath(id));
+  redirect(confirmPath(checkoutId));
 }
 
 export async function confirmCheckoutAction(formData: FormData): Promise<void> {
   const checkoutId = String(formData.get('checkoutId') ?? '').trim();
+  const paymentMethod = String(formData.get('paymentMethod') ?? '').trim();
 
   const user = await fetchCurrentUser();
   if (!user) {
@@ -114,6 +129,10 @@ export async function confirmCheckoutAction(formData: FormData): Promise<void> {
 
   if (!UUID_PATTERN.test(checkoutId)) {
     redirect(confirmPath(checkoutId, 'checkout'));
+  }
+
+  if (!(PAYMENT_METHODS as readonly string[]).includes(paymentMethod)) {
+    redirect(confirmPath(checkoutId, 'server'));
   }
 
   let response: Response;
@@ -164,6 +183,14 @@ export async function confirmCheckoutAction(formData: FormData): Promise<void> {
     redirect(confirmPath(checkoutId, 'server'));
   }
 
-  const params = new URLSearchParams({ done: '1', id, order: orderId });
-  redirect(`/checkout?${params.toString()}`);
+  if (paymentMethod === 'cod') {
+    redirect('/orders');
+  }
+
+  const params = new URLSearchParams({
+    order: orderId,
+    checkout: id,
+    method: paymentMethod,
+  });
+  redirect(`/payment?${params.toString()}`);
 }

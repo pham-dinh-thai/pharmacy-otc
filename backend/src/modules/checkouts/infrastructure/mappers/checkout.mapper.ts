@@ -15,7 +15,9 @@ export class CheckoutMapper {
       shippingName: mikroCheckout.shippingName,
       shippingAddress: mikroCheckout.shippingAddress,
       shippingPhone: mikroCheckout.shippingPhone,
+      paymentMethod: mikroCheckout.paymentMethod,
       status: mikroCheckout.status,
+      confirmingAt: mikroCheckout.confirmingAt,
       confirmedAt: mikroCheckout.confirmedAt,
       cancelledAt: mikroCheckout.cancelledAt,
       createdAt: mikroCheckout.createdAt,
@@ -46,7 +48,9 @@ export class CheckoutMapper {
     mikroCheckout.shippingName = checkout.getShippingName();
     mikroCheckout.shippingAddress = checkout.getShippingAddress();
     mikroCheckout.shippingPhone = checkout.getShippingPhone();
+    mikroCheckout.paymentMethod = checkout.getPaymentMethod();
     mikroCheckout.status = checkout.getStatus();
+    mikroCheckout.confirmingAt = checkout.getConfirmingAt();
     mikroCheckout.confirmedAt = checkout.getConfirmedAt();
     mikroCheckout.cancelledAt = checkout.getCancelledAt();
     mikroCheckout.createdAt = checkout.getCreatedAt();

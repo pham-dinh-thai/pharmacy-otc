@@ -2,7 +2,7 @@ import {
   InvalidStockQuantityException,
   InsufficientStockException,
 } from '../../exceptions/inventory.exceptions';
-import { Quantity } from '../../../../../shared/value-objects/quantity.value-object';
+import { Quantity } from '../../../../../shared/domain/value-objects/quantity.value-object';
 
 export class StockQuantity {
   private constructor(private readonly quantity: Quantity) {}

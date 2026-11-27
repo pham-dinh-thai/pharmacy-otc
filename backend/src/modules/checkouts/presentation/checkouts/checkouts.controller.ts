@@ -12,12 +12,16 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ActorContext } from '../../../../shared/modules/security/actor-context.decorator';
 import { AuthGuard } from '../../../../shared/modules/security/auth.guard';
 import type { ActorHeaders } from '../../../../shared/types/actor-headers';
-import { ConfirmCheckoutCommand } from '../../application/commands/confirm-checkout/confirm-checkout.command';
+import {
+  ConfirmCheckoutCommand,
+  type ConfirmCheckoutResult,
+} from '../../application/commands/confirm-checkout/confirm-checkout.command';
 import { CreateCheckoutCommand } from '../../application/commands/create-checkout/create-checkout.command';
+import { UpdateCheckoutCommand } from '../../application/commands/update-checkout/update-checkout.command';
 import type { CheckoutDetailReadModel } from '../../application/queries/get-checkout/checkout-detail.read-model';
 import { GetCheckoutQuery } from '../../application/queries/get-checkout/get-checkout.query';
-import type { CheckoutStatus } from '../../domain/enums/checkout-status.enum';
 import { CreateCheckoutRequest } from './requests/create-checkout.request';
+import { UpdateCheckoutRequest } from './requests/update-checkout.request';
 
 @Controller('checkouts')
 @UseGuards(AuthGuard)
@@ -39,6 +43,7 @@ export class CheckoutsController {
         request.shippingName,
         request.shippingAddress,
         request.shippingPhone,
+        request.paymentMethod,
         headers,
       ),
     );
@@ -52,11 +57,29 @@ export class CheckoutsController {
     return this.queryBus.execute(new GetCheckoutQuery(id, headers));
   }
 
+  @Patch(':id')
+  public async update(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() request: UpdateCheckoutRequest,
+    @ActorContext() headers: ActorHeaders,
+  ): Promise<{ id: string }> {
+    return this.commandBus.execute(
+      new UpdateCheckoutCommand(
+        id,
+        request.shippingName,
+        request.shippingAddress,
+        request.shippingPhone,
+        request.paymentMethod,
+        headers,
+      ),
+    );
+  }
+
   @Patch(':id/confirm')
   public async confirm(
     @Param('id', new ParseUUIDPipe()) id: string,
     @ActorContext() headers: ActorHeaders,
-  ): Promise<{ id: string; status: CheckoutStatus; orderId: string }> {
+  ): Promise<ConfirmCheckoutResult> {
     return this.commandBus.execute(new ConfirmCheckoutCommand(id, headers));
   }
 }

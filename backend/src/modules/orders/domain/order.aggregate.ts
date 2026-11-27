@@ -1,5 +1,5 @@
-import { Id } from '../../../shared/value-objects/id.value-object';
-import { Money } from '../../../shared/value-objects/money.value-object';
+import { Id } from '../../../shared/domain/value-objects/id.value-object';
+import { Money } from '../../../shared/domain/value-objects/money.value-object';
 import { OrderLine } from './order-line.entity';
 import { OrderPaymentStatus } from './enums/order-payment-status.enum';
 import { OrderStatus } from './enums/order-status.enum';

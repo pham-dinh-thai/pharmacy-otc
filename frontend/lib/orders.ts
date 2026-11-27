@@ -78,5 +78,6 @@ export function formatOrderDate(value: string): string {
   return new Date(value).toLocaleString('vi-VN', {
     dateStyle: 'short',
     timeStyle: 'short',
+    timeZone: 'Asia/Ho_Chi_Minh',
   });
 }

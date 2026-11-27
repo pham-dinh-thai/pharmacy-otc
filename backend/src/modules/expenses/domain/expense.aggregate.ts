@@ -4,8 +4,8 @@ import {
   ExpenseNameRequiredException,
   InvalidExpenseDateException,
 } from './exceptions/expense.exceptions';
-import { Id } from '../../../shared/value-objects/id.value-object';
-import { Money } from '../../../shared/value-objects/money.value-object';
+import { Id } from '../../../shared/domain/value-objects/id.value-object';
+import { Money } from '../../../shared/domain/value-objects/money.value-object';
 import { ExpenseCategory } from './enums/expense-category.enum';
 import { ExpenseStatus } from './enums/expense-status.enum';
 import { PaymentMethod } from './enums/payment-method.enum';

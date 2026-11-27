@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { InvalidAmountException } from '../domain/exceptions/value-object.exceptions';
+import { InvalidAmountException } from '../exceptions/value-object.exceptions';
 import { UnitCost } from './unit-cost.value-object';
 
 describe('UnitCost', () => {

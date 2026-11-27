@@ -9,7 +9,17 @@ async function bootstrap() {
     logger: ['log', 'error', 'warn'],
   });
 
-  app.useSecurityHeaders();
+  app.useSecurityHeaders({
+    contentSecurityPolicy: {
+      directives: {
+        'form-action': [
+          "'self'",
+          'https://pay-sandbox.sepay.vn',
+          'https://pay.sepay.vn',
+        ],
+      },
+    },
+  });
   app.use(cookieParser());
   app.setGlobalPrefix('api');
   app.useGlobalPipes(

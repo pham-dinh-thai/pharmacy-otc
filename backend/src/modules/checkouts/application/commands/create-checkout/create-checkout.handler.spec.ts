@@ -1,5 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { CommandBus } from '@nestjs/cqrs';
+import { PaymentMethod } from '../../../../../shared/domain/enums/payment-method.enum';
 import { systemActorHeaders } from '../../../../../shared/types/actor-headers';
 import type { IUnitOfWork } from '../../../../../shared/modules/unit-of-work/unit-of-work';
 import { RecordAuditLogCommand } from '../../../../audit-logs/application/commands/record-audit-log/record-audit-log.command';
@@ -72,6 +73,7 @@ const setup = (
       'Nguyen Van A',
       '1 Nguyen Hue',
       '0901234567',
+      PaymentMethod.SEPAY,
       headers,
     );
 
@@ -120,6 +122,7 @@ describe('CreateCheckoutHandler', () => {
         productIds: [PRODUCT_ID],
         lineCount: 1,
         amount: (UNIT_PRICE * 3n).toString(),
+        paymentMethod: PaymentMethod.SEPAY,
       },
     });
 
@@ -127,6 +130,7 @@ describe('CreateCheckoutHandler', () => {
 
     expect(result.id).toBe(checkout.getId());
     expect(checkout.getUserId()).toBe(USER_ID);
+    expect(checkout.getPaymentMethod()).toBe(PaymentMethod.SEPAY);
     expect(checkout.getLines()).toHaveLength(1);
     expect(checkout.getLines()[0].getProductId()).toBe(PRODUCT_ID);
     expect(checkout.getLines()[0].getProductName()).toBe('Product');

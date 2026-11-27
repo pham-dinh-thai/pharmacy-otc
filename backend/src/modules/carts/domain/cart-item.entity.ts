@@ -1,6 +1,6 @@
 import { ProductIdRequiredException } from '../../../shared/domain/exceptions/value-object.exceptions';
-import { Id } from '../../../shared/value-objects/id.value-object';
-import { Quantity } from '../../../shared/value-objects/quantity.value-object';
+import { Id } from '../../../shared/domain/value-objects/id.value-object';
+import { Quantity } from '../../../shared/domain/value-objects/quantity.value-object';
 import { InvalidCartItemQuantityException } from './exceptions/cart.exceptions';
 
 export type CreateCartItemProps = {

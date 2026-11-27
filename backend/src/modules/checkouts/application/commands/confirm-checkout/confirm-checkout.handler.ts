@@ -13,9 +13,11 @@ import {
   CHECKOUTS_REPOSITORY,
   type ICheckoutRepository,
 } from '../../../domain/checkouts.repository';
-import type { CheckoutStatus } from '../../../domain/enums/checkout-status.enum';
 import { CheckoutNotFoundException } from '../../../domain/exceptions/checkout.exception';
+import { isOnlinePaymentMethod } from '../../../../../shared/domain/enums/payment-method.enum';
 import { ConfirmCheckoutCommand } from './confirm-checkout.command';
+import type { ConfirmCheckoutResult } from './confirm-checkout.command';
+import { OnlinePaymentRequestStrategyResolver } from './strategies/online-payment-request.strategy-resolver';
 
 @CommandHandler(ConfirmCheckoutCommand)
 export class ConfirmCheckoutHandler implements ICommandHandler<ConfirmCheckoutCommand> {
@@ -27,11 +29,13 @@ export class ConfirmCheckoutHandler implements ICommandHandler<ConfirmCheckoutCo
     private readonly checkoutsRepository: ICheckoutRepository,
 
     private readonly commandBus: CommandBus,
+
+    private readonly paymentRequestStrategies: OnlinePaymentRequestStrategyResolver,
   ) {}
 
   public async execute(
     command: ConfirmCheckoutCommand,
-  ): Promise<{ id: string; status: CheckoutStatus; orderId: string }> {
+  ): Promise<ConfirmCheckoutResult> {
     return this.unitOfWork.run(async () => {
       const checkout = await this.checkoutsRepository.findById(command.id, {
         forUpdate: true,
@@ -41,7 +45,13 @@ export class ConfirmCheckoutHandler implements ICommandHandler<ConfirmCheckoutCo
         throw new CheckoutNotFoundException(command.id);
       }
 
-      const beforeStatus = checkout.getStatus();
+      const before = {
+        shippingName: checkout.getShippingName(),
+        shippingAddress: checkout.getShippingAddress(),
+        shippingPhone: checkout.getShippingPhone(),
+        paymentMethod: checkout.getPaymentMethod(),
+        status: checkout.getStatus(),
+      };
       const lines = checkout.getLines().map((line) => ({
         productId: line.getProductId(),
         quantity: line.getQuantity(),
@@ -74,6 +84,17 @@ export class ConfirmCheckoutHandler implements ICommandHandler<ConfirmCheckoutCo
         ),
       );
 
+      const paymentMethod = checkout.getPaymentMethod();
+      const payment = isOnlinePaymentMethod(paymentMethod)
+        ? await this.paymentRequestStrategies
+            .resolve(paymentMethod)
+            .buildRequest({
+              orderId,
+              amount: checkout.getAmount(),
+              headers: command.headers,
+            })
+        : null;
+
       await this.commandBus.execute(
         new DeductCartItemsCommand(
           { userId: checkout.getUserId() },
@@ -90,13 +111,28 @@ export class ConfirmCheckoutHandler implements ICommandHandler<ConfirmCheckoutCo
             action: 'confirm',
             entityType: EntityType.CHECKOUTS,
             entityId: checkout.getId(),
-            before: { status: beforeStatus },
-            after: { status: checkout.getStatus(), orderId },
+            before,
+            after: {
+              shippingName: checkout.getShippingName(),
+              shippingAddress: checkout.getShippingAddress(),
+              shippingPhone: checkout.getShippingPhone(),
+              paymentMethod: checkout.getPaymentMethod(),
+              status: checkout.getStatus(),
+              orderId,
+              paymentMode: payment ? 'online' : 'offline',
+              provider: payment?.provider ?? null,
+            },
           }),
         ),
       );
 
-      return { id: checkout.getId(), status: checkout.getStatus(), orderId };
+      return {
+        id: checkout.getId(),
+        status: checkout.getStatus(),
+        orderId,
+        paymentMode: payment ? 'online' : 'offline',
+        provider: payment?.provider ?? null,
+      };
     });
   }
 }

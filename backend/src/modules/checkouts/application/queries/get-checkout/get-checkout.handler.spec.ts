@@ -1,4 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { PaymentMethod } from '../../../../../shared/domain/enums/payment-method.enum';
 import { systemActorHeaders } from '../../../../../shared/types/actor-headers';
 import { Checkout } from '../../../domain/checkout.aggregate';
 import { CheckoutLine } from '../../../domain/checkout-line.entity';
@@ -28,6 +29,7 @@ const buildCheckout = (userId = USER_ID): Checkout =>
     shippingName: 'Nguyen Van A',
     shippingAddress: '1 Nguyen Hue',
     shippingPhone: '0901234567',
+    paymentMethod: PaymentMethod.COD,
   });
 
 const setup = (checkout: Checkout | null = buildCheckout()) => {
@@ -52,6 +54,7 @@ describe('GetCheckoutHandler', () => {
     expect(findById).toHaveBeenCalledWith(CHECKOUT_ID);
     expect(result).toMatchObject({
       status: 'pending',
+      paymentMethod: PaymentMethod.COD,
       shippingName: 'Nguyen Van A',
       shippingAddress: '1 Nguyen Hue',
       shippingPhone: '0901234567',

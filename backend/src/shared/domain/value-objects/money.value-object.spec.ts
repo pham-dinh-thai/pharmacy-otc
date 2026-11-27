@@ -1,4 +1,4 @@
-import { InvalidAmountException } from '../domain/exceptions/value-object.exceptions';
+import { InvalidAmountException } from '../exceptions/value-object.exceptions';
 import { Money } from './money.value-object';
 
 describe('Money', () => {

@@ -5,6 +5,10 @@ import {
   PrimaryKey,
   Property,
 } from '@mikro-orm/decorators/legacy';
+import {
+  PAYMENT_METHODS,
+  PaymentMethod,
+} from '../../../../shared/domain/enums/payment-method.enum';
 import { MikroUser } from '../../../users/infrastructure/entities/mikro-user.entity';
 import { CheckoutStatus } from '../../domain/enums/checkout-status.enum';
 
@@ -32,6 +36,12 @@ export class MikroCheckout {
 
   @Enum(() => CheckoutStatus)
   status!: CheckoutStatus;
+
+  @Enum({ items: [...PAYMENT_METHODS], fieldName: 'payment_method' })
+  paymentMethod!: PaymentMethod;
+
+  @Property({ fieldName: 'confirming_at', type: 'timestamptz', nullable: true })
+  confirmingAt!: Date | null;
 
   @Property({ fieldName: 'confirmed_at', type: 'timestamptz', nullable: true })
   confirmedAt!: Date | null;

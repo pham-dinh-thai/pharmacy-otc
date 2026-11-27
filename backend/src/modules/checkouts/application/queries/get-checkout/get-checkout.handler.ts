@@ -31,6 +31,7 @@ export class GetCheckoutHandler implements IQueryHandler<
     return new CheckoutDetailReadModel(
       checkout.getId(),
       checkout.getStatus(),
+      checkout.getPaymentMethod(),
       checkout.getShippingName(),
       checkout.getShippingAddress(),
       checkout.getShippingPhone(),

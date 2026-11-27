@@ -1,4 +1,4 @@
-import { Money } from '../../../../shared/value-objects/money.value-object';
+import { Money } from '../../../../shared/domain/value-objects/money.value-object';
 
 /**
  * Product price in VND. VND has no minor unit, so values are whole numbers.

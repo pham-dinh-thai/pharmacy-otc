@@ -1,4 +1,4 @@
-import { InvalidAmountException } from '../domain/exceptions/value-object.exceptions';
+import { InvalidAmountException } from '../exceptions/value-object.exceptions';
 
 const INTEGER_PATTERN = /^-?\d+$/;
 const MAX_VALUE = 10n ** 15n;

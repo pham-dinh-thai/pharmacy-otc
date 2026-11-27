@@ -435,7 +435,7 @@ erDiagram
 | `customers.full_name`, `phone`, `date_of_birth`, `gender` | Hồ sơ khách |
 | `customer_addresses` | Nhiều địa chỉ, địa chỉ mặc định |
 | `orders`, `order_lines` | Đơn hàng, snapshot giá/tên sản phẩm |
-| `payments` | Thanh toán/COD/PSP |
+| `payments` | `id`, `order_id` FK, `provider` (`vnpay`/`cod`), `status` (`pending`/`success`/`failed`/`expired`), `amount` bigint, `transaction_ref` unique (idempotency IPN), `provider_transaction_no`, `bank_code`, `response_code`, `provider_payload` jsonb, `paid_at`, `expires_at`, `created_at`, `updated_at` |
 | `stock_movements` | Lịch sử nhập/xuất/điều chỉnh (nếu cần audit sâu hơn) |
 | `product_batches` view/API | Đọc lô theo sản phẩm |
 

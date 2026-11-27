@@ -61,9 +61,12 @@ export interface CheckoutLineResponse {
   lineTotal: string;
 }
 
+export type PaymentMethod = 'cod' | 'sepay' | 'zalopay' | 'vietqr';
+
 export interface CheckoutDetailResponse {
   id: string;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'expired';
+  status: 'pending' | 'confirming' | 'confirmed' | 'cancelled' | 'expired';
+  paymentMethod: PaymentMethod;
   shippingName: string;
   shippingAddress: string;
   shippingPhone: string;
@@ -77,4 +80,16 @@ export interface ConfirmCheckoutResponse {
   id: string;
   status: 'confirmed';
   orderId: string;
+}
+
+export interface PaymentGatewayResponse {
+  orderId: string;
+  provider: 'sepay' | 'zalopay' | 'vietqr';
+  status: 'pending' | 'success' | 'failed' | 'expired';
+  amount: string;
+  transactionRef: string;
+  gateway: {
+    url: string;
+    fields: { name: string; value: string }[];
+  };
 }

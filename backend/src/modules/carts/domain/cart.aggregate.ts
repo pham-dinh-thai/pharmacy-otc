@@ -1,5 +1,5 @@
-import { Quantity } from '../../../shared/value-objects/quantity.value-object';
-import { Id } from '../../../shared/value-objects/id.value-object';
+import { Quantity } from '../../../shared/domain/value-objects/quantity.value-object';
+import { Id } from '../../../shared/domain/value-objects/id.value-object';
 import { CartItem } from './cart-item.entity';
 import type { CartIdentity } from './cart-identity';
 import {

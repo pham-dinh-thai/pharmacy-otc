@@ -1,4 +1,4 @@
-import { InvalidQuantityException } from '../domain/exceptions/value-object.exceptions';
+import { InvalidQuantityException } from '../exceptions/value-object.exceptions';
 
 export class Quantity {
   private constructor(private readonly value: number) {}

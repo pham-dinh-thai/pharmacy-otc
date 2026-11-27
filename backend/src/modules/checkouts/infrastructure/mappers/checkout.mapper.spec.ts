@@ -1,3 +1,4 @@
+import { PaymentMethod } from '../../../../shared/domain/enums/payment-method.enum';
 import { Checkout } from '../../domain/checkout.aggregate';
 import { CheckoutLine } from '../../domain/checkout-line.entity';
 import { CheckoutStatus } from '../../domain/enums/checkout-status.enum';
@@ -13,6 +14,7 @@ describe('CheckoutMapper', () => {
       shippingName: 'Nguyen Van A',
       shippingAddress: '1 Nguyen Hue',
       shippingPhone: '0901234567',
+      paymentMethod: PaymentMethod.VIETQR,
       lines: [
         CheckoutLine.create({
           productId: PRODUCT_ID,
@@ -32,6 +34,7 @@ describe('CheckoutMapper', () => {
     expect(mikroCheckout.id).toBe(checkout.getId());
     expect(mikroCheckout.userId).toBe(USER_ID);
     expect(mikroCheckout.status).toBe(CheckoutStatus.PENDING);
+    expect(mikroCheckout.paymentMethod).toBe(PaymentMethod.VIETQR);
     expect(lines).toHaveLength(1);
     expect(lines[0]).toMatchObject({
       checkoutId: checkout.getId(),
@@ -52,6 +55,7 @@ describe('CheckoutMapper', () => {
     expect(restored.getId()).toBe(checkout.getId());
     expect(restored.getUserId()).toBe(USER_ID);
     expect(restored.getStatus()).toBe(CheckoutStatus.PENDING);
+    expect(restored.getPaymentMethod()).toBe(PaymentMethod.VIETQR);
     expect(restored.getLines()).toHaveLength(1);
     expect(restored.getLines()[0].getProductId()).toBe(PRODUCT_ID);
     expect(restored.getLines()[0].getProductName()).toBe('Paracetamol 500mg');

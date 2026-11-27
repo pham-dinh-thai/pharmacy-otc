@@ -1,5 +1,5 @@
 import { type DomainException } from '../../../shared/domain/exceptions/domain.exception';
-import { Id } from '../../../shared/value-objects/id.value-object';
+import { Id } from '../../../shared/domain/value-objects/id.value-object';
 import { EmployeeStatus } from './enums/employee-status.enum';
 import { EmployeePosition } from './enums/employee-position.enum';
 import {

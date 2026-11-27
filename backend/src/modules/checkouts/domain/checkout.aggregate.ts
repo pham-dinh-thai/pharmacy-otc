@@ -1,5 +1,6 @@
-import { Id } from '../../../shared/value-objects/id.value-object';
-import { Money } from '../../../shared/value-objects/money.value-object';
+import { PaymentMethod } from '../../../shared/domain/enums/payment-method.enum';
+import { Id } from '../../../shared/domain/value-objects/id.value-object';
+import { Money } from '../../../shared/domain/value-objects/money.value-object';
 import { CheckoutLine } from './checkout-line.entity';
 import { CheckoutStatus } from './enums/checkout-status.enum';
 import {
@@ -13,6 +14,7 @@ export type CreateCheckoutProps = {
   shippingName: string;
   shippingAddress: string;
   shippingPhone: string;
+  paymentMethod: PaymentMethod;
 };
 
 export type FromPersistentCheckoutProps = {
@@ -22,11 +24,20 @@ export type FromPersistentCheckoutProps = {
   shippingName: string;
   shippingAddress: string;
   shippingPhone: string;
+  paymentMethod: PaymentMethod;
   status: CheckoutStatus;
+  confirmingAt: Date | null;
   confirmedAt: Date | null;
   cancelledAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+};
+
+export type UpdateCheckoutProps = {
+  shippingName: string;
+  shippingAddress: string;
+  shippingPhone: string;
+  paymentMethod: PaymentMethod;
 };
 
 export class Checkout {
@@ -37,7 +48,9 @@ export class Checkout {
     private shippingName: string,
     private shippingAddress: string,
     private shippingPhone: string,
+    private paymentMethod: PaymentMethod,
     private status: CheckoutStatus,
+    private confirmingAt: Date | null,
     private confirmedAt: Date | null,
     private cancelledAt: Date | null,
     private readonly createdAt: Date,
@@ -54,7 +67,9 @@ export class Checkout {
       props.shippingName,
       props.shippingAddress,
       props.shippingPhone,
+      props.paymentMethod,
       CheckoutStatus.PENDING,
+      null,
       null,
       null,
       now,
@@ -70,7 +85,9 @@ export class Checkout {
       props.shippingName,
       props.shippingAddress,
       props.shippingPhone,
+      props.paymentMethod,
       props.status,
+      props.confirmingAt,
       props.confirmedAt,
       props.cancelledAt,
       props.createdAt,
@@ -78,8 +95,25 @@ export class Checkout {
     );
   }
 
+  public update(props: UpdateCheckoutProps, now = new Date()): void {
+    this.assertEditable(now);
+
+    this.updateShippingInfo(
+      props.shippingName,
+      props.shippingAddress,
+      props.shippingPhone,
+    );
+
+    this.updatePaymentMethod(props.paymentMethod);
+
+    this.status = CheckoutStatus.CONFIRMING;
+
+    this.confirmingAt = now;
+    this.updatedAt = now;
+  }
+
   public confirm(now = new Date()): void {
-    this.assertPending(now);
+    this.assertEditable(now);
 
     this.status = CheckoutStatus.CONFIRMED;
 
@@ -88,7 +122,7 @@ export class Checkout {
   }
 
   public cancel(now = new Date()): void {
-    this.assertPending(now);
+    this.assertEditable(now);
 
     this.status = CheckoutStatus.CANCELLED;
 
@@ -129,12 +163,20 @@ export class Checkout {
     return this.shippingPhone;
   }
 
+  public getPaymentMethod(): PaymentMethod {
+    return this.paymentMethod;
+  }
+
   public getStatus(): CheckoutStatus {
     return this.status;
   }
 
   public getExpiresAt(): Date {
     return new Date(this.createdAt.getTime() + 30 * 60 * 1000); // 30 Mins after created
+  }
+
+  public getConfirmingAt(): Date | null {
+    return this.confirmingAt;
   }
 
   public getConfirmedAt(): Date | null {
@@ -153,13 +195,30 @@ export class Checkout {
     return this.updatedAt;
   }
 
-  private assertPending(now: Date): void {
-    if (this.status !== CheckoutStatus.PENDING) {
+  private assertEditable(now: Date): void {
+    if (
+      this.status !== CheckoutStatus.PENDING &&
+      this.status !== CheckoutStatus.CONFIRMING
+    ) {
       throw new CanNotUpdateCheckoutStatusException();
     }
 
     if (this.getExpiresAt() <= now) {
       throw new CheckoutExpiredException();
     }
+  }
+
+  private updateShippingInfo(
+    shippingName: string,
+    shippingAddress: string,
+    shippingPhone: string,
+  ): void {
+    this.shippingName = shippingName;
+    this.shippingAddress = shippingAddress;
+    this.shippingPhone = shippingPhone;
+  }
+
+  private updatePaymentMethod(paymentMethod: PaymentMethod): void {
+    this.paymentMethod = paymentMethod;
   }
 }

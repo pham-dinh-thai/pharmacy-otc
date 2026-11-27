@@ -1,6 +1,6 @@
 import { Cart } from '../../domain/cart.aggregate';
 import { CartItem } from '../../domain/cart-item.entity';
-import { Money } from '../../../../shared/value-objects/money.value-object';
+import { Money } from '../../../../shared/domain/value-objects/money.value-object';
 import type { StorefrontProduct } from '../../../storefront/application/storefront.read-model';
 import { CartItemReadModel, CartReadModel } from '../cart.read-model';
 

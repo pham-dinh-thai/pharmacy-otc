@@ -1,5 +1,5 @@
-import { InvalidIdException } from '../domain/exceptions/value-object.exceptions';
 import { randomBytes, randomUUID } from 'crypto';
+import { InvalidIdException } from '../exceptions/value-object.exceptions';
 
 export type IdFormat = 'uuid' | 'sequence';
 

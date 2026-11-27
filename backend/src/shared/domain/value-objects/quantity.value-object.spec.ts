@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { InvalidQuantityException } from '../domain/exceptions/value-object.exceptions';
+import { InvalidQuantityException } from '../exceptions/value-object.exceptions';
 import { Quantity } from './quantity.value-object';
 
 describe('Quantity', () => {
